@@ -31,13 +31,11 @@
 
     header img {
       max-height: 50px;
-      vertical-align: middle;
     }
 
     .navbar {
       display: flex;
       justify-content: center;
-      align-items: center;
       background: var(--primary-green);
       padding: 1rem;
       flex-wrap: wrap;
@@ -48,17 +46,6 @@
       text-decoration: none;
       font-weight: 600;
       margin: 0 1rem;
-      position: relative;
-    }
-
-    .navbar a:hover::after {
-      content: '';
-      position: absolute;
-      width: 100%;
-      height: 2px;
-      background: white;
-      bottom: -4px;
-      left: 0;
     }
 
     .dropdown {
@@ -70,63 +57,55 @@
       position: absolute;
       background-color: white;
       min-width: 180px;
-      box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
       z-index: 1;
       top: 100%;
-      animation: fadeIn 0.3s ease-in-out;
     }
 
     .dropdown-content a {
       color: #333;
       padding: 12px 16px;
-      text-decoration: none;
       display: flex;
-      align-items: center;
       gap: 10px;
-    }
-
-    .dropdown-content a:hover {
-      background-color: #f1f1f1;
+      text-decoration: none;
     }
 
     .dropdown:hover .dropdown-content {
       display: block;
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
     .hero {
-      position: relative;
       height: 500px;
-      overflow: hidden;
-      color: white;
+      background: url('https://via.placeholder.com/1600x500?text=VendPlug+Hero') no-repeat center center/cover;
       display: flex;
       align-items: center;
       justify-content: center;
       text-align: center;
+      color: white;
+      position: relative;
     }
 
     .hero::before {
       content: '';
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: url('https://via.placeholder.com/1920x500') no-repeat center center/cover;
-      opacity: 0.3;
+      inset: 0;
+      background-color: rgba(0,0,0,0.4);
     }
 
     .hero-content {
-      z-index: 2;
+      position: relative;
+      z-index: 1;
     }
 
-    .hero h1 {
-      font-size: 3rem;
-      margin-bottom: 1rem;
+    .cta-button {
+      background: var(--primary-green);
+      color: white;
+      padding: 0.8rem 2rem;
+      border: none;
+      border-radius: 5px;
+      font-size: 1rem;
+      margin-top: 1rem;
+      cursor: pointer;
     }
 
     .section {
@@ -136,24 +115,46 @@
       text-align: center;
     }
 
-    .section:nth-child(even) {
-      background: white;
+    .carousel {
+      position: relative;
+      max-width: 1000px;
+      margin: auto;
+      overflow: hidden;
     }
 
-    .cta-button {
-      background: var(--primary-green);
+    .slides {
+      display: flex;
+      width: 300%;
+      animation: slide 15s infinite;
+    }
+
+    .slide {
+      width: 100%;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .slide img {
+      width: 100%;
+      height: 400px;
+      object-fit: cover;
+    }
+
+    .caption {
+      position: absolute;
+      bottom: 20px;
+      left: 30px;
+      background-color: rgba(0,0,0,0.6);
       color: white;
-      padding: 0.9rem 2rem;
-      border: none;
-      font-size: 1rem;
-      border-radius: 6px;
-      cursor: pointer;
-      margin-top: 1rem;
-      transition: all 0.3s;
+      padding: 10px 20px;
+      border-radius: 5px;
     }
 
-    .cta-button:hover {
-      background: #2e892a;
+    @keyframes slide {
+      0%, 20% { transform: translateX(0); }
+      25%, 45% { transform: translateX(-100%); }
+      50%, 70% { transform: translateX(-200%); }
+      75%, 100% { transform: translateX(0); }
     }
 
     .faq-item {
@@ -161,51 +162,19 @@
       margin-bottom: 1.5rem;
     }
 
-    .faq-item h3 {
-      color: var(--primary-green);
-      font-size: 1.2rem;
-    }
-
-    .faq-item p {
-      font-size: 1rem;
-      color: #555;
-      margin-top: 0.5rem;
-    }
-
-    input[type="email"] {
-      padding: 0.7rem;
-      font-size: 1rem;
-      width: 250px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      margin-top: 1rem;
-    }
-
     footer {
-      background: var(--dark-bg);
+      background-color: var(--dark-bg);
       color: white;
-      text-align: center;
       padding: 1.5rem;
+      text-align: center;
       font-size: 0.9rem;
-    }
-
-    /* Fade-in animation */
-    .fade-in-section {
-      opacity: 0;
-      transform: translateY(20px);
-      transition: opacity 0.8s ease-out, transform 0.8s ease-out;
-    }
-
-    .fade-in-section.visible {
-      opacity: 1;
-      transform: translateY(0);
     }
   </style>
 </head>
 <body>
 
 <header>
-  <img src="logo.png" alt="VendPlug Logo">
+  <img src="logo.png" alt="VendPlug Logo" />
 </header>
 
 <nav class="navbar">
@@ -218,31 +187,43 @@
     <div class="dropdown-content">
       <a href="#faq"><i class="fa-solid fa-circle-question"></i> FAQs</a>
       <a href="#contact"><i class="fa-solid fa-envelope"></i> Contact</a>
-      <a href="#waitlist"><i class="fa-solid fa-clock"></i> Join Waitlist</a>
+      <a href="#waitlist"><i class="fa-solid fa-clock"></i> Waitlist</a>
     </div>
   </div>
 </nav>
 
-<section class="hero fade-in-section">
+<section class="hero">
   <div class="hero-content">
     <h1>Redefining Local Commerce</h1>
-    <p style="font-size: 1.2rem;">Shop Nigeria’s markets with ease using VendPlug’s tech-powered platform.</p>
-    <button class="cta-button" onclick="document.getElementById('waitlist').scrollIntoView({behavior: 'smooth'});">
+    <p>Shop Nigeria’s markets with ease using VendPlug’s tech-powered platform.</p>
+    <button class="cta-button" onclick="document.getElementById('waitlist').scrollIntoView({behavior: 'smooth'})">
       Join Our Waitlist
     </button>
   </div>
 </section>
 
-<section id="about" class="section fade-in-section">
-  <h2>Why We Built VendPlug</h2>
-  <p style="max-width:800px;margin:auto;font-size:18px;line-height:1.6;">
-    VendPlug was born from a simple observation: shopping in Nigeria’s local markets is chaotic, time-consuming, and largely offline. 
-    With millions relying on these informal channels every day, we saw an opportunity to introduce structure, technology, and trust.
-    <br><br>
-    Our mission is to build the digital operating system for Africa’s traditional markets — a platform where buyers, vendors, and agents connect seamlessly to buy and sell goods across cities and communities.
-  </p>
+<section id="showcase" class="section">
+  <h2>See VendPlug in Action</h2>
+  <div class="carousel">
+    <div class="slides">
+      <div class="slide">
+        <img src="https://via.placeholder.com/1000x400?text=Local+Markets+in+Nigeria" alt="Local Market" />
+        <div class="caption">Connecting buyers to real Nigerian markets</div>
+      </div>
+      <div class="slide">
+        <img src="https://via.placeholder.com/1000x400?text=Trusted+Delivery" alt="Delivery" />
+        <div class="caption">Delivery with trust and speed</div>
+      </div>
+      <div class="slide">
+        <img src="https://via.placeholder.com/1000x400?text=Escrow+Wallet+Protection" alt="Escrow" />
+        <div class="caption">Secure Escrow Wallet for every transaction</div>
+      </div>
+    </div>
+  </div>
 </section>
 
+
+<!-- Escrow Section -->
 <section id="escrow" class="section fade-in-section" style="background:#fff;">
   <h2>Escrow for Safer Marketplaces</h2>
   <p style="max-width:800px;margin:auto;font-size:18px;line-height:1.6;">
@@ -252,6 +233,7 @@
   <button class="cta-button" onclick="alert('More about Escrow coming soon!')">Learn More</button>
 </section>
 
+<!-- Team Section -->
 <section id="team" class="section fade-in-section">
   <h2>Faces of VendPlug</h2>
   <div style="display:flex;justify-content:center;flex-wrap:wrap;gap:40px;margin-top:30px;">
@@ -268,6 +250,7 @@
   </div>
 </section>
 
+<!-- Locations Section -->
 <section id="locations" class="section fade-in-section" style="background:#f7fff9;">
   <h2>Where We Operate</h2>
   <div style="display:flex;justify-content:center;gap:40px;flex-wrap:wrap;margin-top:30px;">
@@ -289,6 +272,7 @@
   </div>
 </section>
 
+<!-- Security Section -->
 <section id="security" class="section fade-in-section">
   <h2>Secure Payments, Peace of Mind</h2>
   <div style="display:flex;justify-content:center;gap:40px;flex-wrap:wrap;margin-top:30px;">
@@ -310,18 +294,7 @@
   </div>
 </section>
 
-<section id="faq" class="section fade-in-section">
-  <h2>Frequently Asked Questions</h2>
-  <div class="faq-item">
-    <h3>🔐 What is VendPlug Escrow?</h3>
-    <p>VendPlug Escrow is a secure payment solution that holds funds until a buyer confirms they have received the product as described.</p>
-  </div>
-  <div class="faq-item">
-    <h3>🤝 Can I use VendPlug if I don’t live in a supported city?</h3>
-    <p>We’re growing fast! You can join the waitlist and we'll notify you when we launch in your area.</p>
-  </div>
-</section>
-
+<!-- Waitlist Section -->
 <section id="waitlist" class="section fade-in-section" style="background:#fff;">
   <h2>Join the Waitlist</h2>
   <p>Be the first to know when we launch in your area.</p>
@@ -330,35 +303,31 @@
   <button class="cta-button" style="margin-top:1rem;">Notify Me</button>
 </section>
 
+<!-- Contact Section -->
 <section id="contact" class="section fade-in-section">
   <h2>Contact Us</h2>
   <p>Have a question or suggestion? Reach out via email:</p>
   <p><strong>info@vendplug.com.ng</strong></p>
 </section>
+<section id="faq" class="section">
+  <h2>Frequently Asked Questions</h2>
+  <div class="faq-item">
+    <h3>🔐 What is VendPlug Escrow?</h3>
+    <p>VendPlug Escrow holds funds securely until the buyer confirms goods have been received.</p>
+  </div>
+  <div class="faq-item">
+    <h3>🤝 Can I use VendPlug if I don’t live in a supported city?</h3>
+    <p>Yes! Join the waitlist and be notified when we launch in your area.</p>
+  </div>
+  <div class="faq-item">
+    <h3>🧾 Are there fees?</h3>
+    <p>It’s free for buyers. Small fees may apply for vendors or agents depending on service.</p>
+  </div>
+</section>
 
 <footer>
   &copy; 2025 VendPlug. All rights reserved.
 </footer>
-
-<!-- Scroll animation script -->
-<script>
-  const faders = document.querySelectorAll('.fade-in-section');
-
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('visible');
-        observer.unobserve(entry.target);
-      }
-    });
-  }, {
-    threshold: 0.1
-  });
-
-  faders.forEach(section => {
-    observer.observe(section);
-  });
-</script>
 
 </body>
 </html>
