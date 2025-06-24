@@ -13,6 +13,18 @@
       --light-bg: #f4fff8;
       --dark-bg: #001c12;
     }
+<script>
+  const track = document.querySelector('.carousel-track');
+  let index = 0;
+
+  function moveCarousel() {
+    index++;
+    if (index >= track.children.length) index = 0;
+    track.style.transform = `translateX(-${index * 100}%)`;
+  }
+
+  setInterval(moveCarousel, 3500); // 3.5 seconds per slide
+</script>
 
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -116,29 +128,37 @@
     }
 
     .carousel {
-      position: relative;
-      max-width: 1000px;
-      margin: auto;
-      overflow: hidden;
-    }
+  overflow: hidden;
+  position: relative;
+  max-width: 1000px;
+  margin: 2rem auto;
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
 
-    .slides {
-      display: flex;
-      width: 300%;
-      animation: slide 15s infinite;
-    }
+.carousel-track {
+  display: flex;
+  transition: transform 0.6s ease;
+}
 
-    .slide {
-      width: 100%;
-      flex-shrink: 0;
-      position: relative;
-    }
+.slide {
+  flex: 0 0 100%;
+  text-align: center;
+}
 
-    .slide img {
-      width: 100%;
-      height: 400px;
-      object-fit: cover;
-    }
+.slide img {
+  max-width: 100%;
+  height: 450px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.slide p {
+  margin-top: 10px;
+  font-size: 1rem;
+  color: #555;
+}
 
     .caption {
       position: absolute;
@@ -212,26 +232,26 @@
   <p>Fund your wallet, Upload a shopping list , and leave the rest to VendPlug.</p>
 </section>
 
-<section id="showcase" class="section">
-  <h2>See VendPlug in Action</h2>
+
+  <section id="carousel" class="section" style="background:#f9f9f9;">
+  <h2>VendPlug in Action</h2>
   <div class="carousel">
-    <div class="slides">
+    <div class="carousel-track">
       <div class="slide">
-        <img src="https://via.placeholder.com/1000x400?text=Local+Markets+in+Nigeria" alt="Local Market" />
-        <div class="caption">Connecting buyers to real Nigerian markets</div>
+        <img src="vendplug-action-1.png" alt="Pickup Station" />
+        <p>Our agent at a VendPlug Pickup Station</p>
       </div>
       <div class="slide">
-        <img src="https://via.placeholder.com/1000x400?text=Trusted+Delivery" alt="Delivery" />
-        <div class="caption">Delivery with trust and speed</div>
+        <img src="vendplug-action-2.png" alt="Delivery to Customer" />
+        <p>Delivering to a happy customer</p>
       </div>
       <div class="slide">
-        <img src="https://via.placeholder.com/1000x400?text=Escrow+Wallet+Protection" alt="Escrow" />
-        <div class="caption">Secure Escrow Wallet for every transaction</div>
+        <img src="vendplug-action-3.png" alt="Shopping with Vendor" />
+        <p>Helping vendors fulfill your list</p>
       </div>
     </div>
   </div>
 </section>
-
 
 <!-- Escrow Section -->
 <section id="escrow" class="section fade-in-section" style="background:#fff;">
