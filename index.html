@@ -41,7 +41,6 @@
       background: var(--primary-green);
       padding: 1rem;
       flex-wrap: wrap;
-      position: relative;
     }
 
     .navbar a {
@@ -173,14 +172,6 @@
       margin-top: 0.5rem;
     }
 
-    footer {
-      background: var(--dark-bg);
-      color: white;
-      text-align: center;
-      padding: 1.5rem;
-      font-size: 0.9rem;
-    }
-
     input[type="email"] {
       padding: 0.7rem;
       font-size: 1rem;
@@ -188,6 +179,14 @@
       border: 1px solid #ccc;
       border-radius: 5px;
       margin-top: 1rem;
+    }
+
+    footer {
+      background: var(--dark-bg);
+      color: white;
+      text-align: center;
+      padding: 1.5rem;
+      font-size: 0.9rem;
     }
   </style>
 </head>
@@ -205,6 +204,8 @@
   <div class="dropdown">
     <a href="#">More</a>
     <div class="dropdown-content">
+      <a href="#locations"><i class="fa-solid fa-map-location-dot"></i> Locations</a>
+      <a href="#security"><i class="fa-solid fa-lock"></i> Security</a>
       <a href="#faq"><i class="fa-solid fa-circle-question"></i> FAQs</a>
       <a href="#contact"><i class="fa-solid fa-envelope"></i> Contact</a>
       <a href="#waitlist"><i class="fa-solid fa-clock"></i> Join Waitlist</a>
@@ -222,6 +223,81 @@
   </div>
 </section>
 
+<section id="about" class="section">
+  <h2>Why We Built VendPlug</h2>
+  <p style="max-width:800px;margin:auto;font-size:18px;line-height:1.6;">
+    VendPlug was born from a simple observation: shopping in Nigeria’s local markets is chaotic, time-consuming, and largely offline. 
+    With millions relying on these informal channels every day, we saw an opportunity to introduce structure, technology, and trust.<br><br>
+    Our mission is to build the digital operating system for Africa’s traditional markets — a platform where buyers, vendors, and agents connect seamlessly to buy and sell goods across cities and communities.
+  </p>
+</section>
+
+<section id="escrow" class="section" style="background:#fff;">
+  <h2>Escrow for Safer Marketplaces</h2>
+  <p style="max-width:800px;margin:auto;font-size:18px;line-height:1.6;">
+    Marketplaces like Jiji don’t protect buyers—we do. VendPlug’s escrow ensures money is only released when buyers confirm receipt of goods. We're building trust into every transaction.
+  </p>
+  <button class="cta-button" onclick="alert('More about Escrow coming soon!')">Learn More</button>
+</section>
+
+<section id="team" class="section">
+  <h2>Faces of VendPlug</h2>
+  <div style="display:flex;justify-content:center;flex-wrap:wrap;gap:40px;margin-top:30px;">
+    <div style="max-width:200px;text-align:center;">
+      <img src="https://via.placeholder.com/150" alt="Ahmed Abdullahi" style="border-radius:50%;width:150px;height:150px;">
+      <h3 style="margin-top:10px;">Ahmed Abdullahi</h3>
+      <p style="font-size:14px;color:#666;">Founder & Product Lead</p>
+    </div>
+    <div style="max-width:200px;text-align:center;">
+      <img src="https://via.placeholder.com/150" alt="CTO" style="border-radius:50%;width:150px;height:150px;">
+      <h3 style="margin-top:10px;">Your CTO</h3>
+      <p style="font-size:14px;color:#666;">Co-Founder & CTO</p>
+    </div>
+  </div>
+</section>
+
+<section id="locations" class="section" style="background:#f7fff9;">
+  <h2>Where We Operate</h2>
+  <div style="display:flex;justify-content:center;gap:40px;flex-wrap:wrap;margin-top:30px;">
+    <div style="text-align:center;">
+      <img src="https://img.icons8.com/fluency/48/marker.png" />
+      <h4>Abuja</h4>
+      <p>Jabi, Wuse, Garki</p>
+    </div>
+    <div style="text-align:center;">
+      <img src="https://img.icons8.com/fluency/48/marker.png" />
+      <h4>Lagos</h4>
+      <p>Ikeja, Lekki, Yaba</p>
+    </div>
+    <div style="text-align:center;">
+      <img src="https://img.icons8.com/fluency/48/marker.png" />
+      <h4>Jos</h4>
+      <p>Terminus, Bauchi Road</p>
+    </div>
+  </div>
+</section>
+
+<section id="security" class="section">
+  <h2>Secure Payments, Peace of Mind</h2>
+  <div style="display:flex;justify-content:center;gap:40px;flex-wrap:wrap;margin-top:30px;">
+    <div style="max-width:260px;text-align:center;">
+      <img src="https://img.icons8.com/fluency/64/safe.png"/>
+      <h3>Escrow Wallet</h3>
+      <p style="font-size:14px;">Funds are held securely until delivery is confirmed.</p>
+    </div>
+    <div style="max-width:260px;text-align:center;">
+      <img src="https://img.icons8.com/fluency/64/data-encryption.png"/>
+      <h3>Encrypted</h3>
+      <p style="font-size:14px;">Every transaction is encrypted and logged.</p>
+    </div>
+    <div style="max-width:260px;text-align:center;">
+      <img src="https://img.icons8.com/fluency/64/agreement.png"/>
+      <h3>Dispute Support</h3>
+      <p style="font-size:14px;">We mediate disputes so buyers and sellers are protected.</p>
+    </div>
+  </div>
+</section>
+
 <section id="faq" class="section">
   <h2>Frequently Asked Questions</h2>
   <div class="faq-item">
@@ -229,33 +305,32 @@
     <p>VendPlug Escrow is a secure payment solution that holds funds until a buyer confirms they have received the product as described.</p>
   </div>
   <div class="faq-item">
-    <h3>🤝 Can I use VendPlug if I don’t live in a supported city?</h3>
-    <p>We’re growing fast! You can join the waitlist and we'll notify you when we launch in your area.</p>
+    <h3>📍 Where is VendPlug available?</h3>
+    <p>We’re currently live in Abuja, expanding to Lagos and Jos soon. More cities coming!</p>
   </div>
   <div class="faq-item">
-    <h3>🧾 Are there fees for using VendPlug?</h3>
-    <p>VendPlug is free for buyers. Minimal service fees may apply for vendors depending on delivery or escrow services.</p>
-  </div>
-  <div class="faq-item">
-    <h3>📱 How do I join VendPlug as a vendor or agent?</h3>
-    <p>You can register interest through our platform and our team will contact you with onboarding instructions.</p>
+    <h3>💼 How can I join as a vendor or agent?</h3>
+    <p>You can register interest on the platform and we’ll follow up with onboarding details.</p>
   </div>
 </section>
 
-<section id="waitlist" class="section">
-  <h2>Join Our Waitlist</h2>
-  <p>Be the first to know when we launch. Enter your email below.</p>
-  <form action="https://formspree.io/f/yourFormID" method="POST">
-    <input type="email" name="email" placeholder="Enter your email" required />
-    <br />
-    <button type="submit" class="cta-button">Notify Me</button>
-  </form>
+<section id="waitlist" class="section" style="background:#fff;">
+  <h2>Join the Waitlist</h2>
+  <p>Be the first to know when we launch in your area.</p>
+  <input type="email" placeholder="Your email here" />
+  <br />
+  <button class="cta-button" style="margin-top:1rem;">Notify Me</button>
+</section>
+
+<section id="contact" class="section">
+  <h2>Contact Us</h2>
+  <p>Have a question or suggestion? Reach out via email:</p>
+  <p><strong>info@vendplug.com.ng</strong></p>
 </section>
 
 <footer>
-  &copy; 2025 VendPlug | info@vendplug.com.ng
+  &copy; 2025 VendPlug. All rights reserved.
 </footer>
 
 </body>
 </html>
-
