@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VendPlug - Redefining Local Commerce</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background-color: #f8f9fa;
+      color: #333;
+    }
+    header, footer {
+      background-color: #003366;
+      color: white;
+      padding: 1rem 2rem;
+      text-align: center;
+    }
+    nav {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      background: #0055a5;
+      padding: 0.75rem;
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .hero {
+      text-align: center;
+      padding: 4rem 2rem;
+      background: #e6f2ff;
+    }
+    .hero h1 {
+      font-size: 2.5rem;
+      color: #003366;
+    }
+    .section {
+      padding: 3rem 2rem;
+      max-width: 800px;
+      margin: auto;
+      text-align: center;
+    }
+    .cta-button {
+      background: #007bff;
+      color: white;
+      padding: 1rem 2rem;
+      border: none;
+      margin-top: 1rem;
+      font-size: 1rem;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .footer {
+      background: #002244;
+      color: white;
+      text-align: center;
+      padding: 1.5rem 1rem;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h2>VendPlug</h2>
+</header>
+
+<nav>
+  <a href="#">Home</a>
+  <a href="#">About</a>
+  <a href="#">Escrow</a>
+  <a href="#">Contact</a>
+  <a href="#">Waitlist</a>
+</nav>
+
+<section class="hero">
+  <h1>Redefining Local Commerce</h1>
+  <p>Shop Nigeria's markets with ease using VendPlug’s fintech-powered marketplace.</p>
+  <button class="cta-button">Join Waitlist</button>
+</section>
+
+<section class="section">
+  <h2>About VendPlug</h2>
+  <p>Our mission is to digitize and organize Africa’s informal market system. We empower local economies by simplifying how people shop, pay, and connect through secure digital experiences.</p>
+</section>
+
+<section class="section">
+  <h2>How It Works</h2>
+  <p>👤 → 🏪 → 🛒 → 🛻 → 🏡</p>
+  <p>Fund your wallet, shop local markets, and let VendPlug’s concierge agents deliver right to your door.</p>
+</section>
+
+<section class="section" style="background-color:#fffbe6;">
+  <h2>Escrow Services for Marketplaces</h2>
+  <p>Marketplaces like Jiji don’t protect buyers—we do.</p>
+  <p>VendPlug’s escrow system ensures money is only released when buyers confirm receipt of goods.</p>
+  <p>We’re building trust into every transaction—one deal at a time.</p>
+  <button class="cta-button">Learn More About Escrow</button>
+</section>
+
+<section class="section">
+  <h2>Join Our Waitlist</h2>
+  <p>Be the first to know when we launch. Enter your email below.</p>
+  <input type="email" placeholder="Enter your email" />
+  <button class="cta-button">Notify Me</button>
+</section>
+
+<footer class="footer">
+  &copy; 2025 VendPlug | info@vendplug.com.ng
+</footer>
+
+</body>
+</html>
