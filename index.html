@@ -5,219 +5,257 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>VendPlug - Redefining Local Commerce</title>
   <link rel="icon" type="image/png" href="favicon.png">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      background-color: #f8f9fa;
-      color: #333;
+    :root {
+      --primary-green: #3BA935;
+      --accent-dark: #002b18;
+      --light-bg: #f4fff8;
+      --dark-bg: #001c12;
     }
-    header, footer {
-      background-color: #003366;
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      background-color: var(--light-bg);
+      color: #333;
+      scroll-behavior: smooth;
+    }
+
+    header {
+      background-color: var(--accent-dark);
       color: white;
       padding: 1rem 2rem;
       text-align: center;
     }
-    nav {
+
+    header img {
+      max-height: 50px;
+      vertical-align: middle;
+    }
+
+    .navbar {
       display: flex;
       justify-content: center;
-      gap: 2rem;
-      background: #0055a5;
-      padding: 0.75rem;
+      align-items: center;
+      background: var(--primary-green);
+      padding: 1rem;
+      flex-wrap: wrap;
+      position: relative;
     }
-    nav a {
+
+    .navbar a {
       color: white;
       text-decoration: none;
-      font-weight: bold;
+      font-weight: 600;
+      margin: 0 1rem;
+      position: relative;
     }
+
+    .navbar a:hover::after {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 2px;
+      background: white;
+      bottom: -4px;
+      left: 0;
+    }
+
+    .dropdown {
+      position: relative;
+    }
+
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: white;
+      min-width: 180px;
+      box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
+      z-index: 1;
+      top: 100%;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .dropdown-content a {
+      color: #333;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .dropdown-content a:hover {
+      background-color: #f1f1f1;
+    }
+
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
     .hero {
+      position: relative;
+      height: 500px;
+      overflow: hidden;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       text-align: center;
-      padding: 4rem 2rem;
-      background: #e6f2ff;
     }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url('https://via.placeholder.com/1920x500') no-repeat center center/cover;
+      opacity: 0.3;
+    }
+
+    .hero-content {
+      z-index: 2;
+    }
+
     .hero h1 {
-      font-size: 2.5rem;
-      color: #003366;
+      font-size: 3rem;
+      margin-bottom: 1rem;
     }
+
     .section {
-      padding: 3rem 2rem;
-      max-width: 800px;
+      padding: 4rem 2rem;
+      max-width: 1000px;
       margin: auto;
       text-align: center;
     }
-    .cta-button {
-      background: #007bff;
-      color: white;
-      padding: 1rem 2rem;
-      border: none;
-      margin-top: 1rem;
-      font-size: 1rem;
-      border-radius: 5px;
-      cursor: pointer;
+
+    .section:nth-child(even) {
+      background: white;
     }
-    .footer {
-      background: #002244;
+
+    .cta-button {
+      background: var(--primary-green);
+      color: white;
+      padding: 0.9rem 2rem;
+      border: none;
+      font-size: 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 1rem;
+      transition: all 0.3s;
+    }
+
+    .cta-button:hover {
+      background: #2e892a;
+    }
+
+    .faq-item {
+      text-align: left;
+      margin-bottom: 1.5rem;
+    }
+
+    .faq-item h3 {
+      color: var(--primary-green);
+      font-size: 1.2rem;
+    }
+
+    .faq-item p {
+      font-size: 1rem;
+      color: #555;
+      margin-top: 0.5rem;
+    }
+
+    footer {
+      background: var(--dark-bg);
       color: white;
       text-align: center;
-      padding: 1.5rem 1rem;
+      padding: 1.5rem;
       font-size: 0.9rem;
+    }
+
+    input[type="email"] {
+      padding: 0.7rem;
+      font-size: 1rem;
+      width: 250px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      margin-top: 1rem;
     }
   </style>
 </head>
 <body>
 
 <header>
-  <h2>VendPlug</h2>
+  <img src="logo.png" alt="VendPlug Logo">
 </header>
 
-<nav>
+<nav class="navbar">
   <a href="#">Home</a>
-  <a href="#">About</a>
-  <a href="#">Escrow</a>
-  <a href="#">Contact</a>
-  <a href="#">Waitlist</a>
+  <a href="#about">About</a>
+  <a href="#escrow">Escrow</a>
+  <a href="#team">Team</a>
+  <div class="dropdown">
+    <a href="#">More</a>
+    <div class="dropdown-content">
+      <a href="#faq"><i class="fa-solid fa-circle-question"></i> FAQs</a>
+      <a href="#contact"><i class="fa-solid fa-envelope"></i> Contact</a>
+      <a href="#waitlist"><i class="fa-solid fa-clock"></i> Join Waitlist</a>
+    </div>
+  </div>
 </nav>
 
 <section class="hero">
-  <h1>Redefining Local Commerce</h1>
-  <p>Shop Nigeria's markets with ease using VendPlug’s fintech-powered marketplace.</p>
-  <button class="cta-button">Join Waitlist</button>
-</section>
-
-<section class="section">
-  <h2>About VendPlug</h2>
-  <p>Our mission is to digitize and organize Africa’s informal market system. We empower local economies by simplifying how people shop, pay, and connect through secure digital experiences.</p>
-</section>
-
-<section class="section">
-  <h2>How It Works</h2>
-  <p>👤 → 🏪 → 🛒 → 🛻 → 🏡</p>
-  <p>Fund your wallet, shop local markets, and let VendPlug’s concierge agents deliver right to your door.</p>
-</section>
-
-<section class="section" style="background-color:#fffbe6;">
-  <h2>Escrow Services for Marketplaces</h2>
-  <p>Marketplaces like Jiji don’t protect buyers—we do.</p>
-  <p>VendPlug’s escrow system ensures money is only released when buyers confirm receipt of goods.</p>
-  <p>We’re building trust into every transaction—one deal at a time.</p>
-  <button class="cta-button">Learn More About Escrow</button>
-</section>
-  <section id="about" style="background-color:#f9f9f9;padding:60px 20px;text-align:center;">
-  <h2 style="color:#3BA935;">Why We Built VendPlug</h2>
-  <p style="max-width:800px;margin:auto;font-size:18px;line-height:1.6;">
-    VendPlug was born from a simple observation: shopping in Nigeria’s local markets is chaotic, time-consuming, and largely offline. 
-    With millions relying on these informal channels every day, we saw an opportunity to introduce structure, technology, and trust.
-    <br><br>
-    Our mission is to build the digital operating system for Africa’s traditional markets — a platform where buyers, vendors, and agents connect seamlessly to buy and sell goods across cities and communities. 
-    <br><br>
-    Through smart logistics, concierge agents, and secure wallet-based payments, VendPlug is transforming how everyday people shop, move goods, and build micro-economies.
-  </p>
-</section>
-
-<section id="team" style="background-color:#ffffff;padding:60px 20px;text-align:center;">
-  <h2 style="color:#3BA935;">Faces of VendPlug</h2>
-  <p style="font-size:18px;max-width:700px;margin:auto;line-height:1.6;">
-    VendPlug is powered by real people passionate about solving real problems. 
-    Our team brings deep expertise in financial technology, logistics, and digital inclusion.
-  </p>
-
-  <div style="display:flex;justify-content:center;flex-wrap:wrap;margin-top:40px;gap:40px;">
-
-    <div style="max-width:200px;text-align:center;">
-      <img src="https://via.placeholder.com/150" alt="Ahmed Abdullahi" style="border-radius:50%;width:150px;height:150px;">
-      <h3 style="margin-top:10px;color:#333;">Ahmed Abdullahi</h3>
-      <p style="font-size:14px;color:#666;">Founder & Product Lead</p>
-    </div>
-
-    <div style="max-width:200px;text-align:center;">
-      <img src="https://via.placeholder.com/150" alt="CTO Name" style="border-radius:50%;width:150px;height:150px;">
-      <h3 style="margin-top:10px;color:#333;">Your CTO's Name</h3>
-      <p style="font-size:14px;color:#666;">Co-Founder & CTO</p>
-    </div>
-
-    <!-- Add more team members as you grow -->
+  <div class="hero-content">
+    <h1>Redefining Local Commerce</h1>
+    <p style="font-size: 1.2rem;">Shop Nigeria’s markets with ease using VendPlug’s tech-powered platform.</p>
+    <button class="cta-button" onclick="document.getElementById('waitlist').scrollIntoView({behavior: 'smooth'});">
+      Join Our Waitlist
+    </button>
   </div>
 </section>
 
-  <section id="locations" style="background-color:#F7FDF8;padding:60px 20px;text-align:center;">
-  <h2 style="color:#3BA935;">Where We Operate</h2>
-  <p style="font-size:18px;max-width:700px;margin:auto;line-height:1.6;">
-    VendPlug is currently active in select markets and neighborhoods with plans to expand nationwide. 
-    Our concierge agents and pick-up hubs make it easy to access fresh produce, daily essentials, and trusted vendors near you.
-  </p>
-
-  <div style="display:flex;justify-content:center;flex-wrap:wrap;margin-top:40px;gap:40px;">
-    <div style="max-width:200px;text-align:center;">
-      <img src="https://img.icons8.com/fluency/96/marker.png" alt="Abuja" style="width:60px;">
-      <h3 style="margin-top:10px;">Abuja</h3>
-      <p style="font-size:14px;color:#666;">Jabi, Wuse, Garki, and more</p>
-    </div>
-
-    <div style="max-width:200px;text-align:center;">
-      <img src="https://img.icons8.com/fluency/96/marker.png" alt="Lagos" style="width:60px;">
-      <h3 style="margin-top:10px;">Lagos</h3>
-      <p style="font-size:14px;color:#666;">Ikeja, Lekki, Yaba (Coming Soon)</p>
-    </div>
-
-    <div style="max-width:200px;text-align:center;">
-      <img src="https://img.icons8.com/fluency/96/marker.png" alt="Jos" style="width:60px;">
-      <h3 style="margin-top:10px;">Jos</h3>
-      <p style="font-size:14px;color:#666;">Terminus, Bauchi Road, Faringada</p>
-    </div>
+<section id="faq" class="section">
+  <h2>Frequently Asked Questions</h2>
+  <div class="faq-item">
+    <h3>🔐 What is VendPlug Escrow?</h3>
+    <p>VendPlug Escrow is a secure payment solution that holds funds until a buyer confirms they have received the product as described.</p>
   </div>
-
-  <p style="margin-top:40px;font-size:16px;">
-    Want VendPlug in your area? <a href="#contact" style="color:#3BA935;text-decoration:underline;">Let us know</a>!
-  </p>
-</section>
-
-
-<section id="security" style="background-color:#fff;padding:60px 20px;text-align:center;">
-  <h2 style="color:#3BA935;">Secure Payments, Peace of Mind</h2>
-  <p style="font-size:18px;max-width:720px;margin:auto;line-height:1.6;">
-    Trust is at the core of VendPlug. Whether you’re buying from local vendors, remote sellers, or marketplaces, 
-    our escrow-powered wallet ensures your money is protected until your goods are delivered as described.
-  </p>
-
-  <div style="display:flex;justify-content:center;flex-wrap:wrap;gap:40px;margin-top:40px;">
-    <div style="max-width:260px;padding:20px;background:#F1FBF4;border-radius:12px;box-shadow:0 2px 5px rgba(0,0,0,0.05);">
-      <img src="https://img.icons8.com/fluency/96/safe.png" alt="Escrow Wallet" style="width:60px;margin-bottom:10px;">
-      <h3>Escrow Wallet</h3>
-      <p style="font-size:14px;color:#444;">
-        Payments are held securely and only released when delivery is confirmed.
-      </p>
-    </div>
-
-    <div style="max-width:260px;padding:20px;background:#F1FBF4;border-radius:12px;box-shadow:0 2px 5px rgba(0,0,0,0.05);">
-      <img src="https://img.icons8.com/fluency/96/data-encryption.png" alt="End-to-End Encryption" style="width:60px;margin-bottom:10px;">
-      <h3>End-to-End Security</h3>
-      <p style="font-size:14px;color:#444;">
-        All transactions are encrypted, secure, and trackable in real time.
-      </p>
-    </div>
-
-    <div style="max-width:260px;padding:20px;background:#F1FBF4;border-radius:12px;box-shadow:0 2px 5px rgba(0,0,0,0.05);">
-      <img src="https://img.icons8.com/fluency/96/agreement.png" alt="Dispute Resolution" style="width:60px;margin-bottom:10px;">
-      <h3>Dispute Resolution</h3>
-      <p style="font-size:14px;color:#444;">
-        Fair mediation support in the rare case that something goes wrong.
-      </p>
-    </div>
+  <div class="faq-item">
+    <h3>🤝 Can I use VendPlug if I don’t live in a supported city?</h3>
+    <p>We’re growing fast! You can join the waitlist and we'll notify you when we launch in your area.</p>
+  </div>
+  <div class="faq-item">
+    <h3>🧾 Are there fees for using VendPlug?</h3>
+    <p>VendPlug is free for buyers. Minimal service fees may apply for vendors depending on delivery or escrow services.</p>
+  </div>
+  <div class="faq-item">
+    <h3>📱 How do I join VendPlug as a vendor or agent?</h3>
+    <p>You can register interest through our platform and our team will contact you with onboarding instructions.</p>
   </div>
 </section>
 
-
-
-<section class="section">
+<section id="waitlist" class="section">
   <h2>Join Our Waitlist</h2>
   <p>Be the first to know when we launch. Enter your email below.</p>
-  <input type="email" placeholder="Enter your email" />
-  <button class="cta-button">Notify Me</button>
+  <form action="https://formspree.io/f/yourFormID" method="POST">
+    <input type="email" name="email" placeholder="Enter your email" required />
+    <br />
+    <button type="submit" class="cta-button">Notify Me</button>
+  </form>
 </section>
 
-<footer class="footer">
+<footer>
   &copy; 2025 VendPlug | info@vendplug.com.ng
 </footer>
 
 </body>
 </html>
+
