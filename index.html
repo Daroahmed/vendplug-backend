@@ -15,12 +15,6 @@
     }
 
     body {
-      <!-- Page Loader -->
-<div id="loader-wrapper">
-  <div id="loader"></div>
-</div>
-
-      
       font-family: 'Segoe UI', sans-serif;
       margin: 0;
       background-color: var(--light-bg);
@@ -194,43 +188,20 @@
       padding: 1.5rem;
       font-size: 0.9rem;
     }
+
+    /* Fade-in animation */
+    .fade-in-section {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+    }
+
+    .fade-in-section.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
   </style>
-  /* Page Loader Styles */
-#loader-wrapper {
-  position: fixed;
-  width: 100%;
-  height: 100%;
-  background: white;
-  top: 0;
-  left: 0;
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-#loader {
-  border: 6px solid #f3f3f3;
-  border-top: 6px solid #3BA935;
-  border-radius: 50%;
-  width: 60px;
-  height: 60px;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
 </head>
-  <script>
-  window.addEventListener("load", function () {
-    const loader = document.getElementById("loader-wrapper");
-    loader.style.display = "none";
-  });
-</script>
-
 <body>
 
 <header>
@@ -245,8 +216,6 @@
   <div class="dropdown">
     <a href="#">More</a>
     <div class="dropdown-content">
-      <a href="#locations"><i class="fa-solid fa-map-location-dot"></i> Locations</a>
-      <a href="#security"><i class="fa-solid fa-lock"></i> Security</a>
       <a href="#faq"><i class="fa-solid fa-circle-question"></i> FAQs</a>
       <a href="#contact"><i class="fa-solid fa-envelope"></i> Contact</a>
       <a href="#waitlist"><i class="fa-solid fa-clock"></i> Join Waitlist</a>
@@ -254,7 +223,7 @@
   </div>
 </nav>
 
-<section class="hero">
+<section class="hero fade-in-section">
   <div class="hero-content">
     <h1>Redefining Local Commerce</h1>
     <p style="font-size: 1.2rem;">Shop Nigeria’s markets with ease using VendPlug’s tech-powered platform.</p>
@@ -264,24 +233,26 @@
   </div>
 </section>
 
-<section id="about" class="section">
+<section id="about" class="section fade-in-section">
   <h2>Why We Built VendPlug</h2>
   <p style="max-width:800px;margin:auto;font-size:18px;line-height:1.6;">
     VendPlug was born from a simple observation: shopping in Nigeria’s local markets is chaotic, time-consuming, and largely offline. 
-    With millions relying on these informal channels every day, we saw an opportunity to introduce structure, technology, and trust.<br><br>
+    With millions relying on these informal channels every day, we saw an opportunity to introduce structure, technology, and trust.
+    <br><br>
     Our mission is to build the digital operating system for Africa’s traditional markets — a platform where buyers, vendors, and agents connect seamlessly to buy and sell goods across cities and communities.
   </p>
 </section>
 
-<section id="escrow" class="section" style="background:#fff;">
+<section id="escrow" class="section fade-in-section" style="background:#fff;">
   <h2>Escrow for Safer Marketplaces</h2>
   <p style="max-width:800px;margin:auto;font-size:18px;line-height:1.6;">
-    Marketplaces like Jiji don’t protect buyers—we do. VendPlug’s escrow ensures money is only released when buyers confirm receipt of goods. We're building trust into every transaction.
+    Marketplaces like Jiji don’t protect buyers—we do.
+    VendPlug’s escrow ensures money is only released when buyers confirm receipt of goods. We're building trust into every transaction.
   </p>
   <button class="cta-button" onclick="alert('More about Escrow coming soon!')">Learn More</button>
 </section>
 
-<section id="team" class="section">
+<section id="team" class="section fade-in-section">
   <h2>Faces of VendPlug</h2>
   <div style="display:flex;justify-content:center;flex-wrap:wrap;gap:40px;margin-top:30px;">
     <div style="max-width:200px;text-align:center;">
@@ -297,7 +268,7 @@
   </div>
 </section>
 
-<section id="locations" class="section" style="background:#f7fff9;">
+<section id="locations" class="section fade-in-section" style="background:#f7fff9;">
   <h2>Where We Operate</h2>
   <div style="display:flex;justify-content:center;gap:40px;flex-wrap:wrap;margin-top:30px;">
     <div style="text-align:center;">
@@ -318,7 +289,7 @@
   </div>
 </section>
 
-<section id="security" class="section">
+<section id="security" class="section fade-in-section">
   <h2>Secure Payments, Peace of Mind</h2>
   <div style="display:flex;justify-content:center;gap:40px;flex-wrap:wrap;margin-top:30px;">
     <div style="max-width:260px;text-align:center;">
@@ -339,23 +310,19 @@
   </div>
 </section>
 
-<section id="faq" class="section">
+<section id="faq" class="section fade-in-section">
   <h2>Frequently Asked Questions</h2>
   <div class="faq-item">
     <h3>🔐 What is VendPlug Escrow?</h3>
     <p>VendPlug Escrow is a secure payment solution that holds funds until a buyer confirms they have received the product as described.</p>
   </div>
   <div class="faq-item">
-    <h3>📍 Where is VendPlug available?</h3>
-    <p>We’re currently live in Abuja, expanding to Lagos and Jos soon. More cities coming!</p>
-  </div>
-  <div class="faq-item">
-    <h3>💼 How can I join as a vendor or agent?</h3>
-    <p>You can register interest on the platform and we’ll follow up with onboarding details.</p>
+    <h3>🤝 Can I use VendPlug if I don’t live in a supported city?</h3>
+    <p>We’re growing fast! You can join the waitlist and we'll notify you when we launch in your area.</p>
   </div>
 </section>
 
-<section id="waitlist" class="section" style="background:#fff;">
+<section id="waitlist" class="section fade-in-section" style="background:#fff;">
   <h2>Join the Waitlist</h2>
   <p>Be the first to know when we launch in your area.</p>
   <input type="email" placeholder="Your email here" />
@@ -363,7 +330,7 @@
   <button class="cta-button" style="margin-top:1rem;">Notify Me</button>
 </section>
 
-<section id="contact" class="section">
+<section id="contact" class="section fade-in-section">
   <h2>Contact Us</h2>
   <p>Have a question or suggestion? Reach out via email:</p>
   <p><strong>info@vendplug.com.ng</strong></p>
@@ -372,6 +339,26 @@
 <footer>
   &copy; 2025 VendPlug. All rights reserved.
 </footer>
+
+<!-- Scroll animation script -->
+<script>
+  const faders = document.querySelectorAll('.fade-in-section');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, {
+    threshold: 0.1
+  });
+
+  faders.forEach(section => {
+    observer.observe(section);
+  });
+</script>
 
 </body>
 </html>
