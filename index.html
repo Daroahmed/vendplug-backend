@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>VendPlug - Redefining Local Commerce</title>
-  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="icon" href="favicon.png" />
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
     :root {
@@ -15,78 +15,93 @@
     }
 
     body {
-      font-family: 'Segoe UI', sans-serif;
       margin: 0;
-      background-color: var(--light-bg);
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--light-bg);
       color: #333;
       scroll-behavior: smooth;
     }
 
+    /* HEADER */
     header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem;
       background-color: var(--accent-dark);
       color: white;
-      padding: 1rem 2rem;
-      text-align: center;
     }
 
     header img {
-      max-height: 90px;
+      height: 50px;
     }
 
-    .navbar {
-      display: flex;
-      justify-content: center;
-      background: var(--primary-green);
-      padding: 1rem;
-      flex-wrap: wrap;
-    }
-
-    .navbar a {
+    .menu-toggle {
+      font-size: 24px;
+      background: none;
+      border: none;
       color: white;
+      cursor: pointer;
+    }
+
+    /* SIDE MENU */
+    .side-menu {
+      position: fixed;
+      top: 0;
+      left: -100%;
+      height: 100vh;
+      width: 280px;
+      background: white;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+      z-index: 1000;
+      padding: 2rem 1rem;
+      transition: left 0.3s ease;
+      overflow-y: auto;
+    }
+
+    .side-menu.open {
+      left: 0;
+    }
+
+    .side-menu a {
+      display: block;
+      margin: 1rem 0;
+      font-size: 1.1rem;
+      color: #333;
       text-decoration: none;
       font-weight: 600;
-      margin: 0 1rem;
     }
 
-    .dropdown {
-      position: relative;
+    .side-menu .sub-links {
+      margin-left: 1rem;
+      font-size: 0.95rem;
     }
 
-    .dropdown-content {
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 999;
       display: none;
-      position: absolute;
-      background-color: white;
-      min-width: 180px;
-      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-      z-index: 1;
-      top: 100%;
     }
 
-    .dropdown-content a {
-      color: #333;
-      padding: 12px 16px;
-      display: flex;
-      gap: 10px;
-      text-decoration: none;
-    }
-
-    .dropdown:hover .dropdown-content {
+    .overlay.active {
       display: block;
     }
 
-    .hero-carousel {
+    /* HERO SECTION */
+    .hero {
       position: relative;
       height: 500px;
       overflow: hidden;
     }
 
-    .hero-slides {
-      position: absolute;
-      inset: 0;
-    }
-
     .hero-slide {
       position: absolute;
+      inset: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
@@ -102,7 +117,7 @@
     .hero-overlay {
       position: absolute;
       inset: 0;
-      background-color: rgba(0, 0, 0, 0.4);
+      background: rgba(0,0,0,0.5);
       z-index: 2;
       display: flex;
       flex-direction: column;
@@ -113,6 +128,11 @@
       padding: 2rem;
     }
 
+    .hero-overlay h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+
     .cta-button {
       background: var(--primary-green);
       color: white;
@@ -120,8 +140,8 @@
       border: none;
       border-radius: 5px;
       font-size: 1rem;
-      margin-top: 1rem;
       cursor: pointer;
+      margin-top: 1rem;
     }
 
     .section {
@@ -131,54 +151,6 @@
       text-align: center;
     }
 
-    .carousel {
-      overflow: hidden;
-      position: relative;
-      max-width: 1000px;
-      margin: 2rem auto;
-      border-radius: 12px;
-      background: white;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-
-    .carousel-track {
-      display: flex;
-      transition: transform 0.6s ease;
-    }
-
-    .slide {
-      flex: 0 0 100%;
-      text-align: center;
-    }
-
-    .slide img {
-      max-width: 100%;
-      height: 450px;
-      object-fit: cover;
-      border-radius: 10px;
-    }
-
-    .slide p {
-      margin-top: 10px;
-      font-size: 1rem;
-      color: #555;
-    }
-
-    .caption {
-      position: absolute;
-      bottom: 20px;
-      left: 30px;
-      background-color: rgba(0,0,0,0.6);
-      color: white;
-      padding: 10px 20px;
-      border-radius: 5px;
-    }
-
-    .faq-item {
-      text-align: left;
-      margin-bottom: 1.5rem;
-    }
-
     footer {
       background-color: var(--dark-bg);
       color: white;
@@ -186,51 +158,104 @@
       text-align: center;
       font-size: 0.9rem;
     }
+
+    @media (min-width: 768px) {
+      .menu-toggle {
+        display: none;
+      }
+
+      .side-menu {
+        display: none;
+      }
+
+      nav.desktop-nav {
+        display: flex;
+        gap: 2rem;
+        background: var(--primary-green);
+        padding: 1rem 2rem;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      nav.desktop-nav a {
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+      }
+    }
   </style>
 </head>
 <body>
 
+<!-- Header -->
 <header>
   <img src="logo.png" alt="VendPlug Logo" />
+  <button class="menu-toggle" onclick="toggleMenu()">
+    <i class="fas fa-bars"></i>
+  </button>
 </header>
 
-<nav class="navbar">
+<!-- Desktop Nav -->
+<nav class="desktop-nav">
   <a href="#">Home</a>
   <a href="#about">About</a>
   <a href="#escrow">Escrow</a>
   <a href="#team">Team</a>
-  <div class="dropdown">
-    <a href="#">More</a>
-    <div class="dropdown-content">
-      <a href="#faq"><i class="fa-solid fa-circle-question"></i> FAQs</a>
-      <a href="#contact"><i class="fa-solid fa-envelope"></i> Contact</a>
-      <a href="#waitlist"><i class="fa-solid fa-clock"></i> Waitlist</a>
-    </div>
-  </div>
+  <a href="#faq">FAQ</a>
+  <a href="#contact">Contact</a>
+  <a href="#waitlist">Join Waitlist</a>
 </nav>
 
-<section class="hero-carousel">
-  <div class="hero-slides">
-    <img src="market-1.jpg" class="hero-slide active">
-    <img src="market-2.jpg" class="hero-slide">
-    <img src="market-3.jpg" class="hero-slide">
-    <img src="market-4.jpg" class="hero-slide">
-    <img src="market-5.jpg" class="hero-slide">
-    <img src="market-6.jpg" class="hero-slide">
-    <img src="market-7.jpg" class="hero-slide">
-    <img src="market-8.jpg" class="hero-slide">
-    <img src="market-9.jpg" class="hero-slide">
-  </div>
+<!-- Side Menu -->
+<div class="side-menu" id="sideMenu">
+  <a href="#" onclick="toggleMenu()">Home</a>
+  <a href="#about" onclick="toggleMenu()">About</a>
+  <a href="#escrow" onclick="toggleMenu()">Escrow</a>
+  <a href="#team" onclick="toggleMenu()">Team</a>
+  <a class="sub-links" href="#faq" onclick="toggleMenu()">FAQ</a>
+  <a class="sub-links" href="#contact" onclick="toggleMenu()">Contact</a>
+  <a class="sub-links" href="#waitlist" onclick="toggleMenu()">Join Waitlist</a>
+</div>
+<div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+
+<!-- Hero Carousel -->
+<section class="hero">
+  <img src="market-1.jpg" class="hero-slide active" />
+  <img src="market-2.jpg" class="hero-slide" />
+  <img src="market-3.jpg" class="hero-slide" />
+  <img src="market-4.jpg" class="hero-slide" />
+  <img src="market-5.jpg" class="hero-slide" />
+  <img src="market-6.jpg" class="hero-slide" />
+  <img src="market-7.jpg" class="hero-slide" />
+  <img src="market-8.jpg" class="hero-slide" />
+  <img src="market-9.jpg" class="hero-slide" />
   <div class="hero-overlay">
     <h1>Redefining Local Commerce</h1>
     <p>Shop Nigeria’s markets with ease using VendPlug’s tech-powered platform.</p>
-    <button class="cta-button" onclick="document.getElementById('waitlist').scrollIntoView({behavior: 'smooth'})">
-      Join Our Waitlist
-    </button>
+    <button class="cta-button" onclick="document.getElementById('waitlist').scrollIntoView({behavior: 'smooth'})">Join Our Waitlist</button>
   </div>
 </section>
 
+<!-- Example Section -->
+<section class="section" id="about">
+  <h2>About VendPlug</h2>
+  <p>We digitize and organize Africa’s informal market system.</p>
+</section>
+
+<!-- Footer -->
+<footer>
+  &copy; 2025 VendPlug. All rights reserved.
+</footer>
+
+<!-- Scripts -->
 <script>
+  // Slide Toggle
+  function toggleMenu() {
+    document.getElementById('sideMenu').classList.toggle('open');
+    document.getElementById('overlay').classList.toggle('active');
+  }
+
+  // Hero Carousel
   document.addEventListener("DOMContentLoaded", function () {
     const slides = document.querySelectorAll('.hero-slide');
     let current = 0;
@@ -245,151 +270,5 @@
   });
 </script>
 
-<section class="section" id="about">
-  <h2>About VendPlug</h2>
-  <p>Our mission is to digitize and organize Africa’s informal market system. We empower local economies by simplifying how people shop, pay, and connect through secure digital experiences.</p>
-</section>
-
-<section id="carousel" class="section" style="background:#f9f9f9;">
-  <h2>VendPlug in Action</h2>
-  <div class="carousel">
-    <div class="carousel-track">
-      <div class="slide">
-        <img src="vendplug-action-1.png" alt="Pickup Station" />
-        <p>Ready to shop for you!</p>
-      </div>
-      <div class="slide">
-        <img src="vendplug-action-2.png" alt="Delivery to Customer" />
-        <p>Delivering to a happy customer</p>
-      </div>
-      <div class="slide">
-        <img src="vendplug-action-3.png" alt="Shopping with Vendor" />
-        <p>Helping vendors fulfill your list</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="escrow" class="section" style="background:#fff;">
-  <h2>Escrow for Safer Marketplaces</h2>
-  <p style="max-width:800px;margin:auto;font-size:18px;line-height:1.6;">
-    In many online marketplaces, transactions happen directly between buyers and sellers—with little protection if things go wrong. 
-    VendPlug changes that by adding a secure escrow layer to the buying experience.
-  </p>
-  <button class="cta-button" onclick="alert('More about Escrow coming soon!')">Learn More</button>
-</section>
-
-<section id="team" class="section">
-  <h2>Faces of VendPlug</h2>
-  <div style="display:flex;justify-content:center;flex-wrap:wrap;gap:40px;margin-top:30px;">
-    <div style="max-width:200px;text-align:center;">
-      <img src="https://via.placeholder.com/150" alt="Ahmed Abdullahi" style="border-radius:50%;width:150px;height:150px;">
-      <h3 style="margin-top:10px;">Ahmed</h3>
-      <p style="font-size:14px;color:#666;">Founder & CEO </p>
-    </div>
-    <div style="max-width:200px;text-align:center;">
-      <img src="https://via.placeholder.com/150" alt="CTO" style="border-radius:50%;width:150px;height:150px;">
-      <h3 style="margin-top:10px;">Muwaffaq</h3>
-      <p style="font-size:14px;color:#666;">Co-Founder & CTO</p>
-    </div>
-  </div>
-</section>
-
-<section id="locations" class="section" style="background:#f7fff9;">
-  <h2>Where We Operate</h2>
-  <div style="display:flex;justify-content:center;gap:40px;flex-wrap:wrap;margin-top:30px;">
-    <div style="text-align:center;">
-      <img src="https://img.icons8.com/fluency/48/marker.png" />
-      <h4>Abuja</h4>
-      <p>Jabi, Wuse, Garki</p>
-    </div>
-    <div style="text-align:center;">
-      <img src="https://img.icons8.com/fluency/48/marker.png" />
-      <h4>Lagos</h4>
-      <p>Ikeja, Lekki, Yaba</p>
-    </div>
-    <div style="text-align:center;">
-      <img src="https://img.icons8.com/fluency/48/marker.png" />
-      <h4>Jos</h4>
-      <p>Terminus, Bukuru</p>
-    </div>
-  </div>
-</section>
-
-<section id="security" class="section">
-  <h2>Secure Payments, Peace of Mind</h2>
-  <div style="display:flex;justify-content:center;gap:40px;flex-wrap:wrap;margin-top:30px;">
-    <div style="max-width:260px;text-align:center;">
-      <img src="https://img.icons8.com/fluency/64/safe.png"/>
-      <h3>Escrow Wallet</h3>
-      <p style="font-size:14px;">Funds are held securely until delivery is confirmed.</p>
-    </div>
-    <div style="max-width:260px;text-align:center;">
-      <img src="https://img.icons8.com/fluency/64/data-encryption.png"/>
-      <h3>Encrypted</h3>
-      <p style="font-size:14px;">All payments happen securely within our app, ensuring your money is safe from start to finish. Every transaction is encrypted and traceable.</p>
-    </div>
-    <div style="max-width:260px;text-align:center;">
-      <img src="https://img.icons8.com/fluency/64/agreement.png"/>
-      <h3>Dispute Support</h3>
-      <p style="font-size:14px;">We mediate disputes so buyers and sellers are protected.</p>
-    </div>
-  </div>
-</section>
-
-<section id="waitlist" class="section" style="background:#fff;">
-  <h2>Join the Waitlist</h2>
-  <p>Be the first to know when we launch in your area.</p>
-  <input type="email" placeholder="Your email here" />
-  <br />
-  <button class="cta-button" style="margin-top:1rem;">Notify Me</button>
-</section>
-
-<section id="contact" class="section">
-  <h2>Contact Us</h2>
-  <p>Have a question or suggestion? Reach out via email:</p>
-  <p><strong>info@vendplug.com.ng</strong></p>
-</section>
-
-<section id="faq" class="section">
-  <h2>Frequently Asked Questions</h2>
-  <div class="faq-item">
-    <h3>🔐 What is VendPlug Escrow?</h3>
-    <p>VendPlug Escrow is a secure payment solution that holds funds until a buyer confirms they have received the product as described.
-    You can buy from anyone, anywhere in Nigeria, knowing your money is safe.</p>
-  </div>
-  <div class="faq-item">
-    <h3>📱 How do I join VendPlug as a vendor or agent?</h3>
-    <p>You can register interest through our platform and our team will follow up with onboarding instructions.</p>
-  </div>
-  <div class="faq-item">
-    <h3>🧾 What can I buy with VendPlug?</h3>
-    <p>Everything you’d find in a real market! From tomatoes, rice, onions, palm oil, beans, peppers, meat, fish, and yams — to electronics, fabrics, phone accessories, shoes, bags, clothes, and even services like tailoring or repairs. If it's in a market, you can get it through VendPlug.</p>
-  </div>
-</section>
-
-<footer>
-  &copy; 2025 VendPlug. All rights reserved.
-</footer>
-
-<!-- ✅ Carousel Script -->
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const track = document.querySelector('.carousel-track');
-    let index = 0;
-
-    function moveCarousel() {
-      index++;
-      if (index >= track.children.length) index = 0;
-      track.style.transform = `translateX(-${index * 100}%)`;
-    }
-
-    setInterval(moveCarousel, 3500);
-  });
-</script>
-
 </body>
 </html>
-
-
-
