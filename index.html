@@ -95,9 +95,50 @@
     .hero-content {
       position: relative;
       z-index: 1;
+
+
+    .hero-carousel {
+      position: relative;
+      height: 500px;
+      overflow: hidden;
     }
-    <section class="hero">
-  <div class="hero-carousel">
+    
+    .hero-slides {
+      position: absolute;
+      inset: 0;
+    }
+    
+    .hero-slide {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity 1.2s ease-in-out;
+    }
+    
+    .hero-slide.active {
+      opacity: 1;
+      z-index: 1;
+    }
+    
+    .hero-overlay {
+      position: absolute;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.4);
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      color: white;
+      padding: 2rem;
+    }
+
+
+<section class="hero-carousel">
+  <div class="hero-slides">
     <img src="market-1.jpg" class="hero-slide active">
     <img src="market-2.jpg" class="hero-slide">
     <img src="market-3.jpg" class="hero-slide">
@@ -108,7 +149,7 @@
     <img src="market-8.jpg" class="hero-slide">
     <img src="market-9.jpg" class="hero-slide">
   </div>
-  <div class="hero-content">
+  <div class="hero-overlay">
     <h1>Redefining Local Commerce</h1>
     <p>Shop Nigeria’s markets with ease using VendPlug’s tech-powered platform.</p>
     <button class="cta-button" onclick="document.getElementById('waitlist').scrollIntoView({behavior: 'smooth'})">
@@ -116,6 +157,7 @@
     </button>
   </div>
 </section>
+
 
 
     .cta-button {
@@ -393,6 +435,19 @@
   }
 
   setInterval(showNextSlide, 4000); // Change every 4 seconds
+</script> 
+  document.addEventListener("DOMContentLoaded", function () {
+    const slides = document.querySelectorAll('.hero-slide');
+    let current = 0;
+
+    function showNextSlide() {
+      slides[current].classList.remove('active');
+      current = (current + 1) % slides.length;
+      slides[current].classList.add('active');
+    }
+
+    setInterval(showNextSlide, 4000);
+  });
 </script>
 
 
