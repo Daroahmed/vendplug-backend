@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VendPlug Vendor Dashboard</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary-green: #3BA935;
+      --accent-dark: #002b18;
+      --light-bg: #f4fff8;
+      --gray-bg: #e6f2ec;
+      --dark-bg: #001c12;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: var(--light-bg);
+      margin: 0;
+      color: #222;
+    }
+
+    header {
+      background-color: var(--accent-dark);
+      color: white;
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h1 {
+      font-size: 1.3rem;
+    }
+
+    .icon {
+      font-size: 1.3rem;
+    }
+
+    nav {
+      display: flex;
+      justify-content: space-around;
+      background-color: var(--primary-green);
+      padding: 0.7rem;
+    }
+
+    nav a {
+      color: white;
+      font-weight: bold;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    main {
+      padding: 1.5rem 1rem;
+    }
+
+    .section {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .section h2 {
+      font-size: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .order {
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 0.8rem;
+      margin-bottom: 1rem;
+    }
+
+    .order p {
+      margin: 0.3rem 0;
+    }
+
+    .actions {
+      display: flex;
+      gap: 0.8rem;
+      margin-top: 0.5rem;
+    }
+
+    .btn {
+      padding: 0.4rem 1rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .accept {
+      background: var(--primary-green);
+      color: white;
+    }
+
+    .reject {
+      background: #e74c3c;
+      color: white;
+    }
+
+    .history p {
+      font-size: 0.9rem;
+      margin-bottom: 0.4rem;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 0.3rem;
+    }
+
+    footer {
+      background: var(--dark-bg);
+      color: white;
+      text-align: center;
+      padding: 1rem;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Vendor Panel</h1>
+  <div class="icon"><i class="fas fa-store"></i></div>
+</header>
+
+<nav>
+  <a href="#">Orders</a>
+  <a href="#">Wallet</a>
+  <a href="#">History</a>
+</nav>
+
+<main>
+  <div class="section">
+    <h2>Incoming Orders</h2>
+    <div class="order">
+      <p><strong>Order ID:</strong> #VN-3021</p>
+      <p><strong>Items:</strong> Palm oil (10L), Dried fish</p>
+      <p><strong>From Agent:</strong> Fatima J.</p>
+      <div class="actions">
+        <button class="btn accept">Accept</button>
+        <button class="btn reject">Reject</button>
+      </div>
+    </div>
+
+    <div class="order">
+      <p><strong>Order ID:</strong> #VN-2988</p>
+      <p><strong>Items:</strong> Tomatoes, Onions</p>
+      <p><strong>From Agent:</strong> Musa K.</p>
+      <div class="actions">
+        <button class="btn accept">Accept</button>
+        <button class="btn reject">Reject</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section history">
+    <h2>Recent Transactions</h2>
+    <p>✅ Order #VN-2891 — ₦7,500 received</p>
+    <p>✅ Order #VN-2872 — ₦2,800 received</p>
+    <p>✅ Order #VN-2853 — ₦5,000 received</p>
+  </div>
+</main>
+
+<footer>
+  &copy; 2025 VendPlug. Powered by Sellers Like You.
+</footer>
+
+</body>
+</html>
