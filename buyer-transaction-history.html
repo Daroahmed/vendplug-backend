@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Transaction History - VendPlug</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary-green: #3BA935;
+      --accent-dark: #002b18;
+      --light-bg: #f4fff8;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      background-color: var(--light-bg);
+      color: #222;
+    }
+
+    header {
+      background-color: var(--accent-dark);
+      color: white;
+      padding: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 {
+      font-size: 1.2rem;
+    }
+
+    .container {
+      padding: 1rem;
+      max-width: 600px;
+      margin: auto;
+    }
+
+    .transaction-date {
+      margin-top: 2rem;
+      font-weight: bold;
+      color: #444;
+      font-size: 0.95rem;
+    }
+
+    .transaction-entry {
+      background: white;
+      margin-top: 0.6rem;
+      padding: 0.8rem 1rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .transaction-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .transaction-info i {
+      font-size: 1.2rem;
+    }
+
+    .transaction-desc {
+      font-size: 0.9rem;
+    }
+
+    .amount {
+      font-weight: bold;
+    }
+
+    .credit {
+      color: green;
+    }
+
+    .debit {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Transaction History</h1>
+  <i class="fas fa-wallet fa-lg"></i>
+</header>
+
+<div class="container">
+  <div class="transaction-date">June 26, 2025</div>
+
+  <div class="transaction-entry">
+    <div class="transaction-info">
+      <i class="fas fa-arrow-down credit"></i>
+      <div class="transaction-desc">Card Funding</div>
+    </div>
+    <div class="amount credit">+ $50.00</div>
+  </div>
+
+  <div class="transaction-entry">
+    <div class="transaction-info">
+      <i class="fas fa-arrow-up debit"></i>
+      <div class="transaction-desc">Payment to Agent Muwaffaq</div>
+    </div>
+    <div class="amount debit">− $28.00</div>
+  </div>
+
+  <div class="transaction-entry">
+    <div class="transaction-info">
+      <i class="fas fa-box-open debit"></i>
+      <div class="transaction-desc">Pickup Station Order</div>
+    </div>
+    <div class="amount debit">− $13.50</div>
+  </div>
+
+  <div class="transaction-date">June 25, 2025</div>
+
+  <div class="transaction-entry">
+    <div class="transaction-info">
+      <i class="fas fa-arrow-down credit"></i>
+      <div class="transaction-desc">Virtual Account Top-up</div>
+    </div>
+    <div class="amount credit">+ $80.00</div>
+  </div>
+
+  <div class="transaction-entry">
+    <div class="transaction-info">
+      <i class="fas fa-arrow-up debit"></i>
+      <div class="transaction-desc">Vendor Payout</div>
+    </div>
+    <div class="amount debit">− $45.00</div>
+  </div>
+</div>
+
+</body>
+</html>
