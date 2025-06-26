@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VendPlug Agent Dashboard</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary-green: #3BA935;
+      --accent-dark: #002b18;
+      --light-bg: #f4fff8;
+      --gray-bg: #e6f2ec;
+      --dark-bg: #001c12;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: var(--light-bg);
+      color: #333;
+      margin: 0;
+    }
+
+    header {
+      background-color: var(--accent-dark);
+      padding: 1rem;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h1 {
+      font-size: 1.4rem;
+    }
+
+    .menu-icon {
+      font-size: 1.3rem;
+    }
+
+    nav {
+      background-color: var(--primary-green);
+      display: flex;
+      justify-content: space-around;
+      padding: 0.8rem;
+    }
+
+    nav a {
+      color: white;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    main {
+      padding: 1.5rem;
+    }
+
+    .section {
+      background: white;
+      padding: 1.2rem;
+      border-radius: 10px;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    .section h2 {
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+    }
+
+    .order {
+      padding: 0.8rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+    }
+
+    .order p {
+      margin: 0.4rem 0;
+    }
+
+    .status-btn {
+      padding: 0.4rem 1rem;
+      background: var(--primary-green);
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .wallet {
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: var(--primary-green);
+    }
+
+    .footer {
+      text-align: center;
+      padding: 1rem;
+      font-size: 0.9rem;
+      background: var(--dark-bg);
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Agent Dashboard</h1>
+  <div class="menu-icon"><i class="fas fa-user-circle"></i></div>
+</header>
+
+<nav>
+  <a href="#">Orders</a>
+  <a href="#">Wallet</a>
+  <a href="#">Support</a>
+</nav>
+
+<main>
+  <div class="section">
+    <h2>Assigned Orders</h2>
+    <div class="order">
+      <p><strong>Order ID:</strong> #AG-1023</p>
+      <p><strong>Pickup Station:</strong> Jos Central</p>
+      <p><strong>Status:</strong> Pending Collection</p>
+      <button class="status-btn">Mark as Collected</button>
+    </div>
+    <div class="order">
+      <p><strong>Order ID:</strong> #AG-1020</p>
+      <p><strong>Status:</strong> Shopping Complete</p>
+      <button class="status-btn">Confirm Delivery</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Wallet & Commission</h2>
+    <p class="wallet">₦5,200.00</p>
+    <p style="font-size: 0.9rem; color: #555;">Commission from recent transactions. Paid monthly or on request.</p>
+  </div>
+
+  <div class="section">
+    <h2>Quick Actions</h2>
+    <ul style="list-style: none; padding-left: 0;">
+      <li><a href="#" style="text-decoration: none; color: #3BA935;">📋 View All Orders</a></li>
+      <li><a href="#" style="text-decoration: none; color: #3BA935;">📤 Report a Delay</a></li>
+      <li><a href="#" style="text-decoration: none; color: #3BA935;">🧾 Submit Shopping Receipt</a></li>
+    </ul>
+  </div>
+</main>
+
+<footer class="footer">
+  &copy; 2025 VendPlug. Empowering Agents, One Market at a Time.
+</footer>
+
+</body>
+</html>
