@@ -18,13 +18,21 @@
       margin-bottom: 1.5rem;
     }
 
-    .confirmation-box {
+    main {
       max-width: 500px;
       margin: 0 auto;
+    }
+
+    .confirmation-box {
       background: white;
       padding: 2rem;
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease;
+    }
+
+    .confirmation-box:hover {
+      transform: scale(1.01);
     }
 
     label {
@@ -79,23 +87,42 @@
 
   <h2>Confirm Delivery</h2>
 
-  <div class="confirmation-box">
-    <p><strong>Order ID:</strong> #ES-1021</p>
-    <p><strong>Item:</strong> Samsung A14 - 128GB</p>
-    <p><strong>Vendor:</strong> Blessing Phones Ventures</p>
-    <p><strong>Amount:</strong> $210.00</p>
+  <main>
+    <section class="confirmation-box" aria-label="Confirm Order Delivery">
+      <p><strong>Order ID:</strong> #ES-1021</p>
+      <p><strong>Item:</strong> Samsung A14 - 128GB</p>
+      <p><strong>Vendor:</strong> Blessing Phones Ventures</p>
+      <p><strong>Amount:</strong> $210.00</p>
 
-    <label for="feedback">Optional Feedback</label>
-    <textarea id="feedback" rows="4" placeholder="Write feedback for seller (optional)"></textarea>
+      <label for="feedback">Optional Feedback</label>
+      <textarea id="feedback" name="feedback" aria-label="Write feedback for the seller" rows="4" placeholder="Write feedback for seller (optional)"></textarea>
 
-    <div class="actions">
-      <button class="btn confirm" onclick="alert('✅ Delivery confirmed! Funds will be released.')">Confirm Received</button>
-      <button class="btn dispute" onclick="alert('⚠️ Dispute initiated. Our team will contact you shortly.')">Raise Dispute</button>
-    </div>
+      <div class="actions">
+        <button class="btn confirm" onclick="confirmDelivery()">Confirm Received</button>
+        <button class="btn dispute" onclick="raiseDispute()">Raise Dispute</button>
+      </div>
 
-    <p class="note">You can only raise a dispute if the order is incorrect or damaged. Otherwise, confirm to release funds.</p>
-  </div>
+      <p class="note">You can only raise a dispute if the order is incorrect or damaged. Otherwise, confirm to release funds.</p>
+    </section>
+  </main>
+
+  <script>
+    function confirmDelivery() {
+      if (confirm("Are you sure you received the item in good condition?")) {
+        alert("✅ Delivery confirmed! Funds will be released.");
+        // Trigger backend call here in real application
+      }
+    }
+
+    function raiseDispute() {
+      if (confirm("Do you want to raise a dispute for this item?")) {
+        alert("⚠️ Dispute initiated. Our team will contact you shortly.");
+        // Trigger dispute workflow here
+      }
+    }
+  </script>
 
 </body>
 </html>
+
 
