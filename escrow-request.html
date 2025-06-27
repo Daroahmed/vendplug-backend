@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Start Escrow - VendPlug</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f4fff8;
+      margin: 0;
+      padding: 1rem;
+      color: #333;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: 2rem auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+
+    h2 {
+      text-align: center;
+      color: #3BA935;
+    }
+
+    label {
+      display: block;
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 0.8rem;
+      margin-top: 0.3rem;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 1rem;
+      background-color: #3BA935;
+      color: white;
+      border: none;
+      margin-top: 1.5rem;
+      border-radius: 5px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      background-color: #31912e;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Start Escrow Transaction</h2>
+    <form action="escrow-confirmation.html" method="POST">
+      <label>Seller Name</label>
+      <input type="text" name="seller_name" placeholder="e.g. John Doe" required>
+
+      <label>Seller Phone Number</label>
+      <input type="tel" name="seller_phone" placeholder="e.g. 08012345678" required>
+
+      <label>Platform</label>
+      <select name="platform" required>
+        <option value="Instagram">Instagram</option>
+        <option value="Facebook">Facebook</option>
+        <option value="Jiji">Jiji</option>
+        <option value="Twitter">Twitter</option>
+        <option value="WhatsApp">WhatsApp</option>
+        <option value="Other">Other</option>
+      </select>
+
+      <label>Product Description</label>
+      <textarea name="product" placeholder="Describe the product you're buying" required></textarea>
+
+      <label>Amount (₦)</label>
+      <input type="number" name="amount" placeholder="e.g. 12000" required>
+
+      <label>Expected Delivery Date</label>
+      <input type="date" name="delivery_date" required>
+
+      <button type="submit" class="btn">Continue</button>
+    </form>
+  </div>
+</body>
+</html>
