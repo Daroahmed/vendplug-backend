@@ -1,0 +1,11 @@
+#notification-bell.has-notification::after {
+    content: "";
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 10px;
+    height: 10px;
+    background: red;
+    border-radius: 50%;
+  }
+  

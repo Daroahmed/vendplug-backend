@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Agent Earnings | VendPlug</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <style>
+    :root {
+      --primary-green: #3BA935;
+      --accent-dark: #002b18;
+      --light-bg: #f4fff8;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: var(--light-bg);
+    }
+
+    header {
+      background-color: var(--accent-dark);
+      color: white;
+      padding: 1.2rem;
+      text-align: center;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 2rem auto;
+      padding: 1rem;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    h2 {
+      text-align: center;
+      color: var(--primary-green);
+      margin-bottom: 1rem;
+    }
+
+    .earnings-total {
+      text-align: center;
+      font-size: 2rem;
+      margin-bottom: 2rem;
+      font-weight: bold;
+      color: var(--accent-dark);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+
+    th, td {
+      padding: 0.9rem;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+
+    th {
+      background-color: #e8f9ed;
+    }
+
+    @media (max-width: 768px) {
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+
+      thead {
+        display: none;
+      }
+
+      tr {
+        margin-bottom: 1rem;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 1rem;
+      }
+
+      td {
+        padding: 0.6rem 0;
+        border: none;
+      }
+
+      td::before {
+        content: attr(data-label);
+        display: block;
+        font-weight: bold;
+        margin-bottom: 0.3rem;
+        color: #333;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Agent Earnings</h1>
+</header>
+
+<div class="container">
+  <h2>Earnings Summary</h2>
+  <div class="earnings-total" id="totalEarnings">₦0.00</div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Order ID</th>
+        <th>Buyer</th>
+        <th>Amount</th>
+        <th>Date Completed</th>
+      </tr>
+    </thead>
+    <tbody id="earningsTable">
+      <tr><td colspan="5">Loading...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+  const token = localStorage.getItem('vendplug-token');
+  if (!token) {
+    alert("Please log in.");
+    window.location.href = "agent-login.html";
+  }
+
+  fetch("/api/agents/orders", {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  })
+  .then(res => res.json())
+  .then(orders => {
+    const table = document.getElementById("earningsTable");
+    table.innerHTML = "";
+
+    const completedOrders = orders.filter(o => o.status === "completed");
+    let total = 0;
+
+    if (completedOrders.length === 0) {
+      table.innerHTML = `<tr><td colspan="5">No completed orders yet.</td></tr>`;
+      document.getElementById("totalEarnings").textContent = "₦0.00";
+      return;
+    }
+
+    completedOrders.forEach((order, index) => {
+      total += order.amount || 0;
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td data-label="#">${index + 1}</td>
+        <td data-label="Order ID">${order._id.slice(-6).toUpperCase()}</td>
+        <td data-label="Buyer">${order.buyer?.fullName || "N/A"}</td>
+        <td data-label="Amount">₦${(order.amount || 0).toFixed(2)}</td>
+        <td data-label="Completed On">${new Date(order.updatedAt).toLocaleDateString()}</td>
+      `;
+      table.appendChild(row);
+    });
+
+    document.getElementById("totalEarnings").textContent = `₦${total.toFixed(2)}`;
+  })
+  .catch(err => {
+    console.error("Error loading earnings:", err);
+    document.getElementById("earningsTable").innerHTML = `<tr><td colspan="5">Error fetching data.</td></tr>`;
+  });
+</script>
+
+</body>
+</html>

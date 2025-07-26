@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Agent Profile | VendPlug</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <style>
+    :root {
+      --primary-green: #3BA935;
+      --dark-green: #002b18;
+      --light-bg: #f4fff8;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: var(--light-bg);
+    }
+
+    header {
+      background-color: var(--dark-green);
+      color: white;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 2rem auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    h2 {
+      color: var(--primary-green);
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .profile-item {
+      margin-bottom: 1.2rem;
+    }
+
+    .profile-item label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 0.3rem;
+      color: #333;
+    }
+
+    .profile-item input {
+      width: 100%;
+      padding: 0.7rem;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    .profile-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 2rem;
+    }
+
+    .btn {
+      padding: 0.6rem 1.2rem;
+      border: none;
+      border-radius: 5px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background-color: var(--primary-green);
+      color: white;
+    }
+
+    .btn-logout {
+      background-color: #dc3545;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h2>My Profile</h2>
+</header>
+
+<div class="container">
+  <h2>Agent Details</h2>
+
+  <div class="profile-item">
+    <label for="fullName">Full Name</label>
+    <input type="text" id="fullName" disabled />
+  </div>
+
+  <div class="profile-item">
+    <label for="email">Email</label>
+    <input type="email" id="email" disabled />
+  </div>
+
+  <div class="profile-item">
+    <label for="phone">Phone Number</label>
+    <input type="text" id="phone" disabled />
+  </div>
+
+  <div class="profile-actions">
+    <button class="btn btn-logout" onclick="logout()">Logout</button>
+  </div>
+</div>
+
+<script>
+  const token = localStorage.getItem('vendplug-token');
+  if (!token) {
+    window.location.href = 'agent-login.html';
+  }
+
+  fetch('/api/agents/profile', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  })
+  .then(res => res.json())
+  .then(agent => {
+    document.getElementById('fullName').value = agent.fullName || '';
+    document.getElementById('email').value = agent.email || '';
+    document.getElementById('phone').value = agent.phoneNumber || '';
+  })
+  .catch(err => {
+    alert("Session expired or server error.");
+    localStorage.removeItem('vendplug-token');
+    window.location.href = 'agent-login.html';
+  });
+
+  function logout() {
+    localStorage.removeItem('vendplug-token');
+    window.location.href = 'agent-login.html';
+  }
+</script>
+
+</body>
+</html>

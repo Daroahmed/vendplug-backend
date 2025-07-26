@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Agent Transactions - VendPlug</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h2>🧾 Agent Transaction Dashboard</h2>
+
+  <div id="wallet-section">
+    <p><strong>Balance:</strong> ₦<span id="wallet-balance">0</span></p>
+  </div>
+
+  <hr />
+
+  <section>
+    <h3>📤 Transfer to Vendor</h3>
+    <form id="transfer-form">
+      <input type="text" placeholder="Vendor account number" id="recipient-account" required />
+      <input type="number" placeholder="Amount to transfer" id="transfer-amount" required />
+      <button type="submit">Send</button>
+    </form>
+    <p id="transfer-status"></p>
+  </section>
+
+  <hr />
+
+  <section>
+    <h3>📄 My Transactions</h3>
+    <button id="load-transactions">Load Transactions</button>
+    <ul id="transaction-list"></ul>
+  </section>
+
+  <script src="/frontend/js/agent-transaction.js"></script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Buyer Transactions - VendPlug</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h2>💼 Wallet & Transactions</h2>
+
+  <div id="wallet-section">
+    <p><strong>Balance:</strong> ₦<span id="wallet-balance">0</span></p>
+  </div>
+
+  <hr />
+
+  <section>
+    <h3>🔼 Fund Wallet</h3>
+    <form id="fund-form">
+      <input type="number" placeholder="Enter amount" id="fund-amount" required />
+      <button type="submit">Fund</button>
+    </form>
+    <p id="fund-status"></p>
+  </section>
+
+  <hr />
+
+  <section>
+    <h3>🔁 Transfer Funds</h3>
+    <form id="transfer-form">
+      <input type="text" placeholder="Recipient account number" id="recipient-account" required />
+      <input type="number" placeholder="Amount to transfer" id="transfer-amount" required />
+      <button type="submit">Transfer</button>
+    </form>
+    <p id="transfer-status"></p>
+  </section>
+
+  <hr />
+
+  <section>
+    <h3>📄 Transactions</h3>
+    <button id="load-transactions">View Transactions</button>
+    <ul id="transaction-list"></ul>
+  </section>
+
+  <script src="/frontend/js/buyer-transaction.js"></script>
+</body>
+</html>

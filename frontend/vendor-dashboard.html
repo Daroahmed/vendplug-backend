@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Vendor Dashboard - VendPlug</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      --primary-green: #3BA935;
+      --dark-green: #002b18;
+      --light-bg: #f4fff8;
+      --light-card: #ffffff;
+      --hover-bg: #eafaea;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: var(--light-bg);
+      color: #222;
+    }
+
+    header {
+      background-color: var(--dark-green);
+      color: white;
+      padding: 1.2rem;
+      text-align: center;
+    }
+
+    .container {
+      padding: 1.5rem 1rem;
+      max-width: 960px;
+      margin: auto;
+    }
+
+    .greeting {
+      font-size: 1.1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .nav-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1.2rem;
+    }
+
+    .nav-tile {
+      background-color: var(--light-card);
+      padding: 1.4rem 1rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      text-align: center;
+      transition: all 0.2s ease-in-out;
+      cursor: pointer;
+    }
+
+    .nav-tile:hover {
+      background-color: var(--hover-bg);
+    }
+
+    .nav-tile i {
+      font-size: 1.6rem;
+      margin-bottom: 0.6rem;
+      color: var(--primary-green);
+    }
+
+    .nav-tile p {
+      margin: 0;
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: #222;
+    }
+
+    .logout-btn {
+      display: block;
+      margin: 2.5rem auto 1rem auto;
+      background: crimson;
+      color: white;
+      padding: 0.75rem 2rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .logout-btn:hover {
+      background: darkred;
+    }
+
+    @media (max-width: 480px) {
+      .nav-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h2>VendPlug Vendor Dashboard</h2>
+  </header>
+
+  <div class="container">
+    <div class="greeting">Welcome back, <strong>Vendor</strong> 👋</div>
+
+    <!-- Navigation Tiles -->
+    <div class="nav-grid">
+      <div class="nav-tile" onclick="location.href='vendor-orders.html'">
+        <i class="fa-solid fa-truck"></i>
+        <p>Incoming Orders</p>
+      </div>
+      <div class="nav-tile" onclick="location.href='vendor-products.html'">
+        <i class="fa-solid fa-boxes-stacked"></i>
+        <p>Manage Products</p>
+      </div>
+      <div class="nav-tile" onclick="location.href='vendor-wallet.html'">
+        <i class="fa-solid fa-wallet"></i>
+        <p>Payouts</p>
+      </div>
+      <div class="nav-tile" onclick="location.href='vendor-profile.html'">
+        <i class="fa-solid fa-user-gear"></i>
+        <p>Profile Settings</p>
+      </div>
+    </div>
+
+    <button onclick="logout()" class="logout-btn">Logout</button>
+  </div>
+
+  <script>
+    const token = localStorage.getItem("vendplug-token");
+    const vendor = JSON.parse(localStorage.getItem("vendplugVendor") || "{}");
+
+    if (!token || !vendor._id) {
+      alert("Session expired. Please log in.");
+      window.location.href = "vendor-login.html";
+    }
+
+    // Greet vendor by business name
+    document.querySelector(".greeting").innerHTML = `Welcome back, <strong>${vendor.businessName || 'Vendor'}</strong> 👋`;
+
+    function logout() {
+      localStorage.removeItem("vendplug-token");
+      localStorage.removeItem("vendplugVendor");
+      window.location.href = "vendor-login.html";
+    }
+  </script>
+</body>
+</html>

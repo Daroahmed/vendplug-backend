@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Agent Pickups - VendPlug</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+  <style>
+    :root {
+      --primary-green: #3BA935;
+      --dark-green: #002b18;
+      --light-bg: #f4fff8;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: var(--light-bg);
+      color: #222;
+    }
+
+    header {
+      background-color: var(--dark-green);
+      color: white;
+      padding: 1.2rem;
+      text-align: center;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: auto;
+      padding: 2rem 1rem;
+    }
+
+    h2 {
+      color: var(--primary-green);
+      margin-bottom: 1.5rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: white;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    th, td {
+      padding: 0.9rem;
+      border: 1px solid #ddd;
+      text-align: left;
+      font-size: 15px;
+    }
+
+    th {
+      background-color: #e8f9ed;
+      color: #333;
+    }
+
+    .badge {
+      padding: 0.3rem 0.6rem;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: bold;
+      display: inline-block;
+    }
+
+    .pending { background-color: #fff3cd; color: #856404; }
+    .completed { background-color: #d4edda; color: #155724; }
+    .in-progress { background-color: #cce5ff; color: #004085; }
+
+    .actions button {
+      padding: 0.4rem 0.8rem;
+      border: none;
+      margin-right: 0.3rem;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .view-btn {
+      background-color: #17a2b8;
+      color: white;
+    }
+
+    .done-btn {
+      background-color: #28a745;
+      color: white;
+    }
+
+    @media (max-width: 768px) {
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+
+      thead {
+        display: none;
+      }
+
+      tr {
+        margin-bottom: 1rem;
+        border: 1px solid #ccc;
+        padding: 1rem;
+        border-radius: 8px;
+        background: white;
+      }
+
+      td {
+        padding: 0.6rem 0;
+        border: none;
+        position: relative;
+      }
+
+      td::before {
+        content: attr(data-label);
+        font-weight: bold;
+        display: block;
+        margin-bottom: 0.2rem;
+        color: #555;
+      }
+
+      .actions {
+        display: flex;
+        justify-content: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Pickup Requests</h1>
+  </header>
+
+  <div class="container">
+    <h2>Pending Pickups</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Buyer</th>
+          <th>Location</th>
+          <th>Status</th>
+          <th>Requested On</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="pickup-body">
+        <tr>
+          <td colspan="6">Loading...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    const token = localStorage.getItem("vendplug-token");
+    if (!token) {
+      alert("You need to log in.");
+      window.location.href = "agent-login.html";
+    }
+
+    fetch("/api/agents/orders", {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+    .then(res => res.json())
+    .then(orders => {
+      const pickupBody = document.getElementById("pickup-body");
+      pickupBody.innerHTML = "";
+
+      const pickups = orders.filter(o => o.status === "pending");
+
+      if (pickups.length === 0) {
+        pickupBody.innerHTML = `<tr><td colspan="6">No pending pickups.</td></tr>`;
+        return;
+      }
+
+      pickups.forEach((order, index) => {
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+          <td data-label="#">${index + 1}</td>
+          <td data-label="Buyer">${order.buyer?.fullName || "N/A"}</td>
+          <td data-label="Location">${order.pickupLocation || "Not set"}</td>
+          <td data-label="Status"><span class="badge pending">Pending</span></td>
+          <td data-label="Requested On">${new Date(order.createdAt).toLocaleDateString()}</td>
+          <td class="actions" data-label="Actions">
+            <button class="view-btn" onclick="viewDetails('${order._id}')"><i class="fa fa-eye"></i></button>
+            <button class="done-btn" onclick="markAsPicked('${order._id}')"><i class="fa fa-check"></i></button>
+          </td>
+        `;
+
+        pickupBody.appendChild(row);
+      });
+    });
+
+    function viewDetails(orderId) {
+      alert(`Viewing details for order ID: ${orderId}`);
+    }
+
+    function markAsPicked(orderId) {
+      const token = localStorage.getItem("vendplug-token");
+
+      fetch(`/api/orders/${orderId}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: "in-progress" })
+      })
+      .then(res => res.json())
+      .then(data => {
+        alert("Order marked as picked ✅");
+        location.reload();
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Failed to update order.");
+      });
+    }
+  </script>
+
+</body>
+</html>
