@@ -2,7 +2,7 @@
 
 const Agent = require("../models/Agent");
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+const generateToken = require("../utils/generateToken");
 const Wallet = require("../models/walletModel");
 const { createWalletIfNotExists } = require("../controllers/walletHelper");
 
@@ -22,30 +22,47 @@ const registerAgent = async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Generate virtual account number
-    const virtualAccount
-    = "AP" + Date.now();
-
     // Create new agent
-    const newAgent = new Agent({
-      fullName,
-      email,
-      phoneNumber,
-      password: hashedPassword,
-      virtualAccount
-,
-    });
+
+    // ✅ Generate virtual account number
+const virtualAccount = "AP" + Date.now();
+
+// ✅ Create new agent
+const newAgent = new Agent({
+  fullName,
+  email,
+  phoneNumber,
+  password: hashedPassword,
+  virtualAccount, // <- FIXED: now correctly inside the object
+});
 
     const savedAgent = await newAgent.save();
 
-    res.status(201).json({ message: "Agent registered successfully" });
+    // ✅ Create wallet and assign virtual account number
+    const wallet = await createWalletIfNotExists(savedAgent._id, "agent");
+
+    // ✅ Save the virtual account on the agent document
+    savedAgent.virtualAccount = wallet.virtualAccount;
+    await savedAgent.save();
+
+    res.status(201).json({
+      message: "Agent registered successfully",
+      agent: {
+        _id: savedAgent._id,
+        fullName: savedAgent.fullName,
+        email: savedAgent.email,
+        phoneNumber: savedAgent.phoneNumber,
+        virtualAccount: savedAgent.virtualAccount,
+      },
+    });
   } catch (error) {
     console.error("❌ Agent Register Error:", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
-// ✅ Login Agent + Create Wallet if missing
+
+// ✅ Login Agent 
 const loginAgent = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -56,32 +73,25 @@ const loginAgent = async (req, res) => {
     const isMatch = await bcrypt.compare(password, agent.password);
     if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
 
-    // ✅ Create wallet if it doesn't exist
-    await createWalletIfNotExists(agent._id, "Agent");
+    const token = generateToken(agent._id); // Make sure generateToken is defined
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { id: agent._id, role: "agent" },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    res.json({
+    res.status(200).json({
       token,
       agent: {
         _id: agent._id,
         fullName: agent.fullName,
         email: agent.email,
         phoneNumber: agent.phoneNumber,
-        virtualAccount: agent.virtualAccount
-,
+        virtualAccount: agent.virtualAccount,
+        role: agent.role || "agent", // Add role if applicable
       },
     });
   } catch (error) {
-    console.error("❌ Agent Login Error:", error.message);
+    console.error("Agent login error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 // ✅ Get Agent Profile
 const getAgentProfile = async (req, res) => {

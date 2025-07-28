@@ -12,7 +12,7 @@ const buyerSchema = new mongoose.Schema({
   },
   virtualAccount: {
     type: String,
-    required: true,
+    required: false,
     unique: true
   },
   wallet: {

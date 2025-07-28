@@ -42,8 +42,6 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const vendorProductRoutes = require("./routes/vendorProductRoutes");
 const walletRoutes = require('./routes/walletRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
-
-
 const vendorRoutes = require('./routes/vendorRoutes');
 
 // ✅ Mount routes
@@ -57,7 +55,6 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/vendors', vendorRoutes);
-app.use('/api/vendors', require('./routes/vendorRoutes'));
 app.use('/api/wallet', walletRoutes);
 app.use('/api/transactions', transactionRoutes);
 
@@ -106,6 +103,12 @@ io.on('connection', socket => {
 
 // ✅ Start server
 const PORT = process.env.PORT || 5007;
+
+app.use((err, req, res, next) => {
+  console.error('🔥 Uncaught Error:', err.stack);
+  res.status(500).json({ message: 'Internal Server Error', error: err.message });
+});
+
 server.listen(PORT, () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
 });

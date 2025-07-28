@@ -125,8 +125,8 @@
         } else {
           // ✅ Store all required localStorage items
           localStorage.setItem('vendplug-token', data.token);
-          localStorage.setItem('vendplugAgent', JSON.stringify(data.user));
-          localStorage.setItem('role', data.user.role || 'agent');
+          localStorage.setItem('vendplugAgent', JSON.stringify(data.agent));
+          localStorage.setItem('role', data.agent.role || 'agent');
 
           // ✅ Redirect
           window.location.href = 'agent-dashboard.html';

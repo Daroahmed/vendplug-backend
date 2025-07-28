@@ -14,6 +14,22 @@ const agentSchema = new mongoose.Schema({
     type: String,
     unique: true,
     required: true
+  },
+  wallet: {
+    balance: {
+      type: Number,
+      default: 0
+    },
+    bankName: {
+      type: String,
+      default: "VendPlug Microfinance Bank"
+    },
+    accountName: {
+      type: String,
+      default: function () {
+        return this.fullName;
+      }
+    }
   }
 }, { timestamps: true });
 

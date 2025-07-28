@@ -16,9 +16,11 @@ const vendorSchema = new mongoose.Schema({
 
   virtualAccount: {
     type: String,
-    unique: true // ✅ make optional at model level to allow post-creation assignment
-  },
+    unique: true,
+    //db.vendors.dropIndex("virtualAccount_1")
 
+  },
+  
   wallet: {
     balance: {
       type: Number,

@@ -1,7 +1,8 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const form = document.getElementById("vendorRegisterForm");
+  const registerForm = document.getElementById("vendor-register-form");
+  const errorMsg = document.getElementById("register-error");
 
-  form.addEventListener("submit", async (e) => {
+  registerForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const fullName = document.getElementById("fullName").value.trim();
@@ -13,7 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const businessAddress = document.getElementById("businessAddress").value.trim();
     const cacNumber = document.getElementById("cacNumber").value.trim();
 
-    const data = {
+    const registerData = {
       fullName,
       email,
       shopName,
@@ -21,34 +22,34 @@ document.addEventListener("DOMContentLoaded", () => {
       password,
       businessName,
       businessAddress,
-      cacNumber,
+      cacNumber
     };
 
     try {
-      const res = await fetch(`${baseURL}/api/vendors/register`, {
+      const res = await fetch("/api/vendors/register", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(registerData)
       });
 
-      const result = await res.json();
+      const data = await res.json();
 
       if (!res.ok) {
-        alert(result.message || "Vendor registration failed.");
-        return;
+        throw new Error(data.message || "Registration failed");
       }
 
-      // Save token and vendor info
-      localStorage.setItem("vendplug-token", result.token);
-      localStorage.setItem("vendplugAgent", JSON.stringify(result.vendor));
+      // Save token and vendor data to localStorage
+      localStorage.setItem("vendplug-token", data.token);
+      localStorage.setItem("vendplugVendor", JSON.stringify(data.vendor));
 
-      alert("Registration successful!");
-      window.location.href = "agent-dashboard.html"; // Or your target dashboard
-    } catch (err) {
-      console.error("❌ Registration Error:", err);
-      alert("Something went wrong. Please try again.");
+      // Redirect to vendor dashboard or home
+      window.location.href = "/vendor-dashboard.html";
+
+    } catch (error) {
+      errorMsg.textContent = error.message;
+      errorMsg.style.display = "block";
     }
   });
 });

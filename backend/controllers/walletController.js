@@ -17,14 +17,32 @@ exports.createWalletIfNotExists = async (user, userType) => {
   }
 };
 
+const Vendor = require('../models/vendorModel');
+const Buyer = require('../models/Buyer');
+const Agent = require('../models/Agent');
 
 exports.getWalletBalance = async (req, res) => {
   try {
-    const user = req.user._id;
-    const wallet = await Wallet.findOne({ user });
-    if (!wallet) return res.status(404).json({ message: "Wallet not found" });
-    res.json(wallet);
+    let user;
+    if (req.agent) {
+      user = await Agent.findById(req.agent._id).populate('wallet');
+    } else if (req.buyer) {
+      user = await Buyer.findById(req.buyer._id).populate('wallet');
+    } else if (req.vendor) {
+      user = await Vendor.findById(req.vendor._id).populate('wallet');
+    } else {
+      return res.status(401).json({ message: "User type not detected" });
+    }
+
+    if (!user || !user.wallet) {
+      return res.status(404).json({ message: "Wallet not found" });
+    }
+
+    const { balance, virtualAccount } = user.wallet;
+
+    res.json({ balance, virtualAccount }); // ✅ return both
   } catch (err) {
+    console.error("⚠️ Wallet fetch error:", err);
     res.status(500).json({ message: "Failed to fetch wallet" });
   }
 };

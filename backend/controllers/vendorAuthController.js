@@ -14,48 +14,58 @@ const generateToken = (id) => {
 
 // ✅ Register Vendor
 const registerVendor = asyncHandler(async (req, res) => {
-  const {
-    fullName,
-    email,
-    shopName,
-    phoneNumber,
-    password,
-    businessName,
-    businessAddress,
-    cacNumber,
-  } = req.body;
+  try {
+    const {
+      fullName,
+      email,
+      shopName,
+      phoneNumber,
+      password,
+      businessName,
+      businessAddress,
+      cacNumber,
+    } = req.body;
 
-  const vendorExists = await Vendor.findOne({ email });
-  if (vendorExists) {
-    return res.status(400).json({ message: "Vendor already exists" });
+    const vendorExists = await Vendor.findOne({ email });
+    if (vendorExists) {
+      return res.status(400).json({ message: "Vendor already exists" });
+    }
+
+    const vendor = await Vendor.create({
+      fullName,
+      email,
+      shopName,
+      phoneNumber,
+      password,
+      businessName,
+      businessAddress,
+      cacNumber,
+    });
+
+    // ✅ Create wallet and assign virtual account using new helper
+    const wallet = await createWalletIfNotExists(vendor._id, "vendor");
+
+// Update the vendor document with virtualAccount value
+vendor.virtualAccount = wallet.virtualAccount;
+await vendor.save();
+    
+    res.status(201).json({
+      token: generateToken(vendor._id),
+      vendor: {
+        _id: vendor._id,
+        fullName: vendor.fullName,
+        email: vendor.email,
+        shopName: vendor.shopName,
+        phoneNumber: vendor.phoneNumber,
+        virtualAccount: wallet.virtualAccount,
+      },
+    });
+  } catch (err) {
+    console.error("❌ Vendor registration failed:", err.message);
+    res.status(500).json({ message: "Vendor registration failed", error: err.message });
   }
-
-  const vendor = await Vendor.create({
-    fullName,
-    email,
-    shopName,
-    phoneNumber,
-    password,
-    businessName,
-    businessAddress,
-    cacNumber,
-  });
-
-  // ✅ Create wallet and assign virtual account using new helper
-  const wallet = await createWalletIfNotExists(vendor._id, "vendor");
-
-  res.status(201).json({
-    token: generateToken(vendor._id),
-    vendor: {
-      _id: vendor._id,
-      fullName: vendor.fullName,
-      email: vendor.email,
-      shopName: vendor.shopName,
-      phoneNumber: vendor.phoneNumber,
-      virtualAccount: wallet.virtualAccount,
-    },
-  });
 });
+
 
 // ✅ Login Vendor
 const loginVendor = asyncHandler(async (req, res) => {

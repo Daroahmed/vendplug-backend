@@ -58,51 +58,64 @@
       <input type="text" id="phoneNumber" placeholder="Phone Number" required />
       <input type="email" id="email" placeholder="Email Address" required />
       <input type="password" id="password" placeholder="Password" required />
-      <input type="text" id="address" placeholder="Address (Optional)" />
+      <input type="text" id="address" placeholder="Business Address (Optional)" />
       <input type="text" id="cacNumber" placeholder="CAC Number (Optional)" />
       <button type="submit">Register</button>
     </form>
   </div>
 
   <script>
-    const BASE_URL = 'http://localhost:5000/api';
+    const BASE_URL = "http://localhost:5000/api"; // Change if deployed
 
-    document.getElementById("vendorRegisterForm").addEventListener("submit", async function (e) {
-      e.preventDefault();
+    document.addEventListener("DOMContentLoaded", () => {
+      const form = document.getElementById("vendorRegisterForm");
 
-      const formData = {
-        shopName: document.getElementById("shopName").value,
-        fullName: document.getElementById("fullName").value,
-        phoneNumber: document.getElementById("phoneNumber").value,
-        email: document.getElementById("email").value,
-        password: document.getElementById("password").value,
-        address: document.getElementById("address").value,
-        cacNumber: document.getElementById("cacNumber").value || null,
-      };
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
 
-      try {
-        const response = await fetch(`${BASE_URL}/vendors/register`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-        });
+        const formData = {
+          shopName: document.getElementById("shopName").value,
+          fullName: document.getElementById("fullName").value,
+          phoneNumber: document.getElementById("phoneNumber").value,
+          email: document.getElementById("email").value,
+          password: document.getElementById("password").value,
+          businessAddress: document.getElementById("address").value || "",
+          cacNumber: document.getElementById("cacNumber").value || "",
+        };
 
-        const data = await response.json();
+        try {
+          const res = await fetch(`${BASE_URL}/vendors/register`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(formData),
+          });
 
-        if (!response.ok) {
-          throw new Error(data.message || "Registration failed. Please try again.");
+          // If response is not JSON, show raw error
+          const contentType = res.headers.get("content-type");
+          if (!contentType || !contentType.includes("application/json")) {
+            throw new Error("Received unexpected HTML response instead of JSON.");
+          }
+
+          const result = await res.json();
+
+          if (!res.ok) {
+            alert(result.message || "Vendor registration failed.");
+            return;
+          }
+
+          // Save token and vendor info
+          localStorage.setItem("vendplug-token", result.token);
+          localStorage.setItem("vendplugAgent", JSON.stringify(result.vendor));
+
+          alert("Registration successful!");
+          window.location.href = "agent-dashboard.html";
+        } catch (err) {
+          console.error("❌ Registration Error:", err);
+          alert("Something went wrong. Please check your network or backend.");
         }
-
-        localStorage.setItem("vendplug-token", data.token);
-        localStorage.setItem("vendplugAgent", JSON.stringify(data));
-        alert("Vendor registered successfully!");
-        window.location.href = "agent-dashboard.html";
-      } catch (err) {
-        console.error("Registration error:", err.message);
-        alert(`Registration failed: ${err.message}`);
-      }
+      });
     });
   </script>
 </body>

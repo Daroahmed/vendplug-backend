@@ -3,8 +3,9 @@ const Buyer = require("../models/Buyer");
 const generateToken = require("../utils/generateToken");
 const bcrypt = require("bcryptjs");
 const { createWalletIfNotExists } = require("../controllers/walletHelper");
-const Order = require("../models/Order");
+const Order = require("../models/order");
 
+// @desc    Register new buyer
 // @desc    Register new buyer
 // @route   POST /api/buyers/register
 // @access  Public
@@ -19,32 +20,30 @@ const registerBuyer = asyncHandler(async (req, res) => {
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  // ✅ Generate virtual account before creating buyer
-  const virtualAccount = "BP" + Date.now();
-
-  const buyer = await Buyer.create({
+  // ✅ Create buyer first (without virtualAccount)
+  const newBuyer = new Buyer({
     fullName,
     email,
     password: hashedPassword,
     phoneNumber,
     address,
-    virtualAccount,
   });
 
-  // ✅ Create wallet for buyer
-  await createWalletIfNotExists(buyer._id, "buyer");
 
-  const updatedBuyer = await Buyer.findById(buyer._id).select("-password");
+  // ✅ Create wallet and assign virtual account
+const savedBuyer = await newBuyer.save();
+const wallet = await createWalletIfNotExists(savedBuyer._id, "buyer");
+
+savedBuyer.virtualAccount = wallet.virtualAccount;
+await savedBuyer.save();
+
+const updatedBuyer = await Buyer.findById(savedBuyer._id).select("-password");
 
   res.status(201).json({
     message: "Buyer registered successfully",
     buyer: updatedBuyer,
   });
 });
-
-// @desc    Authenticate buyer & get token
-// @route   POST /api/buyers/login
-// @access  Public
 const loginBuyer = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
@@ -55,6 +54,7 @@ const loginBuyer = asyncHandler(async (req, res) => {
       _id: buyer._id,
       fullName: buyer.fullName,
       email: buyer.email,
+      virtualAccount: buyer.virtualAccount,
       token: generateToken(buyer._id, "buyer"),
     });
   } else {
