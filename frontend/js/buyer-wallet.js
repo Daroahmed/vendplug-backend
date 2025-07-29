@@ -1,56 +1,38 @@
 document.addEventListener("DOMContentLoaded", () => {
-  loadWalletData();
+  loadBuyerWallet();
 
-  document.getElementById("fundTest").addEventListener("click", simulateFunding);
-  document.getElementById("walletNavBtn").addEventListener("click", () => {
-    loadWalletData();
+  document.getElementById("walletNavBtn")?.addEventListener("click", () => {
+    loadBuyerWallet();
     alert("🔁 Wallet reloaded");
   });
 });
 
-function loadWalletData() {
+function loadBuyerWallet() {
   const token = localStorage.getItem("vendplug-token");
   const buyerData = JSON.parse(localStorage.getItem("vendplugBuyer"));
 
   if (!token || !buyerData) {
-    alert("User not logged in or data missing!");
+    alert("Buyer not logged in or data missing!");
     return;
   }
 
-  // Set virtual account from localStorage
-  document.getElementById("accountNumber").textContent = buyerData.virtualAccount || "Not Available";
+  document.getElementById("virtual-account").textContent = buyerData.virtualAccount || "Not Available";
 
-  // Fetch balance from backend
-  fetch(`${BACKEND_URL}/api/wallet/buyer`, {
-    headers: { Authorization: `Bearer ${token}` }
+  fetch(`${backendUrl}/api/buyer/wallet`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
   })
-    .then(res => res.json())
-    .then(data => {
+    .then((res) => res.json())
+    .then((data) => {
       if (data.balance !== undefined) {
-        document.getElementById("walletBalance").textContent = parseFloat(data.balance).toLocaleString();
+        document.getElementById("wallet-balance").textContent = `₦${parseFloat(data.balance).toLocaleString()}`;
       } else {
-        alert("Could not load wallet balance");
+        alert("Could not fetch wallet balance");
       }
     })
-    .catch(err => {
-      console.error("Fetch error:", err);
+    .catch((err) => {
+      console.error("Error loading wallet:", err);
       alert("Error loading wallet");
     });
-}
-
-async function simulateFunding() {
-  try {
-    const res = await fetch(`${BACKEND_URL}/api/wallet/fund`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("vendplug-token")}`
-      }
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
-    alert("✅ Wallet funded");
-    loadWalletData();
-  } catch (err) {
-    alert("❌ Failed to fund: " + err.message);
-  }
 }

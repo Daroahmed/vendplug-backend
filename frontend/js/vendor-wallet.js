@@ -1,11 +1,12 @@
 document.addEventListener("DOMContentLoaded", () => {
   loadVendorWallet();
 
-  document.getElementById("fundTest").addEventListener("click", simulateVendorFunding);
-  document.getElementById("walletNavBtn").addEventListener("click", () => {
+  document.getElementById("walletNavBtn")?.addEventListener("click", () => {
     loadVendorWallet();
     alert("🔁 Wallet reloaded");
   });
+
+  document.getElementById("fundTest")?.addEventListener("click", simulateVendorFunding);
 });
 
 function loadVendorWallet() {
@@ -17,17 +18,15 @@ function loadVendorWallet() {
     return;
   }
 
-  // Set virtual account from localStorage
   document.getElementById("accountNumber").textContent = vendorData.virtualAccount || "Not Available";
 
-  // Fetch balance from backend
   fetch(`${BACKEND_URL}/api/wallet/vendor`, {
     headers: { Authorization: `Bearer ${token}` }
   })
     .then(res => res.json())
     .then(data => {
       if (data.balance !== undefined) {
-        document.getElementById("walletBalance").textContent = parseFloat(data.balance).toLocaleString();
+        document.getElementById("walletBalance").textContent = `₦${parseFloat(data.balance).toLocaleString()}`;
       } else {
         alert("Could not load wallet balance");
       }

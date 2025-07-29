@@ -17,16 +17,14 @@ const walletSchema = new mongoose.Schema(
       required: true,
       enum: ['buyer', 'agent', 'vendor'], // ✅ vendor added
     },
-    
-    virtualAccount
-: {
+    virtualAccount: {
       type: String,
       required: true,
       unique: true,
     },
-    balance: {
-      type: Number,
-      default: 0,
+    currency: {
+      type: String,
+      default: 'NGN',
     },
   },
   { timestamps: true }

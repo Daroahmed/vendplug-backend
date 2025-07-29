@@ -41,7 +41,6 @@ const productRoutes = require('./routes/productRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const vendorProductRoutes = require("./routes/vendorProductRoutes");
 const walletRoutes = require('./routes/walletRoutes');
-const transactionRoutes = require('./routes/transactionRoutes');
 const vendorRoutes = require('./routes/vendorRoutes');
 
 // ✅ Mount routes
@@ -56,7 +55,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/vendors', vendorRoutes);
 app.use('/api/wallet', walletRoutes);
-app.use('/api/transactions', transactionRoutes);
+
 
 
 // ✅ Basic test route

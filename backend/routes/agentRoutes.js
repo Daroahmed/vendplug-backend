@@ -9,15 +9,17 @@ const {
   getAgentStats
 } = require('../controllers/agentController');
 
-const { protectAgent } = require("../middleware/authMiddleware");
-const { getWalletBalance } = require("../controllers/walletController");
+const { getAgentWallet } = require('../controllers/agentWalletController');
+const { protectAgent } = require('../middleware/authMiddleware');
+
 
 router.post('/register', registerAgent);
 router.post('/login', loginAgent);
 router.get('/orders', protectAgent, getAgentOrders);
 router.get("/profile", protectAgent, getAgentProfile);
 router.get('/stats', protectAgent, getAgentStats);
-router.get("/wallet", protectAgent, getWalletBalance);
+router.get('/wallet', protectAgent, getAgentWallet);
+
 
 module.exports = router;
 
