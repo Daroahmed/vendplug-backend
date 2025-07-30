@@ -11,14 +11,13 @@ const {
   getBuyerProfile
 } = controller;
 
-const { getBuyerWallet } = require('../controllers/buyerWalletController');
 const { protectBuyer } = require('../middleware/authMiddleware');
 
 router.post('/register', registerBuyer);
 router.post('/login', loginBuyer);
 router.post('/reset-password', resetBuyerPassword);
 router.get('/profile', protectBuyer, getBuyerProfile);
-router.get('/wallet', protectBuyer, getBuyerWallet);
+
 
 
 module.exports = router;

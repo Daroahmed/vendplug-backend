@@ -5,12 +5,9 @@ const Vendor = require("../models/vendorModel");
 const { protectAgent, protectVendor } = require("../middleware/authMiddleware");
 const { registerVendor, loginVendor } = require("../controllers/vendorAuthController");
 
-const { getVendorWallet } = require('../controllers/vendorWalletController');
 
 router.post('/register', registerVendor);
 router.post("/login", loginVendor);
-router.get('/wallet', protectVendor, getVendorWallet);
-
 
 
 router.post("/resolve-account", protectAgent, async (req, res) => {

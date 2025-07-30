@@ -26,6 +26,12 @@ const walletSchema = new mongoose.Schema(
       type: String,
       default: 'NGN',
     },
+
+    balance: {
+      type: Number,
+      default: 0,
+    },
+    
   },
   { timestamps: true }
 );

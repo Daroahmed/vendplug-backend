@@ -1,6 +1,6 @@
 const Wallet = require('../models/walletModel');
 
-const fundBuyerWallet = async (req, res) => {
+const fundUserWallet= async (req, res) => {
   try {
     const { accountNumber, amount } = req.body;
 
@@ -27,4 +27,4 @@ const fundBuyerWallet = async (req, res) => {
   }
 };
 
-module.exports = { fundBuyerWallet };
+module.exports = { fundUserWallet };

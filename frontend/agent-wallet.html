@@ -1,67 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Agent Wallet - VendPlug</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 2rem;
-      background: #f5f5f5;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-      justify-content: space-between;
-    }
-
-    .wallet-box {
-      background: white;
-      padding: 1.5rem;
-      border-radius: 8px;
-      max-width: 400px;
-      width: 100%;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    }
-
-    button {
-      padding: 0.6rem 1rem;
-      background: #3BA935;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    #walletNavBtn {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background-color: #333;
-      padding: 12px 20px;
-      border-radius: 30px;
-      color: #fff;
-      font-weight: bold;
-    }
-
-    #walletNavBtn:hover {
-      background-color: #555;
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Agent Wallet</title>
+  <link rel="stylesheet" href="/css/styles.css" />
 </head>
 <body>
+  <main>
+    <h2>Agent Wallet</h2>
+    <p><strong>Account Number:</strong> <span id="accountNumber">Loading...</span></p>
+    <p><strong>Balance:</strong> ₦<span id="walletBalance">0</span></p>
 
-  <div class="wallet-box">
-    <h2>Agent Wallet Balance</h2>
-    <p>Virtual Account: <span id="virtual-account">Loading...</span></p>
-    <p>Balance: ₦<span id="wallet-balance">Loading...</span></p>
-    
-    <button id="fundTest">💰 Simulate Funding</button>
-  </div>
+    <button id="walletNavBtn">🔁 Reload Wallet</button>
+    <button id="fundTest">💰 Fund Wallet (Test)</button>
+  </main>
 
-  <button id="walletNavBtn">🔁 Reload Wallet</button>
-
-  <script src="js/config.js"></script>
-  <script src="js/agent-wallet.js"></script>
+  <script>
+    const backendUrl = "http://localhost:5006";
+  </script>
+  <script src="/js/wallet-agent.js"></script>
 </body>
 </html>
