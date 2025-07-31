@@ -84,6 +84,7 @@ const loginAgent = async (req, res) => {
         phoneNumber: agent.phoneNumber,
         virtualAccount: agent.virtualAccount,
         role: agent.role || "agent", // Add role if applicable
+        token: generateToken(agent._id, "agent"),
       },
     });
   } catch (error) {

@@ -7,29 +7,13 @@ const buyerSchema = new mongoose.Schema({
   password: { type: String, required: true },
   role: {
     type: String,
-    default: 'buyer',
-    enum: ['buyer']
+    default: 'buyer'
   },
   virtualAccount: {
     type: String,
     required: false,
     unique: true
-  },
-  wallet: {
-    balance: {
-      type: Number,
-      default: 0
-    },
-    bankName: {
-      type: String,
-      default: "VendPlug Microfinance Bank"
-    },
-    accountName: {
-      type: String,
-      default: function () {
-        return this.fullName;
-      }
-    }
+ 
   }
 }, { timestamps: true });
 

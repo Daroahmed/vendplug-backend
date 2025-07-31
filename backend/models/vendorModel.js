@@ -10,32 +10,14 @@ const vendorSchema = new mongoose.Schema({
   
   role: {
     type: String,
-    default: 'vendor',
-    enum: ['vendor']
+    default: 'vendor'
   },
 
   virtualAccount: {
     type: String,
     unique: true,
     //db.vendors.dropIndex("virtualAccount_1")
-
-  },
-  
-  wallet: {
-    balance: {
-      type: Number,
-      default: 0
-    },
-    bankName: {
-      type: String,
-      default: "VendPlug Microfinance Bank"
-    },
-    accountName: {
-      type: String,
-      default: function () {
-        return this.fullName;
-      }
-    }
+ 
   },
 
   // Optional business-related fields

@@ -1,24 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Agent Wallet</title>
-  <link rel="stylesheet" href="/css/styles.css" />
+  <meta charset="UTF-8">
+  <title>Wallet</title>
+  <link rel="stylesheet" href="../css/styles.css" />
 </head>
 <body>
-  <main>
-    <h2>Agent Wallet</h2>
+  <div class="container">
+    <h2>My Wallet</h2>
     <p><strong>Account Number:</strong> <span id="accountNumber">Loading...</span></p>
-    <p><strong>Balance:</strong> ₦<span id="walletBalance">0</span></p>
+    <p><strong>Bank Name:</strong> VendPlug Microfinance Bank</p>
+    <p><strong>Account Balance:</strong> ₦<span id="balance">Loading...</span></p>
+  </div>
 
-    <button id="walletNavBtn">🔁 Reload Wallet</button>
-    <button id="fundTest">💰 Fund Wallet (Test)</button>
-  </main>
-
-  <script>
-    const backendUrl = "http://localhost:5006";
-  </script>
-  <script src="/js/wallet-agent.js"></script>
+  <script src="../js/agent-wallet.js"></script>
 </body>
 </html>

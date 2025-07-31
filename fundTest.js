@@ -2,8 +2,8 @@ const axios = require('axios');
 
 const fundWallet = async () => {
   try {
-    const response = await axios.post('http://localhost:5002/api/wallet/fund-buyer', {
-      accountNumber: 'AP4833983871', // ✅ Paste exact value here node fundTest.js
+    const response = await axios.post('http://localhost:5000/api/wallet/fund-buyer', {
+      accountNumber: 'AP9854908866', // ✅ Paste exact value here node fundTest.js
 
       amount: 10000
     });

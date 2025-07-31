@@ -12,9 +12,15 @@ router.get('/lookup/:accountNumber', lookupUserByAccountNumber);
 router.post('/transfer', transferFunds);
 
 // Role-specific balance endpoints
-router.get('/agent/balance', protectAgent, getWallet);
-router.get('/buyer/balance', protectBuyer, getWallet);
-router.get('/vendor/balance', protectVendor, getWallet);
+// For Agent
+router.get('/agent', protectAgent, getWallet);
+
+// For Buyer
+router.get('/buyer', protectBuyer, getWallet);
+
+// For Vendor
+router.get('/vendor', protectVendor, getWallet);
+
 router.post('/fund', fundUserWallet);
 
 

@@ -54,7 +54,9 @@ const loginBuyer = asyncHandler(async (req, res) => {
       _id: buyer._id,
       fullName: buyer.fullName,
       email: buyer.email,
+      phoneNumber: buyer.phoneNumber,
       virtualAccount: buyer.virtualAccount,
+      role: buyer.role || "buyer",
       token: generateToken(buyer._id, "buyer"),
     });
   } else {

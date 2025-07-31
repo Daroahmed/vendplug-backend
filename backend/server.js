@@ -30,10 +30,7 @@ mongoose.connect(process.env.MONGO_URI)
   .catch(err => console.error('❌ MongoDB connection error:', err));
 
 // ✅ Import routes
-const escrowRoutes = require('./routes/escrowRoutes');
-const sellerRoutes = require('./routes/sellerRoutes');
 const buyerRoutes = require('./routes/buyerRoutes');
-const guestEscrowRoutes = require('./routes/guestEscrowRoutes');
 const adminRoutes = require('./routes/adminAuth');
 const orderRoutes = require('./routes/orderRoutes');
 const agentRoutes = require('./routes/agentRoutes');
@@ -45,9 +42,6 @@ const vendorRoutes = require('./routes/vendorRoutes');
 
 // ✅ Mount routes
 app.use('/api/buyers', buyerRoutes);
-app.use('/api/sellers', sellerRoutes);
-app.use('/api/escrows', escrowRoutes);
-app.use('/api/guest-escrow', guestEscrowRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/agents', agentRoutes);
 app.use('/api/orders', orderRoutes);
@@ -55,7 +49,6 @@ app.use('/api/products', productRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/vendors', vendorRoutes);
 app.use('/api/wallet', walletRoutes);
-
 
 
 // ✅ Basic test route

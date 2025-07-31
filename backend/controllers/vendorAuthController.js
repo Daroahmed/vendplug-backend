@@ -87,6 +87,8 @@ const loginVendor = asyncHandler(async (req, res) => {
       email: vendor.email,
       shopName: vendor.shopName,
       phoneNumber: vendor.phoneNumber,
+      role: vendor.role || "vendor",
+      token: generateToken(vendor._id, "vendor"),
       virtualAccount: wallet?.virtualAccount || vendor.wallet?.virtualAccount || null,
     },
   });

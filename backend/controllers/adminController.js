@@ -1,7 +1,5 @@
 const Admin = require('../models/Admin');
 const Buyer = require('../models/Buyer');
-const Seller = require('../models/Seller');
-const Escrow = require('../models/Escrow');
 const jwt = require('jsonwebtoken');
 
 const bcrypt = require('bcryptjs');
