@@ -40,7 +40,8 @@ const transferFunds = async (req, res) => {
       balanceAfter: fromWallet.balance,
       description: `Payment for Order ${orderId || ''}`,
       ref,
-      initiatorType: 'buyer',
+      initiatorType: fromWallet.userType || 'unknown',
+
     });
 
     // Credit transaction for agent (toWallet)
@@ -53,7 +54,7 @@ const transferFunds = async (req, res) => {
       balanceAfter: toWallet.balance,
       description: `Received payment for Order ${orderId || ''}`,
       ref: `TX-${uuidv4()}`,
-      initiatorType: 'agent',
+      initiatorType: toWallet.userType || 'unknown',
     });
 
     res.status(200).json({

@@ -3,9 +3,9 @@ fetch('http://localhost:5002/api/wallet/transfer', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      fromAccountNumber: 'BP1971940282',
-      toAccountNumber: 'VP6747232524',
-      amount: 100,
+      fromAccountNumber: 'VP6747232524',
+      toAccountNumber: 'AP9854908866',
+      amount: 10000,
       orderId: 'ORDER567',
     }),
   })

@@ -2,13 +2,15 @@ const express = require('express');
 const router = express.Router();
 const { protectBuyer, protectAgent, protectVendor } = require('../middleware/authMiddleware');
 const { fundUserWallet} = require('../controllers/fundUserWallet'); // controller we'll create next
-const { lookupUserByAccountNumber } = require('../controllers/walletLookupController');
 const { transferFunds } = require('../controllers/walletTransferController');
-const { getWallet } = require('../controllers/walletController');
+const { getWallet, getTransactions, resolveWallet } = require('../controllers/walletController');
+const { protectAnyUser } = require('../middleware/authMiddleware');
+
 
  // optional shortcut for buyers
 router.post('/fund-buyer', fundUserWallet); // special test route
-router.get('/lookup/:accountNumber', lookupUserByAccountNumber);
+
+
 router.post('/transfer', transferFunds);
 
 // Role-specific balance endpoints
@@ -23,5 +25,16 @@ router.get('/vendor', protectVendor, getWallet);
 
 router.post('/fund', fundUserWallet);
 
+router.get('/lookup/:accountNumber', resolveWallet);
+
+router.get('/transactions', protectAnyUser, getTransactions);
 
 module.exports = router;
+
+
+
+
+
+
+
+

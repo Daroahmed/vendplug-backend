@@ -24,7 +24,9 @@ const protectBuyer = asyncHandler(async (req, res, next) => {
     const buyer = await Buyer.findById(decoded.id).select('-password');
     if (!buyer) return res.status(401).json({ message: 'Buyer not found' });
 
-    req.user = { ...buyer.toObject(), role: 'buyer' };
+    req.user = { ...buyer.toObject(), userType: 'buyer' };
+
+
     next();
   } catch (err) {
     console.error('❌ Buyer token verification failed:', err.message);
@@ -42,7 +44,8 @@ const protectAgent = asyncHandler(async (req, res, next) => {
     const agent = await Agent.findById(decoded.id).select('-password');
     if (!agent) return res.status(401).json({ message: 'Agent not found' });
 
-    req.user = { ...agent.toObject(), role: 'agent' };
+    req.user = { ...agent.toObject(), userType: 'agent' };
+
     next();
   } catch (err) {
     console.error('❌ Agent token verification failed:', err.message);
@@ -60,7 +63,8 @@ const protectVendor = asyncHandler(async (req, res, next) => {
     const vendor = await Vendor.findById(decoded.id).select('-password');
     if (!vendor) return res.status(401).json({ message: 'Vendor not found' });
 
-    req.user = { ...vendor.toObject(), role: 'vendor' };
+    req.user = { ...vendor.toObject(), userType: 'vendor' };
+
     next();
   } catch (err) {
     console.error('❌ Vendor token verification failed:', err.message);
@@ -85,10 +89,46 @@ const deleteProduct = async (req, res) => {
   }
 };
 
+
+const protectAnyUser = asyncHandler(async (req, res, next) => {
+  const token = extractToken(req);
+  if (!token) return res.status(401).json({ message: 'Not authorized, no token' });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Try to find user in Buyer, Agent, Vendor
+    const buyer = await Buyer.findById(decoded.id).select('-password');
+    if (buyer) {
+      req.user = { ...buyer.toObject(), role: 'buyer' };
+      return next();
+    }
+
+    const agent = await Agent.findById(decoded.id).select('-password');
+    if (agent) {
+      req.user = { ...agent.toObject(), role: 'agent' };
+      return next();
+    }
+
+    const vendor = await Vendor.findById(decoded.id).select('-password');
+    if (vendor) {
+      req.user = { ...vendor.toObject(), role: 'vendor' };
+      return next();
+    }
+
+    return res.status(401).json({ message: 'User not found' });
+  } catch (err) {
+    console.error('❌ Token verification failed:', err.message);
+    return res.status(401).json({ message: 'Invalid or expired token' });
+  }
+});
+
+
 // ✅ Export All
 module.exports = {
   protectBuyer,
   protectAgent,
   protectVendor,
-  deleteProduct
+  deleteProduct,
+  protectAnyUser
 };

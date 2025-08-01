@@ -20,12 +20,20 @@ const transactionSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+
   from: {
-    type: String, // virtual account number
+    type: String,
+    required: function () {
+      return this.type === 'transfer';
+    },
   },
   to: {
-    type: String, // virtual account number
+    type: String,
+    required: function () {
+      return this.type === 'transfer';
+    },
   },
+ 
   description: String,
   balanceBefore: Number,
   balanceAfter: Number,
