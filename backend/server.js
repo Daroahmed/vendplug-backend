@@ -102,6 +102,11 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Internal Server Error', error: err.message });
 });
 
+app.use((req, res, next) => {
+  console.warn('⚠️ Unmatched route:', req.method, req.originalUrl);
+  res.status(404).json({ message: 'Route not found' });
+});
+
 server.listen(PORT, () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
 });

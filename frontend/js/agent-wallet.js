@@ -11,51 +11,69 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const token = agent.token;
 
+  // Load wallet data initially
+  fetchWallet();
+  fetchTransactions();
+
+  // Date filter button
+  document.getElementById('filterBtn')?.addEventListener('click', () => {
+    const start = document.getElementById('startDate').value;
+    const end = document.getElementById('endDate').value;
+    fetchTransactions(start, end);
+  });
+
   async function fetchWallet() {
     try {
-      const res = await fetch('/api/wallet/agent', {
+      const res = await fetch(`${window.BACKEND_URL}/api/wallet/agent`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       accountNumberEl.textContent = data.virtualAccount || 'Not available';
-      balanceEl.textContent = Number(data.balance).toLocaleString('en-NG');
+      balanceEl.textContent = Number(data.balance || 0).toLocaleString('en-NG');
     } catch (err) {
       accountNumberEl.textContent = 'Error';
       balanceEl.textContent = 'Error';
     }
   }
 
-  async function fetchWalletData(start = '', end = '') {
-    const accountNumber = accountNumberEl?.textContent?.trim();
-    if (!accountNumber || accountNumber === 'Error' || accountNumber === 'Not available') return;
-
+  async function fetchTransactions(startDate = '', endDate = '') {
     try {
       const params = new URLSearchParams();
-      if (start) params.append('startDate', start);
-      if (end) params.append('endDate', end);
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
 
-      const res = await fetch(`/api/wallet/transactions?${params.toString()}`, {
+      const res = await fetch(`${window.BACKEND_URL}/api/wallet/transactions?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.message || 'Failed to fetch');
+      }
+
       const data = await res.json();
+
       const container = document.getElementById('transactionsList');
       container.innerHTML = '';
 
-      if (!data.transactions?.length) {
+      if (!Array.isArray(data.transactions)) {
+        throw new Error('Missing transaction data');
+      }
+
+      if (!data.transactions.length) {
         container.innerHTML = '<p>No transactions found for selected period.</p>';
         return;
       }
 
       data.transactions.forEach(txn => {
-        const isSender = txn.from === accountNumber;
+        const isSender = txn.from === data.accountNumber;
         const direction = isSender ? 'Sent to' : 'Received from';
         const otherParty = isSender ? txn.to : txn.from;
+        const name = txn.initiatedBy?.name || 'Unknown';
 
-        const txnCard = document.createElement('div');
-        txnCard.className = 'transaction-card';
-
-        txnCard.innerHTML = `
+        const card = document.createElement('div');
+        card.className = 'transaction-card';
+        card.innerHTML = `
           <div class="transaction-header">
             <div class="transaction-type ${txn.status === 'failed' ? 'transaction-failed' : 'transaction-success'}">
               ${txn.type}
@@ -68,16 +86,16 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="transaction-meta">
             Ref: ${txn.ref}<br />
             Status: ${txn.status}<br />
+            By: ${name}<br />
             Balance After: ₦${txn.balanceAfter?.toLocaleString() || 'N/A'}<br />
             Date: ${new Date(txn.createdAt).toLocaleString()}
           </div>
         `;
-
-        container.appendChild(txnCard);
+        container.appendChild(card);
       });
     } catch (err) {
-      console.error('Error loading wallet data:', err);
-      document.getElementById('transactionsList').innerHTML = '<p>Error loading transactions</p>';
+      console.error('Error fetching transactions:', err);
+      document.getElementById('transactionsList').innerHTML = '<p>Error loading transactions.</p>';
     }
   }
 
@@ -87,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!acct) return (display.textContent = '');
 
     try {
-      const res = await fetch(`/api/wallet/lookup/${acct}`);
+      const res = await fetch(`${window.BACKEND_URL}/api/wallet/lookup/${acct}`);
       const data = await res.json();
 
       if (data.userType && data.user && data.user.name) {
@@ -103,11 +121,10 @@ document.addEventListener('DOMContentLoaded', () => {
   async function handleTransfer() {
     const acct = document.getElementById('recipientAccount').value.trim();
     const amount = Number(document.getElementById('transferAmount').value);
-
     if (!acct || amount <= 0) return alert('Enter valid account and amount');
 
     try {
-      const res = await fetch('/api/wallet/transfer', {
+      const res = await fetch(`${window.BACKEND_URL}/api/wallet/transfer`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -116,14 +133,14 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({
           fromAccountNumber: accountNumberEl.textContent.trim(),
           toAccountNumber: acct,
-          amount
+          amount,
         }),
       });
 
       const data = await res.json();
       alert(data.message || 'Transfer successful');
       fetchWallet();
-      fetchWalletData(); // reload transactions
+      fetchTransactions();
     } catch {
       alert('Transfer failed');
     }
@@ -131,10 +148,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function handlePayout() {
     const amount = Number(document.getElementById('payoutAmount').value);
-    if (!amount || amount <= 0) return alert('Please enter a valid payout amount');
+    if (!amount || amount <= 0) {
+      alert('Please enter a valid payout amount');
+      return;
+    }
 
     try {
-      const res = await fetch('/api/wallet/payout', {
+      const res = await fetch(`${window.BACKEND_URL}/api/wallet/payout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -146,26 +166,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       alert(data.message || 'Payout requested');
       fetchWallet();
-      fetchWalletData(); // reload transactions
+      fetchTransactions();
     } catch (err) {
       alert('Payout failed');
       console.error(err);
     }
   }
 
-  // Filter form listener
-  document.getElementById('filterForm')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const start = document.getElementById('startDate').value;
-    const end = document.getElementById('endDate').value;
-    fetchWalletData(start, end);
-  });
-
-  document.getElementById('recipientAccount').addEventListener('blur', resolveUser);
-
+  // Global scope
   window.handleTransfer = handleTransfer;
   window.handlePayout = handlePayout;
-
-  // Initial load
-  fetchWallet().then(() => fetchWalletData());
+  window.resolveUser = resolveUser;
 });

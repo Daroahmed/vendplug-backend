@@ -30,33 +30,43 @@ const getWallet = async (req, res) => {
 
 // GET /api/wallet/transactions
 const getTransactions = asyncHandler(async (req, res) => {
-  const accountNumber = req.user.virtualAccount;
+  const accountNumber = req.user.virtualAccount?.trim();
   console.log('Fetching transactions for', accountNumber);
+  console.log('👤 User in request:', req.user);
+if (!accountNumber) {
+  return res.status(400).json({ message: 'Account number missing' });
+}
 
-  if (!accountNumber) {
-    return res.status(400).json({ message: 'Account number missing' });
+const wallet = await Wallet.findOne({ accountNumber: { $regex: new RegExp(`^${accountNumber}$`, 'i') } });
+if (!wallet) {
+  return res.status(404).json({ message: 'Wallet not found for ' + accountNumber });
+}
+
+  // Optional date filter support
+  const startDate = req.query.startDate ? new Date(req.query.startDate) : null;
+  const endDate = req.query.endDate ? new Date(req.query.endDate) : null;
+
+  let dateFilter = {};
+  if (startDate && endDate) {
+    dateFilter.createdAt = { $gte: startDate, $lte: endDate };
   }
 
-  // Find wallet to get current balance
-  const wallet = await Wallet.findOne({ accountNumber });
-  if (!wallet) {
-    return res.status(404).json({ message: 'Wallet not found' });
-  }
-
-  // Find transactions involving this user
   const transactions = await Transaction.find({
     $or: [{ from: accountNumber }, { to: accountNumber }],
+    ...dateFilter,
   })
     .sort({ createdAt: -1 })
-    .populate('initiatedBy', 'name'); // populate dynamic user name
+    .populate('initiatedBy', 'name');
+
+  console.log('✅ Returning transactions:', transactions.length);
 
   res.status(200).json({
+    accountNumber,
     balance: wallet.balance,
     transactions,
   });
+  
 });
-
-
 
 // @desc    Resolve user by virtual account number
 // @route   GET /api/wallet/lookup/:accountNumber

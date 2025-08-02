@@ -111,10 +111,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!accountNumber || accountNumber === 'Error') return;
 
     try {
-      const res = await fetch('/api/wallet/transactions', {
+      
+      const BACKEND_URL = (await import('./config.js'))
+      const res = await fetch(`${BACKEND_URL}/api/wallet/transactions`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
+      
       const data = await res.json();
       const list = document.getElementById('transactionsList');
       list.innerHTML = '';
@@ -135,4 +137,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.handleTransfer = handleTransfer;
   window.handlePayout = handlePayout;
+  window.resolveUser = resolveUser;
 });
