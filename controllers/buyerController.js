@@ -20,22 +20,26 @@ const registerBuyer = asyncHandler(async (req, res) => {
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  // ✅ Create buyer first (without virtualAccount)
+  const tempVirtualAccount = "BP" + Date.now(); // temporary value
+
   const newBuyer = new Buyer({
     fullName,
     email,
     password: hashedPassword,
     phoneNumber,
     address,
+    virtualAccount: tempVirtualAccount, // ⛑️ prevent null insert
   });
-
-
-  // ✅ Create wallet and assign virtual account
-const savedBuyer = await newBuyer.save();
-const wallet = await createWalletIfNotExists(savedBuyer._id, "buyer");
-
-savedBuyer.virtualAccount = wallet.virtualAccount;
-await savedBuyer.save();
+  
+  const savedBuyer = await newBuyer.save();
+  console.log("🔍 Saved Buyer ID:", savedBuyer._id);
+  
+  console.log("📦 Creating wallet...");
+  const wallet = await createWalletIfNotExists(savedBuyer._id, "buyer");
+  
+  savedBuyer.virtualAccount = wallet.virtualAccount;
+  await savedBuyer.save();
+  
 
 const updatedBuyer = await Buyer.findById(savedBuyer._id).select("-password");
 

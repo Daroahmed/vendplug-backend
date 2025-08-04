@@ -31,33 +31,41 @@ const registerVendor = asyncHandler(async (req, res) => {
       return res.status(400).json({ message: "Vendor already exists" });
     }
 
-    const vendor = await Vendor.create({
+    // 🔐 Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // 🛠️ Temporary virtualAccount to prevent null insertion
+    const tempVirtualAccount = "VP" + Date.now();
+
+    const vendor = new Vendor({
       fullName,
       email,
       shopName,
       phoneNumber,
-      password,
+      password: hashedPassword,
       businessName,
       businessAddress,
       cacNumber,
+      virtualAccount: tempVirtualAccount, // ✅ temp to avoid null unique error
     });
 
-    // ✅ Create wallet and assign virtual account using new helper
-    const wallet = await createWalletIfNotExists(vendor._id, "vendor");
+    const savedVendor = await vendor.save();
 
-// Update the vendor document with virtualAccount value
-vendor.virtualAccount = wallet.virtualAccount;
-await vendor.save();
-    
+    // ✅ Create wallet and assign actual virtual account
+    const wallet = await createWalletIfNotExists(savedVendor._id, "vendor");
+
+    savedVendor.virtualAccount = wallet.virtualAccount;
+    await savedVendor.save();
+
     res.status(201).json({
-      token: generateToken(vendor._id),
+      token: generateToken(savedVendor._id),
       vendor: {
-        _id: vendor._id,
-        fullName: vendor.fullName,
-        email: vendor.email,
-        shopName: vendor.shopName,
-        phoneNumber: vendor.phoneNumber,
-        virtualAccount: wallet.virtualAccount,
+        _id: savedVendor._id,
+        fullName: savedVendor.fullName,
+        email: savedVendor.email,
+        shopName: savedVendor.shopName,
+        phoneNumber: savedVendor.phoneNumber,
+        virtualAccount: savedVendor.virtualAccount,
       },
     });
   } catch (err) {
@@ -65,6 +73,7 @@ await vendor.save();
     res.status(500).json({ message: "Vendor registration failed", error: err.message });
   }
 });
+
 
 
 // ✅ Login Vendor

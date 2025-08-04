@@ -16,14 +16,18 @@ const generateVirtualAccount = (role) => {
 };
 
 // Create wallet and assign to user
+
+
 const createWalletIfNotExists = async (userId, role) => {
+  console.log("👤 Received userId:", userId);
   if (!userId || !role) throw new Error("Missing userId or role");
 
+  const normalizedRole = role.toLowerCase(); // ✅ ensure it's lowercase
   let wallet = await Wallet.findOne({ user: userId });
   if (wallet) return wallet;
 
   let userModel;
-  switch (role.toLowerCase()) {
+  switch (normalizedRole) {
     case "buyer":
       userModel = Buyer;
       break;
@@ -40,7 +44,7 @@ const createWalletIfNotExists = async (userId, role) => {
   const user = await userModel.findById(userId);
   if (!user) throw new Error("User not found");
 
-  const virtualAccount = generateVirtualAccount(role);
+  const virtualAccount = generateVirtualAccount(normalizedRole);
 
   // Update user wallet field
   user.wallet = {
@@ -54,8 +58,7 @@ const createWalletIfNotExists = async (userId, role) => {
 
   wallet = new Wallet({
     user: userId,
-    role: userType,
-    userId,
+    role: normalizedRole, // ✅ Fix here
     virtualAccount,
     balance: 0,
   });
