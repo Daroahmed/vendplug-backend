@@ -5,7 +5,6 @@ const walletSchema = new mongoose.Schema(
     user: {
       type: mongoose.Schema.Types.ObjectId,
       refPath: "role",
-      required: true,
       unique: true, // Ensure one wallet per user
     },
     role: {
