@@ -1,4 +1,4 @@
-const jwt = require('jsonwebtoken');
+const jwt = require ('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
 const Buyer = require('../models/Buyer');
 const Agent = require('../models/Agent');
@@ -24,7 +24,7 @@ const protectBuyer = asyncHandler(async (req, res, next) => {
     const buyer = await Buyer.findById(decoded.id).select('-password');
     if (!buyer) return res.status(401).json({ message: 'Buyer not found' });
 
-    req.user = { ...buyer.toObject(), userType: 'buyer' };
+    req.user = { ...buyer.toObject(), role: 'buyer' };
 
 
     next();
@@ -44,7 +44,7 @@ const protectAgent = asyncHandler(async (req, res, next) => {
     const agent = await Agent.findById(decoded.id).select('-password');
     if (!agent) return res.status(401).json({ message: 'Agent not found' });
 
-    req.user = { ...agent.toObject(), userType: 'agent' };
+    req.user = { ...agent.toObject(), role: 'agent' };
 
     next();
   } catch (err) {
@@ -63,7 +63,7 @@ const protectVendor = asyncHandler(async (req, res, next) => {
     const vendor = await Vendor.findById(decoded.id).select('-password');
     if (!vendor) return res.status(401).json({ message: 'Vendor not found' });
 
-    req.user = { ...vendor.toObject(), userType: 'vendor' };
+    req.user = { ...vendor.toObject(), role: 'vendor' };
 
     next();
   } catch (err) {
@@ -101,29 +101,34 @@ const protectAnyUser = asyncHandler(async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.id;
 
-    const user =
-      (await Buyer.findById(userId).select('-password')) ||
-      (await Agent.findById(userId).select('-password')) ||
-      (await Vendor.findById(userId).select('-password'));
+    const buyer = await Buyer.findById(userId).select('-password');
+    const agent = await Agent.findById(userId).select('-password');
+    const vendor = await Vendor.findById(userId).select('-password');
 
-    if (!user) {
+    let user = null;
+    let role = null;
+
+    if (vendor) {
+      user = vendor;
+      role = 'vendor';
+    } else if (agent) {
+      user = agent;
+      role = 'agent';
+    } else if (buyer) {
+      user = buyer;
+      role = 'buyer';
+    } else {
       return res.status(401).json({ message: 'User not found' });
     }
 
-    // Add role info
-    let role = 'unknown';
-    if (user.email && user.fullName) role = 'buyer';
-    if (user.businessName) role = 'vendor';
-    if (user.name && user.email && user.zone) role = 'agent';
-
     req.user = { ...user.toObject(), role };
-
     next();
   } catch (err) {
     console.error('❌ Token verification failed:', err.message);
     return res.status(401).json({ message: 'Invalid or expired token' });
   }
 });
+
 
 // ✅ Export All
 module.exports = {

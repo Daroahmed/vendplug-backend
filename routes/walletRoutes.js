@@ -11,7 +11,7 @@ const { protectAnyUser } = require('../middleware/authMiddleware');
 router.post('/fund-buyer', fundUserWallet); // special test route
 
 
-router.post('/transfer', transferFunds);
+router.post('/transfer', protectAnyUser, transferFunds);
 
 // Role-specific balance endpoints
 // For Agent

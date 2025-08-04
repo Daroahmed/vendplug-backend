@@ -58,6 +58,7 @@ const loginBuyer = asyncHandler(async (req, res) => {
       virtualAccount: buyer.virtualAccount,
       role: buyer.role || "buyer",
       token: generateToken(buyer._id, "buyer"),
+
     });
   } else {
     res.status(401);

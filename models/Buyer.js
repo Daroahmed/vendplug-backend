@@ -17,4 +17,4 @@ const buyerSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-module.exports = mongoose.model('Buyer', buyerSchema);
+module.exports = mongoose.model('buyer', buyerSchema);

@@ -39,5 +39,5 @@ vendorSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-const Vendor = mongoose.model('Vendor', vendorSchema);
+const Vendor = mongoose.model('vendor', vendorSchema);
 module.exports = Vendor;
