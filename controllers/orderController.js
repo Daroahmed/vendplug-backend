@@ -1,8 +1,9 @@
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const { createNotification } = require('./notificationController');
+const Notification = require('../models/Notification');
+const PayoutQueue = require("../models/payoutQueueModel");
 
-// ✅ AGENT: Get active (non-completed) orders
 const getAgentOrders = async (req, res) => {
   try {
     const orders = await Order.find({
@@ -18,7 +19,6 @@ const getAgentOrders = async (req, res) => {
   }
 };
 
-// ✅ AGENT: Get full history
 const getAgentOrderHistory = async (req, res) => {
   try {
     const orders = await Order.find({
@@ -34,12 +34,12 @@ const getAgentOrderHistory = async (req, res) => {
   }
 };
 
-// ✅ BUYER: View their orders
 const getBuyerOrders = async (req, res) => {
   try {
     const buyerId = req.user.id;
     const orders = await Order.find({ buyer: buyerId })
       .populate('agent', 'fullName')
+      .populate('vendor', 'shopName')
       .sort({ createdAt: -1 });
 
     res.json(orders);
@@ -48,7 +48,6 @@ const getBuyerOrders = async (req, res) => {
   }
 };
 
-// ✅ BUYER: Create Order (Split by Agent)
 const createOrder = async (req, res) => {
   try {
     const { cartItems, pickupLocation, deliveryOption, note } = req.body;
@@ -61,59 +60,63 @@ const createOrder = async (req, res) => {
     const ordersGroupedByAgent = {};
 
     for (const item of cartItems) {
-      const product = await Product.findById(item.id).populate('agent');
-      if (!product || !product.agent) continue;
+      const product = await Product.findById(item.id).populate('agent vendor');
+      if (!product || (!product.agent && !product.vendor)) continue;
 
-      const agentId = product.agent._id.toString();
+      const partyId = product.agent?._id?.toString() || product.vendor?._id?.toString();
+      const partyType = product.agent ? 'agent' : 'vendor';
 
-      if (!ordersGroupedByAgent[agentId]) {
-        ordersGroupedByAgent[agentId] = {
+      if (!ordersGroupedByAgent[partyId]) {
+        ordersGroupedByAgent[partyId] = {
           items: [],
-          totalAmount: 0
+          totalAmount: 0,
+          partyType,
         };
       }
 
       const subtotal = product.price * item.qty;
-      ordersGroupedByAgent[agentId].items.push({
+      ordersGroupedByAgent[partyId].items.push({
         productId: product._id,
         name: product.name,
         price: product.price,
         qty: item.qty
       });
-      ordersGroupedByAgent[agentId].totalAmount += subtotal;
+      ordersGroupedByAgent[partyId].totalAmount += subtotal;
     }
 
     const savedOrders = [];
     const io = req.app.get('io');
 
-    for (const agentId in ordersGroupedByAgent) {
-      const { items, totalAmount } = ordersGroupedByAgent[agentId];
+    for (const partyId in ordersGroupedByAgent) {
+      const { items, totalAmount, partyType } = ordersGroupedByAgent[partyId];
 
-      const order = new Order({
+      const orderData = {
         buyer: buyerId,
-        agent: agentId,
         items,
         pickupLocation,
         totalAmount,
         deliveryOption,
         note
-      });
+      };
 
+      if (partyType === 'agent') orderData.agent = partyId;
+      if (partyType === 'vendor') orderData.vendor = partyId;
+
+      const order = new Order(orderData);
       const saved = await order.save();
       savedOrders.push(saved);
 
-      // 🔔 Real-time notification to agent
-      io.to(`agent_${agentId}`).emit('new-order', {
-        agentId,
+      // Socket + notification
+      io.to(`${partyType}_${partyId}`).emit('new-order', {
+        partyId,
         orderId: saved._id,
         totalAmount,
         itemCount: items.length,
         time: saved.createdAt
       });
 
-      // 📝 Create saved notification with a readable message
       await createNotification(
-        agentId,
+        partyId,
         `🛒 You have a new order to fulfill.`,
         saved._id
       );
@@ -127,14 +130,14 @@ const createOrder = async (req, res) => {
   }
 };
 
-// ✅ AGENT: Update order status + notify buyer + record notification
 const updateOrderStatus = async (req, res) => {
   try {
     const { orderId } = req.params;
     const { status } = req.body;
-    const agentId = req.user._id;
+    const userId = req.user._id;
+    const role = req.user.role;
 
-    const validStatuses = ['pending', 'accepted', 'rejected', 'cancelled', 'completed', 'in-progress'];
+    const validStatuses = ['pending', 'accepted', 'rejected', 'cancelled', 'completed', 'in-progress', 'fulfilled'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
     }
@@ -142,27 +145,53 @@ const updateOrderStatus = async (req, res) => {
     const order = await Order.findById(orderId);
     if (!order) return res.status(404).json({ message: 'Order not found' });
 
-    if (order.agent.toString() !== agentId.toString()) {
+    const isAgent = role === 'agent' && order.agent?.toString() === userId.toString();
+    const isVendor = role === 'vendor' && order.vendor?.toString() === userId.toString();
+
+    if (!isAgent && !isVendor) {
       return res.status(403).json({ message: 'Not authorized to update this order' });
     }
 
     order.status = status;
     await order.save();
 
-    const io = req.app.get('io');
+    // 💸 If fulfilled, queue payout
+    if (status === 'fulfilled' && isVendor) {
+      try {
+        const amount = order.items.reduce((sum, item) => sum + item.price * item.qty, 0);
+        await PayoutQueue.create({
+          vendor: order.vendor,
+          order: order._id,
+          amount,
+          status: "pending",
+        });
+        console.log(`💸 Order ${order._id} queued for payout: ₦${amount}`);
+      } catch (err) {
+        console.error("❌ Failed to queue payout:", err.message);
+      }
+    }
 
-    // 🔔 Notify buyer via Socket.IO
-    io.to(`buyer_${order.buyer}`).emit('order-status-update', {
+    const io = req.app.get('io');
+    const buyerId = order.buyer.toString();
+
+    io.to(`buyer_${buyerId}`).emit('order-status-update', {
       orderId: order._id,
       newStatus: status
     });
 
-    // 📝 Save notification for agent
     await createNotification(
-      agentId,
+      userId,
       `📦 Order #${order._id} status updated to "${status}"`,
       order._id
     );
+
+    await Notification.create({
+      user: buyerId,
+      type: "buyer",
+      message: `Your order was marked as ${status}.`,
+      order: order._id,
+      status: "unread",
+    });
 
     res.json({ message: 'Order status updated', order });
 

@@ -1,0 +1,10 @@
+
+const express = require("express");
+const router = express.Router();
+const { requestPayout, getVendorPayouts } = require("../controllers/payoutController");
+const { protectVendor } = require("../middleware/authMiddleware");
+
+router.post("/", protectVendor, requestPayout);
+router.get("/", protectVendor, getVendorPayouts);
+
+module.exports = router;

@@ -55,20 +55,31 @@ const protectAgent = asyncHandler(async (req, res, next) => {
 
 // 🔐 Protect Vendor Routes (✅ FIXED)
 const protectVendor = asyncHandler(async (req, res, next) => {
-  const token = extractToken(req);
-  if (!token) return res.status(401).json({ message: 'Not authorized, no token' });
+  let token;
 
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const vendor = await Vendor.findById(decoded.id).select('-password');
-    if (!vendor) return res.status(401).json({ message: 'Vendor not found' });
+  // Grab token from header
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    try {
+      token = req.headers.authorization.split(' ')[1];
 
-    req.user = { ...vendor.toObject(), role: 'vendor' };
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const vendor = await Vendor.findById(decoded.id).select('-password');
 
-    next();
-  } catch (err) {
-    console.error('❌ Vendor token verification failed:', err.message);
-    res.status(401).json({ message: 'Invalid or expired token' });
+      if (!vendor) {
+        return res.status(401).json({ message: 'Vendor not found' });
+      }
+
+      req.vendor = vendor;
+      next();
+
+    } catch (error) {
+      console.error('❌ Vendor Auth Error:', error.message);
+      return res.status(401).json({ message: 'Not authorized, token failed' });
+    }
+  }
+
+  if (!token) {
+    res.status(401).json({ message: 'Not authorized, no token' });
   }
 });
 
