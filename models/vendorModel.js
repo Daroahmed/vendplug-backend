@@ -19,6 +19,11 @@ const vendorSchema = new mongoose.Schema({
     //db.vendors.dropIndex("virtualAccount_1")
  
   },
+  category: { type: String, required: true },
+  shopDescription: { type: String },
+  location: { type: String }, // e.g., "Lagos"
+  rating: { type: Number, default: 0 }, // optional
+
 
   // Optional business-related fields
   businessName: { type: String },

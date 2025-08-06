@@ -4,11 +4,20 @@ const router = express.Router();
 const Vendor = require("../models/vendorModel");
 const { protectAgent, protectVendor } = require("../middleware/authMiddleware");
 const { registerVendor, loginVendor } = require("../controllers/vendorAuthController");
+const { getVendorStats } = require('../controllers/vendorAuthController');
 
+// backend/routes/vendorRoutes.js
+const {
+  getVendorsByCategory,
+  getVendorById
+} = require('../controllers/vendorAuthController');
+
+router.get('/', getVendorsByCategory); // ?category=fashion&state=Kano
+router.get('/:vendorId', getVendorById);
 
 router.post('/register', registerVendor);
 router.post("/login", loginVendor);
-
+router.get('/stats', protectVendor, getVendorStats);
 
 router.post("/resolve-account", protectAgent, async (req, res) => {
   const { virtualAccount } = req.body;
@@ -31,6 +40,10 @@ router.post("/resolve-account", protectAgent, async (req, res) => {
 });
 
 module.exports = router;
+
+
+
+
 
 
 

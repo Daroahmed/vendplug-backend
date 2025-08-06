@@ -4,6 +4,9 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const asyncHandler = require("express-async-handler");
 const { createWalletIfNotExists } = require("../controllers/walletHelper"); // <== use new helper
+const Order = require('../models/Order');
+const PayoutQueue = require('../models/payoutQueueModel');
+
 
 // ✅ Generate JWT token
 const generateToken = (id) => {
@@ -24,6 +27,8 @@ const registerVendor = asyncHandler(async (req, res) => {
       businessName,
       businessAddress,
       cacNumber,
+      category,
+      location,
     } = req.body;
 
     const vendorExists = await Vendor.findOne({ email });
@@ -31,10 +36,6 @@ const registerVendor = asyncHandler(async (req, res) => {
       return res.status(400).json({ message: "Vendor already exists" });
     }
 
-    // 🔐 Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // 🛠️ Temporary virtualAccount to prevent null insertion
     const tempVirtualAccount = "VP" + Date.now();
 
     const vendor = new Vendor({
@@ -42,16 +43,17 @@ const registerVendor = asyncHandler(async (req, res) => {
       email,
       shopName,
       phoneNumber,
-      password: hashedPassword,
+      password, // 👈 DO NOT manually hash it — the model handles it
       businessName,
       businessAddress,
       cacNumber,
-      virtualAccount: tempVirtualAccount, // ✅ temp to avoid null unique error
+      category,
+      location,
+      virtualAccount: tempVirtualAccount,
     });
 
     const savedVendor = await vendor.save();
 
-    // ✅ Create wallet and assign actual virtual account
     const wallet = await createWalletIfNotExists(savedVendor._id, "vendor");
 
     savedVendor.virtualAccount = wallet.virtualAccount;
@@ -66,6 +68,7 @@ const registerVendor = asyncHandler(async (req, res) => {
         shopName: savedVendor.shopName,
         phoneNumber: savedVendor.phoneNumber,
         virtualAccount: savedVendor.virtualAccount,
+        category: savedVendor.category
       },
     });
   } catch (err) {
@@ -99,11 +102,73 @@ const loginVendor = asyncHandler(async (req, res) => {
       role: vendor.role || "vendor",
       token: generateToken(vendor._id, "vendor"),
       virtualAccount: wallet?.virtualAccount || vendor.wallet?.virtualAccount || null,
+      category: vendor.category
     },
   });
 });
 
+const getVendorsByCategory = async (req, res) => {
+  try {
+    const { category, state } = req.query;
+    const query = {};
+
+    if (category) query.category = category;
+    if (state) query.location = state;
+
+    const vendors = await Vendor.find(query);
+    res.json(vendors);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const getVendorById = async (req, res) => {
+  try {
+    const vendor = await Vendor.findById(req.params.vendorId);
+    if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
+    res.json(vendor);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+
+// ✅ GET /api/vendors/stats
+const getVendorStats = async (req, res) => {
+  try {
+    const vendorId = req.user._id;
+
+    const [fulfilledOrders, pendingOrders, successfulPayouts, queuedPayouts] = await Promise.all([
+      Order.countDocuments({ vendor: vendorId, status: 'fulfilled' }),
+      Order.countDocuments({ vendor: vendorId, status: { $in: ['pending', 'in-progress'] } }),
+      PayoutQueue.find({ vendor: vendorId, status: 'success' }),
+      PayoutQueue.find({ vendor: vendorId, status: 'pending' }),
+    ]);
+
+    const totalEarnings = successfulPayouts.reduce((sum, p) => sum + p.amount, 0);
+    const queuedPayout = queuedPayouts.reduce((sum, p) => sum + p.amount, 0);
+    const successfulPayout = totalEarnings;
+
+    res.json({
+      fulfilledOrders,
+      pendingOrders,
+      totalEarnings,
+      queuedPayout,
+      successfulPayout
+    });
+  } catch (err) {
+    console.error('❌ Vendor stats error:', err.message);
+    res.status(500).json({ message: 'Server error fetching stats' });
+  }
+};
+
+
+
 module.exports = {
   registerVendor,
   loginVendor,
+  getVendorsByCategory,
+  getVendorById,
+  getVendorStats
 };
