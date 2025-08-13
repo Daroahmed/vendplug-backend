@@ -24,8 +24,8 @@ const protectBuyer = asyncHandler(async (req, res, next) => {
     const buyer = await Buyer.findById(decoded.id).select('-password');
     if (!buyer) return res.status(401).json({ message: 'Buyer not found' });
 
-    req.user = { ...buyer.toObject(), role: 'buyer' };
-
+    req.buyer = buyer; // <-- CHANGE HERE
+    req.user = { ...buyer.toObject(), role: 'buyer' }; // keep if other code relies on req.user
 
     next();
   } catch (err) {
@@ -33,6 +33,7 @@ const protectBuyer = asyncHandler(async (req, res, next) => {
     res.status(401).json({ message: 'Invalid or expired token' });
   }
 });
+
 
 // 🔐 Protect Agent Routes
 const protectAgent = asyncHandler(async (req, res, next) => {
@@ -140,6 +141,24 @@ const protectAnyUser = asyncHandler(async (req, res, next) => {
   }
 });
 
+const deleteVendorProduct = asyncHandler(async (req, res) => {
+  const product = await VendorProduct.findById(req.params.id);
+
+  if (!product) {
+    res.status(404);
+    throw new Error('Product not found');
+  }
+
+  if (product.vendor.toString() !== req.vendor._id.toString()) {
+    res.status(403);
+    throw new Error('Not authorized to delete this product');
+  }
+
+  await product.deleteOne();
+  res.status(200).json({ message: 'Product deleted successfully' });
+});
+
+
 
 // ✅ Export All
 module.exports = {
@@ -147,5 +166,6 @@ module.exports = {
   protectAgent,
   protectVendor,
   deleteProduct,
-  protectAnyUser
+  protectAnyUser,
+  deleteVendorProduct
 };
