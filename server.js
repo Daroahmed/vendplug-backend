@@ -28,6 +28,11 @@ app.use('/js', express.static(path.join(__dirname, '../frontend/js')));
 app.use(express.static(path.join(__dirname, '../frontend')));
 app.use(express.static(path.join(__dirname, 'frontend')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Serve static files (like images)
+app.use('/assets', express.static(path.join(__dirname, 'frontend/assets')));
+
+
+
 // ✅ MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('✅ Connected to MongoDB'))
@@ -116,7 +121,7 @@ app.use((req, res, next) => {
 });
 
 // ✅ Start Server
-const PORT = process.env.PORT || 5007;
+const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
 });

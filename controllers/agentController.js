@@ -6,7 +6,7 @@ const generateToken = require("../utils/generateToken");
 const Wallet = require("../models/walletModel");
 const { createWalletIfNotExists } = require("../controllers/walletHelper");
 
-const Order = require("../models/order");
+const Order = require("../models/Order");
 
 // ✅ Register Agent
 const registerAgent = async (req, res) => {

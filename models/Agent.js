@@ -7,7 +7,7 @@ const agentSchema = new mongoose.Schema({
   password: { type: String, required: true },
   role: {
     type: String,
-    default: 'agent'
+    default: 'Agent'
   },
   virtualAccount
 : {
@@ -18,4 +18,4 @@ const agentSchema = new mongoose.Schema({
 
 }, { timestamps: true });
 
-module.exports = mongoose.model('agent', agentSchema);
+module.exports = mongoose.model('Agent', agentSchema);
