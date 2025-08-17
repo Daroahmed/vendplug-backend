@@ -1,30 +1,36 @@
-// backend/models/Notification.js
-
+// backend/models/notificationModel.js
 const mongoose = require('mongoose');
 
-const notificationSchema = new mongoose.Schema({
-  recipient: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Agent',
-    required: true,
+const notificationSchema = new mongoose.Schema(
+  {
+    recipientId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      refPath: 'recipientType', // Dynamically references Buyer, Agent, or Vendor
+    },
+    recipientType: {
+      type: String,
+      required: true,
+      enum: ['Buyer', 'Agent', 'Vendor'], // ✅ Vendor now supported
+    },
+    title: {
+      type: String,
+      required: true,
+    },
+    message: {
+      type: String,
+      required: true,
+    },
+    orderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Order',
+    },
+    read: {
+      type: Boolean,
+      default: false,
+    },
   },
-  message: {
-    type: String,
-    required: true,
-  },
-  order: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Order',
-    required: true,
-  },
-  isRead: {
-    type: Boolean,
-    default: false,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
+  { timestamps: true }
+);
 
 module.exports = mongoose.model('Notification', notificationSchema);

@@ -1,0 +1,153 @@
+// controllers/agentOrderController.js
+const Order = require('../models/Order');
+const Product = require('../models/Product');
+const {
+  notifyUser,
+  applyOrderStatus,
+  queuePayout,
+  handleError
+} = require('../utils/orderHelpers');
+
+// Helper to notify buyer + party (agent/vendor)
+const sendOrderNotification = async (req, recipientId, recipientType, title, body, orderId) => {
+  const io = req.app.get('io');
+  await notifyUser(io, recipientId, recipientType, title, body, orderId);
+};
+
+const getAgentOrders = async (req, res) => {
+  try {
+    const orders = await Order.find({
+      agent: req.user._id,
+      status: { $nin: ['completed', 'cancelled'] }
+    })
+      .populate('buyer', 'fullName email')
+      .populate('agent', 'fullName');
+
+    res.json(orders);
+  } catch (error) {
+    handleError(res, error, "Error fetching orders");
+  }
+};
+
+const getAgentOrderHistory = async (req, res) => {
+  try {
+    const orders = await Order.find({
+      agent: req.user._id,
+      status: { $in: ['completed', 'cancelled'] }
+    })
+      .populate('buyer', 'fullName')
+      .sort({ createdAt: -1 });
+
+    res.json(orders);
+  } catch (error) {
+    handleError(res, error, "Error fetching order history");
+  }
+};
+
+const createOrder = async (req, res) => {
+  try {
+    const { cartItems, pickupLocation, deliveryOption, note } = req.body;
+    const buyerId = req.user.id;
+
+    if (!Array.isArray(cartItems) || !cartItems.length) {
+      return res.status(400).json({ message: 'Cart is empty' });
+    }
+
+    // Group items by party (agent/vendor)
+    const ordersByParty = {};
+    for (const item of cartItems) {
+      const product = await Product.findById(item.id).populate('agent vendor');
+      if (!product) continue;
+
+      const partyId = product.agent?._id?.toString() || product.vendor?._id?.toString();
+      const partyType = product.agent ? 'Agent' : 'Vendor';
+
+      if (!ordersByParty[partyId]) {
+        ordersByParty[partyId] = { items: [], totalAmount: 0, partyType };
+      }
+
+      const subtotal = product.price * item.qty;
+      ordersByParty[partyId].items.push({
+        productId: product._id,
+        name: product.name,
+        price: product.price,
+        qty: item.qty
+      });
+      ordersByParty[partyId].totalAmount += subtotal;
+    }
+
+    const savedOrders = [];
+
+    for (const partyId in ordersByParty) {
+      const { items, totalAmount, partyType } = ordersByParty[partyId];
+
+      const orderData = {
+        buyer: buyerId,
+        items,
+        pickupLocation,
+        totalAmount,
+        deliveryOption,
+        note
+      };
+      if (partyType === 'Agent') orderData.agent = partyId;
+      if (partyType === 'Vendor') orderData.vendor = partyId;
+
+      const order = new Order(orderData);
+      const saved = await order.save();
+      savedOrders.push(saved);
+
+      await sendOrderNotification(
+        req,
+        partyId,
+        partyType,
+        '🛒 New Order Received',
+        `You have a new order with ${items.length} item(s) worth ₦${totalAmount}.`,
+        saved._id
+      );
+    }
+
+    res.status(201).json({ message: 'Order(s) placed successfully', orders: savedOrders });
+
+  } catch (error) {
+    handleError(res, error, "Error placing order");
+  }
+};
+
+const updateOrderStatus = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { status } = req.body;
+    const { _id: userId, role } = req.user;
+
+    const validStatuses = ['pending', 'accepted', 'rejected', 'cancelled', 'completed', 'in-progress', 'fulfilled'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    const isAgent = role === 'agent' && order.agent?.toString() === userId.toString();
+    const isVendor = role === 'vendor' && order.vendor?.toString() === userId.toString();
+    if (!isAgent && !isVendor) return res.status(403).json({ message: 'Not authorized to update this order' });
+
+    applyOrderStatus(order, status, role);
+    await order.save();
+
+    if (status === 'fulfilled' && isVendor) await queuePayout(order);
+
+    const buyerId = order.buyer.toString();
+    await sendOrderNotification(req, buyerId, 'Buyer', '📦 Order Status Update', `Your order #${order._id} is now "${status}".`, order._id);
+
+    res.json({ message: 'Order status updated', order });
+  } catch (error) {
+    handleError(res, error, "Failed to update order status");
+  }
+};
+
+module.exports = {
+  getAgentOrders,
+  getAgentOrderHistory,
+  createOrder,
+  updateOrderStatus
+};
