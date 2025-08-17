@@ -4,8 +4,8 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const asyncHandler = require("express-async-handler");
 const { createWalletIfNotExists } = require("./walletHelper"); // <== use new helper
-const Order = require('../models/Order');
-const PayoutQueue = require('../models/payoutQueueModel');
+const Order = require('../models/vendorOrderModel');
+const PayoutQueue = require('../models/payoutModel');
 const Buyer = require("../models/Buyer");
 
 
@@ -267,9 +267,6 @@ const addVendorReview = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-
-
-
 
 
 module.exports = {

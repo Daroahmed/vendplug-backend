@@ -1,37 +1,53 @@
+// backend/models/orderModel.js
 const mongoose = require('mongoose');
 
-const orderItemSchema = new mongoose.Schema({
-  productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
-  name: String,
-  price: Number,
-  qty: Number
-}, { _id: false });
-
-const orderSchema = new mongoose.Schema({
-  buyer: { type: mongoose.Schema.Types.ObjectId, ref: 'Buyer', required: true },
-  agent: { type: mongoose.Schema.Types.ObjectId, ref: 'Agent' },
-  items: [orderItemSchema],
-  pickupLocation: String,
-  totalAmount: { type: Number, required: true },
-  deliveryOption: {
-    type: String,
-    enum: ['pickup', 'delivery'],
-    default: 'delivery'
+const orderSchema = new mongoose.Schema(
+  {
+    buyer: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Buyer',
+      required: true,
+    },
+    agent: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Agent',
+      required: false, // can be null if buyer hasn't chosen a specific agent yet
+    },
+    items: [
+      {
+        product: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Product',
+          required: true,
+        },
+        name: { type: String, required: true },
+        quantity: { type: Number, required: true },
+        price: { type: Number, required: true },
+      },
+    ],
+    totalAmount: {
+      type: Number,
+      required: true,
+    },
+    deliveryAddress: {
+      type: String,
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ['pending', 'accepted', 'rejected', 'in-progress', 'completed', 'cancelled'],
+      default: 'pending',
+    },
+    paymentStatus: {
+      type: String,
+      enum: ['unpaid', 'paid', 'refunded'],
+      default: 'unpaid',
+    },
+    notes: {
+      type: String,
+    },
   },
-  
-  agent: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Agent',
-    default: null, // If null, it's open for all agents
-  },
-  
-  note: String,
-  status: {
-    type: String,
-    enum: ['pending', 'accepted', 'in-progress', 'completed', 'cancelled'],
-    default: 'pending'
-  }
-}, { timestamps: true });
+  { timestamps: true }
+);
 
-// ✅ Prevent OverwriteModelError
-module.exports = mongoose.models.Order || mongoose.model('Order', orderSchema);
+module.exports = mongoose.model('Order', orderSchema);
