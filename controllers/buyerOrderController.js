@@ -1,17 +1,18 @@
 // controllers/buyerOrderController.js
 const asyncHandler = require("express-async-handler");
 const VendorOrder = require('../models/vendorOrderModel');
+const Payout = require('../models/payoutModel');
+const Notification = require('../models/Notification');
 const { notifyUser, handleError } = require('../utils/orderHelpers');
 
 // Fetch all orders for the logged-in buyer
-
 const getBuyerVendorOrders = async (req, res) => {
   try {
     const buyerId = req.user._id;
 
     const orders = await VendorOrder.find({ buyer: buyerId })
       .populate("vendor", "shopName")
-      .populate("items.product", "name price") // ✅ only fields that exist
+      .populate("items.product", "name price") 
       .sort({ createdAt: -1 });
 
     if (!orders.length) {
@@ -26,7 +27,7 @@ const getBuyerVendorOrders = async (req, res) => {
       deliveryLocation: order.deliveryLocation,
       totalAmount: order.totalAmount,
       products: order.items.map(i => ({
-        name: i.product?.name || "Unknown Product", // ✅ only use name
+        name: i.product?.name || "Unknown Product",
         price: i.price || i.product?.price || 0,
         quantity: i.quantity
       }))
@@ -39,7 +40,6 @@ const getBuyerVendorOrders = async (req, res) => {
   }
 };
 
-
 // Get single buyer vendor order by ID
 const getBuyerOrderDetails = async (req, res) => {
   try {
@@ -51,7 +51,7 @@ const getBuyerOrderDetails = async (req, res) => {
       buyer: buyerId
     })
       .populate("vendor", "shopName")
-      .populate("items.product", "name price description image"); // ✅ fixed
+      .populate("items.product", "name price description image");
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
@@ -65,7 +65,7 @@ const getBuyerOrderDetails = async (req, res) => {
       deliveryLocation: order.deliveryLocation,
       totalAmount: order.totalAmount,
       products: order.items.map(i => ({
-        name: i.product?.name || "Unknown Product", // ✅ simplified
+        name: i.product?.name || "Unknown Product",
         description: i.product?.description || "",
         image: i.product?.image || null,
         price: i.price || i.product?.price || 0,
@@ -80,14 +80,12 @@ const getBuyerOrderDetails = async (req, res) => {
   }
 };
 
-
-
 // Cancel an order (only if pending)
 const cancelOrder = async (req, res) => {
   try {
     const { id } = req.params;
     const buyerId = req.user._id;
-    const order = await Order.findOne({ _id: id, buyer: buyerId });
+    const order = await VendorOrder.findOne({ _id: id, buyer: buyerId });
 
     if (!order) return res.status(404).json({ message: 'Order not found' });
     if (!['pending', 'accepted'].includes(order.status)) {
@@ -120,7 +118,7 @@ const trackOrder = async (req, res) => {
   try {
     const { id } = req.params;
     const buyerId = req.user._id;
-    const order = await Order.findOne({ _id: id, buyer: buyerId });
+    const order = await VendorOrder.findOne({ _id: id, buyer: buyerId });
 
     if (!order) return res.status(404).json({ message: 'Order not found' });
 
@@ -132,10 +130,10 @@ const trackOrder = async (req, res) => {
 
 // ✅ Confirm receipt & release escrow
 const confirmReceipt = asyncHandler(async (req, res) => {
-  const buyerId = req.buyer._id;
+  const buyerId = req.user._id; // ✅ fixed
   const { orderId } = req.params;
 
-  const order = await Order.findById(orderId).populate("vendor");
+  const order = await VendorOrder.findById(orderId).populate("vendor");
 
   if (!order) {
     res.status(404);
@@ -149,7 +147,7 @@ const confirmReceipt = asyncHandler(async (req, res) => {
   }
 
   // ✅ Ensure status is correct
-  if (order.status !== "out_for_delivery") {
+  if (order.status !== "delivered") {
     res.status(400);
     throw new Error("Order cannot be confirmed yet");
   }
@@ -159,18 +157,23 @@ const confirmReceipt = asyncHandler(async (req, res) => {
   order.deliveredAt = Date.now();
   await order.save();
 
-  // ✅ Release funds into payout flow
-  const payout = await Payout.create({
-    vendor: order.vendor._id,
-    order: order._id,
-    amount: order.totalAmount,
-    status: "ready_for_payout" // ✅ immediately available for vendor to request
-  });
+    // ✅ Check if payout already exists
+    let payout = await Payout.findOne({ order: order._id });
+
+    if (!payout) {
+      payout = await Payout.create({
+        vendor: order.vendor._id,
+        order: order._id,
+        amount: order.totalAmount,
+        status: "ready_for_payout"
+      });
+    }
+  
 
   // ✅ Notify vendor
   await Notification.create({
-    user: order.vendor._id,
-    userType: "vendor",
+    recipientId: order.vendor._id,
+    recipientType: "vendor",
     title: "Order Payment Released",
     message: `Buyer confirmed delivery for order #${order._id}. ₦${order.totalAmount} is now available for payout.`,
   });
@@ -184,6 +187,7 @@ const confirmReceipt = asyncHandler(async (req, res) => {
 });
 
 
+
 module.exports = {
   getBuyerVendorOrders,
   getBuyerOrderDetails,
@@ -191,6 +195,3 @@ module.exports = {
   trackOrder,
   confirmReceipt 
 };
-
-
-

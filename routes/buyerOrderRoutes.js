@@ -1,4 +1,3 @@
-// routes/buyerOrderRoutes.js
 const express = require('express');
 const router = express.Router();
 const {
@@ -10,15 +9,21 @@ const {
 } = require('../controllers/buyerOrderController');
 const { protectBuyer } = require('../middleware/authMiddleware');
 
-// Mount under /api/buyer-orders
-router.get('/', protectBuyer, getBuyerVendorOrders);
-router.get('/:id', protectBuyer, getBuyerOrderDetails);
-router.put('/:id/cancel', protectBuyer, cancelOrder);
-router.get('/:id/track', protectBuyer, trackOrder);
-router.put('/:orderId/confirm', protectBuyer, confirmReceipt);
+// Base: /api/buyer-orders
 
-// ✅ Extra alias so frontend /api/orders/:id still works
-router.get('/api/orders/:id', protectBuyer, getBuyerOrderDetails);
-router.put('/api/orders/:orderId/confirm', protectBuyer, confirmReceipt);
+// Get all buyer orders
+router.get('/', protectBuyer, getBuyerVendorOrders);
+
+// Get details of one order
+router.get('/:id', protectBuyer, getBuyerOrderDetails);
+
+// Cancel order
+router.put('/:id/cancel', protectBuyer, cancelOrder);
+
+// Track order
+router.get('/:id/track', protectBuyer, trackOrder);
+
+// ✅ Confirm receipt (buyer confirms delivery)
+router.put('/:orderId/confirm', protectBuyer, confirmReceipt);
 
 module.exports = router;
