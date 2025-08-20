@@ -77,23 +77,44 @@ const requestPayout = async (req, res) => {
   }
 };
 
-// 📌 Get vendor payout history
+
 const getPayoutHistory = async (req, res) => {
   try {
     const payouts = await Payout.find({
       vendor: req.vendor._id,
-      status: "paid"
-    }).populate({
-      path: "order",
-      populate: orderPopulate
-    });
+      status: "paid",
+    })
+      .populate({
+        path: "order",
+        select: "totalAmount createdAt status buyer",
+        populate: { path: "buyer", select: "fullName email phoneNumber" },
+      })
+      .sort({ paidAt: -1, updatedAt: -1 });
 
-    res.json(payouts);
+    // Flatten for the frontend
+    const result = payouts.map((p) => ({
+      _id: p._id,
+      amount: p.amount,
+      status: p.status,
+      paidAt: p.paidAt || p.updatedAt || p.createdAt,
+      orderId: p.order?._id || null,
+      orderTotal: p.order?.totalAmount ?? null,
+      buyer: p.order?.buyer
+        ? {
+            fullName: p.order.buyer.fullName || "N/A",
+            email: p.order.buyer.email || "N/A",
+            phoneNumber: p.order.buyer.phoneNumber || "N/A",
+          }
+        : null,
+    }));
+
+    res.json(result);
   } catch (error) {
     console.error("Error fetching payout history:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // 📌 Get payout summary (totals per status)
 const getPayoutSummary = async (req, res) => {

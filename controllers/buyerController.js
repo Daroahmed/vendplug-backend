@@ -4,6 +4,7 @@ const generateToken = require("../utils/generateToken");
 const bcrypt = require("bcryptjs");
 const { createWalletIfNotExists } = require("../controllers/walletHelper");
 const Order = require("../models/Order");
+const { notifyUser, handleError } = require('../utils/orderHelpers');
 
 // @desc    Register new buyer
 // @desc    Register new buyer
@@ -130,4 +131,5 @@ module.exports = {
   resetBuyerPassword,
   getBuyerProfile,
   getBuyerOrderStats,
+  notifyUser, handleError
 };

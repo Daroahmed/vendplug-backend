@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   getBuyerVendorOrders,
+  getBuyerOrderHistory,
   getBuyerOrderDetails,
   cancelOrder,
   trackOrder,
@@ -13,6 +14,8 @@ const { protectBuyer } = require('../middleware/authMiddleware');
 
 // Get all buyer orders
 router.get('/', protectBuyer, getBuyerVendorOrders);
+
+router.get('/history', protectBuyer, getBuyerOrderHistory); 
 
 // Get details of one order
 router.get('/:id', protectBuyer, getBuyerOrderDetails);
@@ -27,3 +30,4 @@ router.get('/:id/track', protectBuyer, trackOrder);
 router.put('/:orderId/confirm', protectBuyer, confirmReceipt);
 
 module.exports = router;
+
