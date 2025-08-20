@@ -4,7 +4,8 @@ const {
   getPayoutQueue,
   getReadyForPayout,
   requestPayout,
-  getPayoutHistory
+  getPayoutHistory,
+  getPayoutSummary
 } = require("../controllers/payoutController");
 const { protectVendor } = require("../middleware/authMiddleware");
 
@@ -13,5 +14,7 @@ router.get("/queue", protectVendor, getPayoutQueue);
 router.get("/ready", protectVendor, getReadyForPayout);
 router.put("/request/:payoutId", protectVendor, requestPayout);
 router.get("/history", protectVendor, getPayoutHistory);
+router.get("/summary", protectVendor, getPayoutSummary);
+
 
 module.exports = router;

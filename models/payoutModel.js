@@ -5,12 +5,12 @@ const payoutSchema = new mongoose.Schema(
   {
     vendor: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Agent", // or "Vendor" depending on your naming
-      required: true,
+      ref: "Vendor", // or "Vendor" depending on your naming
+      required: true, unique: true
     },
     order: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Order",
+      ref: "VendorOrder",
       required: true,
     },
     amount: {
@@ -19,7 +19,7 @@ const payoutSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "approved", "paid", "failed"],
+      enum: ["pending", "pending_receipt", "completed", "failed", "ready_for_payout"], 
       default: "pending",
     },
     requestedAt: {
@@ -38,4 +38,4 @@ const payoutSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Payout", payoutSchema);
+module.exports = mongoose.model("Payout", payoutSchema, "payouts");

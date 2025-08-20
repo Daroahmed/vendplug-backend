@@ -51,6 +51,7 @@ const walletRoutes = require('./routes/walletRoutes');
 const vendorRoutes = require('./routes/vendorRoutes');
 const vendorCartRoutes = require('./routes/vendorCartRoutes');
 const vendorCheckoutRoutes = require('./routes/vendorCheckoutRoutes');
+const payoutRoutes = require('./routes/payoutRoutes')
 
 // ✅ Mount API routes
 app.use('/api/buyers', buyerRoutes);
@@ -58,7 +59,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/agents', agentRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/buyer-orders', buyerOrderRoutes);
-app.use('api/vendor-orders', vendorOrderRoutes);
+app.use('/api/vendor-orders', vendorOrderRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/vendors', vendorRoutes);
@@ -66,6 +67,7 @@ app.use('/api/wallet', walletRoutes);
 app.use('/api/vendor-products', vendorProductRoutes);
 app.use('/api/vendor-cart', vendorCartRoutes);
 app.use('/api/vendor-checkout', vendorCheckoutRoutes)
+app.use('/api/vendor-payout', payoutRoutes)
 
 // ✅ Test route
 app.get('/', (req, res) => res.send('Backend is running 🚀'));

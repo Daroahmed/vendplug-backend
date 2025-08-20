@@ -91,6 +91,25 @@ async function processRefund(buyerId, amount, orderId) {
     meta: { orderId }
   });
 
+  await WalletTransaction.create({
+    user: buyer._id,
+    type: "debit",
+    amount: order.totalAmount,
+    reference: order._id,
+    description: "Escrow payment for order"
+  });
+
+
+  await WalletTransaction.create({
+    user: buyer._id,
+    type: "credit",
+    amount: order.totalAmount,
+    reference: order._id,
+    description: "Refund for rejected order"
+  });
+  
+  
+
   console.log(`💸 Refund processed for Buyer ${buyerId}: ₦${amount}`);
 }
 

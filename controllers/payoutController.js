@@ -1,13 +1,28 @@
 const Payout = require("../models/payoutModel");
-const Order = require("../models/orderModel");
+const Order = require("../models/vendorOrderModel");
 
-// 📌 Get vendor's payout queue (orders accepted, waiting for buyer receipt)
+// Helper: standard population for orders
+const orderPopulate = [
+  { path: "buyer", select: "name email phoneNumber" },
+  { path: "items.product", select: "name image price" }
+];
+
+
+// 📌 Get Payout Queue (pending receipts)
 const getPayoutQueue = async (req, res) => {
   try {
     const payouts = await Payout.find({
       vendor: req.vendor._id,
       status: "pending_receipt"
-    }).populate("order");
+    })
+      .populate({
+        path: "order",
+        populate: [
+          { path: "buyer", select: "fullName email phoneNumber" },
+          { path: "items.product", select: "name image price" }
+        ]
+      })
+      .sort({ createdAt: -1 });
 
     res.json(payouts);
   } catch (error) {
@@ -16,13 +31,18 @@ const getPayoutQueue = async (req, res) => {
   }
 };
 
+
+
 // 📌 Get payouts ready for request (buyer confirmed receipt)
 const getReadyForPayout = async (req, res) => {
   try {
     const payouts = await Payout.find({
       vendor: req.vendor._id,
       status: "ready_for_payout"
-    }).populate("order");
+    }).populate({
+      path: "order",
+      populate: orderPopulate
+    });
 
     res.json(payouts);
   } catch (error) {
@@ -63,7 +83,10 @@ const getPayoutHistory = async (req, res) => {
     const payouts = await Payout.find({
       vendor: req.vendor._id,
       status: "paid"
-    }).populate("order");
+    }).populate({
+      path: "order",
+      populate: orderPopulate
+    });
 
     res.json(payouts);
   } catch (error) {
@@ -72,9 +95,41 @@ const getPayoutHistory = async (req, res) => {
   }
 };
 
+// 📌 Get payout summary (totals per status)
+const getPayoutSummary = async (req, res) => {
+  try {
+    const vendorId = req.vendor._id;
+
+    const [pending, ready, paid] = await Promise.all([
+      Payout.aggregate([
+        { $match: { vendor: vendorId, status: "pending_receipt" } },
+        { $group: { _id: null, total: { $sum: "$amount" } } }
+      ]),
+      Payout.aggregate([
+        { $match: { vendor: vendorId, status: "ready_for_payout" } },
+        { $group: { _id: null, total: { $sum: "$amount" } } }
+      ]),
+      Payout.aggregate([
+        { $match: { vendor: vendorId, status: "paid" } },
+        { $group: { _id: null, total: { $sum: "$amount" } } }
+      ])
+    ]);
+
+    res.json({
+      pending: pending[0]?.total || 0,
+      ready: ready[0]?.total || 0,
+      paid: paid[0]?.total || 0
+    });
+  } catch (err) {
+    console.error("Error fetching payout summary:", err);
+    res.status(500).json({ message: "Error fetching payout summary" });
+  }
+};
+
 module.exports = {
   getPayoutQueue,
   getReadyForPayout,
   requestPayout,
-  getPayoutHistory
+  getPayoutHistory,
+  getPayoutSummary
 };
