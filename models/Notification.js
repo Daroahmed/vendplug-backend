@@ -11,7 +11,7 @@ const notificationSchema = new mongoose.Schema(
     recipientType: {
       type: String,
       required: true,
-      enum: ['buyer', 'agent', 'vendor'], // ✅ Vendor now supported
+      enum: ['Buyer', 'Agent', 'Vendor'], // ✅ Vendor now supported
     },
     title: {
       type: String,

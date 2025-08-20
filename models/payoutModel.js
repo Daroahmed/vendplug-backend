@@ -17,11 +17,21 @@ const payoutSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+
+
     status: {
       type: String,
-      enum: ["pending", "pending_receipt", "completed", "failed", "ready_for_payout"], 
+      enum: [
+        "pending",           // created but not yet confirmed
+        "pending_receipt",   // vendor accepted, waiting for buyer confirmation
+        "ready_for_payout",  // buyer confirmed, vendor can request payout
+        "requested",         // vendor has requested payout
+        "paid",              // payout completed
+        "failed"             // payout failed
+      ],
       default: "pending",
     },
+
     requestedAt: {
       type: Date,
     },
