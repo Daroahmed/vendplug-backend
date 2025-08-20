@@ -1,52 +1,83 @@
-<!-- buyer-home.html -->
+<!-- buyer-home.html (Dark Mode - Dynamic) -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>VendPlug | Fresh Picks for You</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <title>VendPlug | Buyer Home</title>
   <style>
     :root {
-      --primary-color: #3BA935;
-      --accent-dark: #1b1f1e;
+      --primary: #00cc99;
+      --bg-dark: #121212;
       --text-light: #fff;
-      --bg-light: #f4fff8;
+      --card-bg: #1e1e1e;
+      --muted: #aaa;
     }
 
     body {
       font-family: 'Segoe UI', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-light);
       margin: 0;
-      background-color: var(--bg-light);
-      padding-bottom: 70px; /* space for nav */
+      padding-bottom: 80px;
     }
 
     .header {
-      background-color: var(--accent-dark);
-      color: var(--text-light);
+      background-color: var(--card-bg);
       padding: 1rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
 
-    .header a {
-      color: white;
-      text-decoration: none;
-      font-size: 1.5rem;
+    .header h2 {
+      margin: 0;
+      color: var(--primary);
+    }
+
+    .header button {
+      background: none;
+      border: none;
+      color: var(--text-light);
+      font-weight: bold;
+      cursor: pointer;
     }
 
     .search-bar {
-      margin-top: 0.5rem;
-      padding: 0.5rem 1rem;
+      padding: 0.75rem 1rem;
     }
 
     .search-bar input {
       width: 100%;
       padding: 0.75rem;
+      border-radius: 8px;
       border: none;
-      border-radius: 6px;
       font-size: 1rem;
+      background-color: #2a2a2a;
+      color: var(--text-light);
+    }
+
+    .toggle-bar {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      background-color: #1e1e1e;
+      padding: 0.5rem;
+    }
+
+    .toggle-bar button {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 20px;
+      background-color: transparent;
+      color: var(--muted);
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .toggle-bar button.active {
+      background-color: var(--primary);
+      color: #000;
     }
 
     .section {
@@ -54,7 +85,7 @@
     }
 
     .section h3 {
-      color: var(--accent-dark);
+      color: var(--primary);
       margin-bottom: 0.5rem;
     }
 
@@ -66,12 +97,12 @@
     }
 
     .product-card {
-      background: #fff;
+      background: var(--card-bg);
       min-width: 160px;
       border-radius: 10px;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.06);
       overflow: hidden;
       flex-shrink: 0;
+      box-shadow: 0 0 5px rgba(0,0,0,0.3);
     }
 
     .product-card img {
@@ -85,57 +116,44 @@
     }
 
     .product-card .info h4 {
-      font-size: 1rem;
       margin: 0;
-      color: #333;
+      font-size: 1rem;
+      color: var(--text-light);
     }
 
     .product-card .info p {
       font-size: 0.85rem;
-      margin: 0.25rem 0;
-      color: #555;
+      color: var(--muted);
     }
 
     .product-card button {
-      background-color: var(--primary-color);
-      color: white;
-      border: none;
       width: 100%;
       padding: 0.5rem;
+      border: none;
+      background-color: var(--primary);
+      color: #000;
       cursor: pointer;
-      border-radius: 0 0 10px 10px;
     }
 
     .bottom-nav {
       position: fixed;
       bottom: 0;
       width: 100%;
-      background-color: var(--accent-dark);
+      background-color: #1e1e1e;
       display: flex;
       justify-content: space-around;
-      padding: 0.5rem 0.25rem;
-      color: var(--text-light);
-      box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
-      z-index: 1000;
+      padding: 0.75rem 0.5rem;
+      font-size: 0.9rem;
+      border-top: 1px solid #333;
     }
 
     .bottom-nav a {
       color: var(--text-light);
       text-decoration: none;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      font-size: 0.75rem;
-      transition: color 0.2s ease;
     }
 
-    .bottom-nav a:hover {
-      color: var(--primary-color);
-    }
-
-    .bottom-nav i {
-      font-size: 1.3rem;
-      margin-bottom: 0.15rem;
+    .hidden {
+      display: none;
     }
   </style>
 </head>
@@ -143,59 +161,76 @@
 
   <div class="header">
     <h2>VendPlug</h2>
-    <a href="buyer-cart.html"><i class="fas fa-shopping-cart"></i></a>
+    <button onclick="window.location.href='buyer-profile.html'">Profile</button>
   </div>
 
   <div class="search-bar">
-    <input type="text" placeholder="Search fresh items..." />
+    <input type="text" placeholder="Search fresh items or services..." />
   </div>
 
-  <!-- Vegetables -->
-  <div class="section">
-    <h3>Fresh Vegetables</h3>
-    <div class="product-row" id="fresh-vegetables"></div>
+  <!-- Toggle between Agent/Vendor -->
+  <div class="toggle-bar">
+    <button id="agentToggle" class="active">Shop with Agent</button>
+    <button id="vendorToggle">Meet a Vendor</button>
   </div>
 
-  <!-- Grains & Provisions -->
-  <div class="section">
-    <h3>Grains & Provisions</h3>
-    <div class="product-row" id="grains-provisions"></div>
+  <!-- Agent Products Section -->
+  <div id="agentSection">
+    <div class="section">
+      <h3>Fresh Vegetables</h3>
+      <div class="product-row" id="fresh-vegetables"></div>
+    </div>
+
+    <div class="section">
+      <h3>Grains & Provisions</h3>
+      <div class="product-row" id="grains-provisions"></div>
+    </div>
+
+    <div class="section">
+      <h3>Other Items</h3>
+      <div class="product-row" id="others"></div>
+    </div>
   </div>
 
-  <!-- Others -->
-  <div class="section">
-    <h3>Other Items</h3>
-    <div class="product-row" id="others"></div>
+  <!-- Vendor Section (Placeholder) -->
+  <div id="vendorSection" class="hidden">
+    <div class="section">
+      <h3>Featured Vendors & Services</h3>
+      <p style="color: var(--muted);">Coming soon: Tailors, Artisans, Farmers, and more.</p>
+    </div>
   </div>
 
   <!-- Bottom Navigation -->
   <div class="bottom-nav">
-    <a href="/buyer-home.html">
-      <i class="fas fa-home"></i>
-      <span>Home</span>
-    </a>
-    <a href="#">
-      <i class="fas fa-list"></i>
-      <span>Lists</span>
-    </a>
-    <a href="buyer-cart.html">
-      <i class="fas fa-shopping-cart"></i>
-      <span>Cart</span>
-    </a>
-    <a href="buyer-orders.html">
-      <i class="fas fa-box"></i>
-      <span>Orders</span>
-    </a>
-    <a href="#">
-      <i class="fas fa-wallet"></i>
-      <span>Wallet</span>
-    </a>
-    <a href="#">
-      <i class="fas fa-user"></i>
-      <span>Account</span>
-    </a>
+    <a href="buyer-home.html">Home</a>
+    <a href="buyer-agent-cart.html">Cart</a>
+    <a href="buyer-agent-orders.html">Orders</a>
+    <a href="buyer-wallet.html">Wallet</a>
+    <a href="buyer-profile.html">Account</a>
   </div>
-  <script src="js/config.js"></script>
+
+  <script>
+    const agentToggle = document.getElementById("agentToggle");
+    const vendorToggle = document.getElementById("vendorToggle");
+    const agentSection = document.getElementById("agentSection");
+    const vendorSection = document.getElementById("vendorSection");
+
+    agentToggle.addEventListener("click", () => {
+      agentSection.classList.remove("hidden");
+      vendorSection.classList.add("hidden");
+      agentToggle.classList.add("active");
+      vendorToggle.classList.remove("active");
+    });
+
+    vendorToggle.addEventListener("click", () => {
+      vendorSection.classList.remove("hidden");
+      agentSection.classList.add("hidden");
+      vendorToggle.classList.add("active");
+      agentToggle.classList.remove("active");
+    });
+  </script>
+
+  <script src="/js/config.js"></script>
   <script src="/js/buyer-home.js"></script>
 </body>
 </html>

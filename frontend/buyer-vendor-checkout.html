@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VendPlug Checkout</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #121212; /* dark background */
+      color: #fff;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #f7931e; /* VendPlug accent color */
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .wallet {
+      background-color: #1f1f1f;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    #cart-items {
+      background-color: #1f1f1f;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 20px;
+    }
+
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #333;
+    }
+
+    .cart-item:last-child {
+      border-bottom: none;
+    }
+
+    .total {
+      text-align: right;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      border: none;
+      font-size: 16px;
+    }
+
+    input {
+      background-color: #1f1f1f;
+      color: #fff;
+    }
+
+    input::placeholder {
+      color: #aaa;
+    }
+
+    button {
+      background-color: #f7931e;
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #e67e22;
+    }
+
+    @media(max-width: 480px){
+      .container {
+        padding: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>VendPlug Checkout</h1>
+
+    <div class="wallet" id="wallet-balance">Wallet: ₦0</div>
+
+    <div id="cart-items">
+      <!-- Cart items will be dynamically injected here -->
+    </div>
+
+    <div class="total" id="total-amount">Total: ₦0</div>
+
+    <input type="text" id="pickup-location" placeholder="Enter pickup location" />
+
+    <button id="checkout-btn">Place Order</button>
+  </div>
+
+  <script src="/js/config.js"></script>
+<script src="/js/buyer-vendor-checkout.js"></script>
+
+</body>
+</html>

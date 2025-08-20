@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VendPlug | Vendor Auth</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #121212;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      flex-direction: column;
+    }
+
+    .auth-container {
+      background: #1e1e1e;
+      padding: 2rem;
+      border-radius: 10px;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+
+    h2 {
+      text-align: center;
+      color: #00cc99;
+    }
+
+    form {
+      display: none;
+      margin-top: 1rem;
+    }
+
+    form.active {
+      display: block;
+    }
+
+    input, button, select, textarea {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 5px;
+    }
+
+    input, select, textarea {
+      background: #2c2c2c;
+      color: white;
+    }
+
+    button {
+      background: #00cc99;
+      color: black;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .toggle {
+      text-align: center;
+      margin-top: 1rem;
+    }
+
+    .toggle button {
+      background: transparent;
+      color: #00cc99;
+      border: none;
+      font-size: 0.9rem;
+    }
+
+    .message {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-container">
+    <h2>Vendor Portal</h2>
+
+    <!-- Login Form -->
+    <form id="vendorLoginForm" class="active">
+      <input id="vendorLoginEmail" type="email" placeholder="Email" required />
+      <input id="vendorLoginPassword" type="password" placeholder="Password" required />
+      <button type="submit">Login</button>
+    </form>
+
+    <!-- Register Form -->
+    <form id="vendorRegisterForm">
+      <input id="vendorFullName" type="text" placeholder="Full Name" required />
+      <input id="vendorEmail" type="email" placeholder="Email" required />
+      <input id="vendorShopName" type="text" placeholder="Shop Name" required />
+      <input id="vendorPhoneNumber" type="text" placeholder="Phone Number" required />
+      <input id="vendorPassword" type="password" placeholder="Password" required />
+      <input id="vendorBusinessName" type="text" placeholder="Business Name" required />
+      <input id="vendorBusinessAddress" type="text" placeholder="Business Address" required />
+      <input id="vendorCacNumber" type="text" placeholder="CAC Number" required />
+
+
+      <!-- NEW: Category -->
+      <select id="vendorCategory" required>
+        <option value="">Select Category</option>
+        <option value="Phones & Accessories">Phone and Accessories</option>
+        <option value="Fashion">Fashion</option>
+        <option value="Electronics">Electronics</option>
+        <option value="Groceries">Groceries</option>
+        <option value="Meat & Poultry">Meat and Poultry</option>
+        <option value="Health & Beauty">Health and Beauty</option>
+        <option value="Home & Kitchen">Home and Kitchen</option>
+      </select>
+
+      <!-- NEW: Location -->
+      <select id="vendorState" required>
+        <option value="">Select State</option>
+        <option value="Abia">Abia</option>
+        <option value="Adamawa">Adamawa</option>
+        <option value="Akwa Ibom">Akwa Ibom</option>
+        <option value="Anambra">Anambra</option>
+        <option value="Bauchi">Bauchi</option>
+        <option value="Bayelsa">Bayelsa</option>
+        <option value="Benue">Benue</option>
+        <option value="Borno">Borno</option>
+        <option value="Cross River">Cross River</option>
+        <option value="Delta">Delta</option>
+        <option value="Ebonyi">Ebonyi</option>
+        <option value="Edo">Edo</option>
+        <option value="Ekiti">Ekiti</option>
+        <option value="Enugu">Enugu</option>
+        <option value="FCT">FCT</option>
+        <option value="Gombe">Gombe</option>
+        <option value="Imo">Imo</option>
+        <option value="Jigawa">Jigawa</option>
+        <option value="Kaduna">Kaduna</option>
+        <option value="Kano">Kano</option>
+        <option value="Katsina">Katsina</option>
+        <option value="Kebbi">Kebbi</option>
+        <option value="Kogi">Kogi</option>
+        <option value="Kwara">Kwara</option>
+        <option value="Lagos">Lagos</option>
+        <option value="Nasarawa">Nasarawa</option>
+        <option value="Niger">Niger</option>
+        <option value="Ogun">Ogun</option>
+        <option value="Ondo">Ondo</option>
+        <option value="Osun">Osun</option>
+        <option value="Oyo">Oyo</option>
+        <option value="Plateau">Plateau</option>
+        <option value="Rivers">Rivers</option>
+        <option value="Sokoto">Sokoto</option>
+        <option value="Taraba">Taraba</option>
+        <option value="Yobe">Yobe</option>
+        <option value="Zamfara">Zamfara</option>
+      </select>
+
+      <!-- NEW: Shop Description -->
+      <textarea id="vendorShopDescription" rows="3" placeholder="Short Description of Your Shop (optional)"></textarea>
+
+      <button type="submit">Register</button>
+      <div class="message" id="registerError"></div>
+    </form>
+
+    <div class="toggle">
+      <button id="showVendorLoginBtn">Already have an account? Login</button> |
+      <button id="showVendorRegisterBtn">Register instead</button>
+    </div>
+  </div>
+
+  <script src="js/vendor-auth.js"></script>
+</body>
+</html>

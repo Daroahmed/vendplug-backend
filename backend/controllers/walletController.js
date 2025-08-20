@@ -5,14 +5,12 @@ const Buyer = require('../models/Buyer');
 const agent = require('../models/Agent');
 
 const asyncHandler = require('express-async-handler');
-
-
 // Unified wallet controller for agent, buyer, and vendor
 const getWallet = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    const wallet = await Wallet.findOne({ userId });
+    const wallet = await Wallet.findOne({ user:userId });
     if (!wallet) {
       return res.status(404).json({ message: 'Wallet not found' });
     }
@@ -29,73 +27,80 @@ const getWallet = async (req, res) => {
 
 
 // GET /api/wallet/transactions
-const getTransactions = asyncHandler(async (req, res) => {
-  const accountNumber = req.user.virtualAccount?.trim();
-  console.log('Fetching transactions for', accountNumber);
-  console.log('👤 User in request:', req.user);
-if (!accountNumber) {
-  return res.status(400).json({ message: 'Account number missing' });
-}
 
-const wallet = await Wallet.findOne({ accountNumber: { $regex: new RegExp(`^${accountNumber}$`, 'i') } });
-if (!wallet) {
-  return res.status(404).json({ message: 'Wallet not found for ' + accountNumber });
-}
+const getTransactions = async (req, res) => {
+  const user = req.user;
+  const role = user.role;
+  const accountNumber = user.virtualAccount;
 
-  // Optional date filter support
-  const startDate = req.query.startDate ? new Date(req.query.startDate) : null;
-  const endDate = req.query.endDate ? new Date(req.query.endDate) : null;
+  try {
+    const query = {
+      $or: [{ from: accountNumber }, { to: accountNumber }],
+    };
 
-  let dateFilter = {};
-  if (startDate && endDate) {
-    dateFilter.createdAt = { $gte: startDate, $lte: endDate };
+    // Optional date filtering
+    const { startDate, endDate } = req.query;
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) query.createdAt.$lte = new Date(endDate);
+    }
+
+    const transactions = await Transaction.find(query)
+      .sort({ createdAt: -1 })
+      .populate('initiatedBy', 'fullName name businessName');
+
+    const transactionsWithName = transactions.map((txn) => {
+      const userObj = txn.initiatedBy;
+      const initiatorName =
+        userObj?.fullName || userObj?.name || userObj?.businessName || 'Unknown';
+
+      return {
+        ...txn.toObject(),
+        initiatorName,
+      };
+    });
+
+    res.json({
+      accountNumber,
+      transactions: transactionsWithName,
+    });
+  } catch (err) {
+    console.error('❌ Error fetching transactions:', err.message);
+    res.status(500).json({ message: 'Failed to fetch transactions' });
   }
+};
 
-  const transactions = await Transaction.find({
-    $or: [{ from: accountNumber }, { to: accountNumber }],
-    ...dateFilter,
-  })
-    .sort({ createdAt: -1 })
-    .populate('initiatedBy', 'name');
+  // @desc    Resolve user by virtual account number
+  // @route   GET /api/wallet/lookup/:accountNumber
+  // @access  Public
+  // /controllers/walletController.js
 
-  console.log('✅ Returning transactions:', transactions.length);
+// controllers/walletController.js
 
-  res.status(200).json({
-    accountNumber,
-    balance: wallet.balance,
-    transactions,
-  });
-  
-});
+  const resolveWallet = async (req, res) => {
+    const { accountNumber } = req.params;
 
-// @desc    Resolve user by virtual account number
-// @route   GET /api/wallet/lookup/:accountNumber
-// @access  Public
+    try {
+      const wallet = await Wallet.findOne({ virtualAccount: accountNumber }).populate('user');
 
-const resolveWallet = asyncHandler(async (req, res) => {
-  const { accountNumber } = req.params;
+      if (!wallet || !wallet.user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
 
-  if (!accountNumber) {
-    return res.status(400).json({ message: 'Account number is required' });
-  }
-
-  // Check if it's a vendor
-  let user = await Vendor.findOne({ virtualAccount: accountNumber }).select('name email');
-  if (user) {
-    return res.status(200).json({ userType: 'vendor', user });
-  }
-
-  // Check if it's a buyer
-  user = await Buyer.findOne({ virtualAccount: accountNumber }).select('name email');
-  if (user) {
-    return res.status(200).json({ userType: 'buyer', user });
-  }
-
-  // If no match
-  return res.status(404).json({ message: 'User not found' });
-});
+      res.status(200).json({
+        user: wallet.user,
+        role: wallet.role
+      });
+    } catch (error) {
+      console.error('❌ Error resolving account:', error);
+      res.status(500).json({
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
+  };
 
 
-
-module.exports = { getWallet, getTransactions, resolveWallet };
+  module.exports = { getWallet, getTransactions, resolveWallet };
 

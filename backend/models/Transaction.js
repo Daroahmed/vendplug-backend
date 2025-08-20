@@ -35,8 +35,6 @@ const transactionSchema = new mongoose.Schema({
   },
  
   description: String,
-  balanceBefore: Number,
-  balanceAfter: Number,
   initiatedBy: {
     type: mongoose.Schema.Types.ObjectId,
     refPath: 'initiatorType',
@@ -44,7 +42,7 @@ const transactionSchema = new mongoose.Schema({
   initiatorType: {
     type: String,
     enum: ['buyer', 'agent', 'vendor'],
-  },
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Transaction', transactionSchema);

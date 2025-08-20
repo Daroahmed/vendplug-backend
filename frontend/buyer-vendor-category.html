@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Select State & Category</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      background-color: #121212;
+      color: white;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 20px;
+    }
+
+    select, button {
+      padding: 10px;
+      width: 100%;
+      margin-bottom: 20px;
+      border: none;
+      border-radius: 6px;
+      background: #1e1e1e;
+      color: white;
+    }
+
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 15px;
+    }
+
+    .category-card {
+      background: #1e1e1e;
+      padding: 10px;
+      border-radius: 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .category-card:hover {
+      background: #00cc99;
+      color: black;
+    }
+
+    .category-card img {
+      width: 100%;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Select Your Location</h2>
+  <select id="stateSelect">
+    <option value="">-- Choose State --</option>
+  </select>
+
+  <div id="categorySection" style="display:none;">
+    <h3>Choose a Category</h3>
+    <div class="category-grid" id="categoryGrid"></div>
+  </div>
+
+  <script src="/js/buyer-vendor-category.js"></script>
+</body>
+</html>

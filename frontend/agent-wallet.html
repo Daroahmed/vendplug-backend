@@ -2,74 +2,230 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>VendPlug Agent Wallet</title>
+  <title>VendPlug Wallet</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    .wallet-summary, .transaction-card, .form-section { margin-bottom: 20px; }
-    .wallet-summary span { font-weight: bold; }
-    .transaction-card {
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      padding: 10px;
-      background: #f9f9f9;
-      margin-bottom: 10px;
+    :root {
+      --accent-dark: #002b18;
+      --success: #28a745;
+      --fail: #dc3545;
+      --bg-gray: #f9f9f9;
     }
-    .transaction-type.transaction-failed { color: red; }
-    .transaction-type.transaction-success { color: green; }
-    input, button, select {
-      padding: 6px;
-      margin: 4px 0;
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #fff;
+      margin: 0;
+      padding: 16px;
+      color: #222;
+    }
+
+    h2 {
+      color: var(--accent-dark);
+      margin-bottom: 20px;
+      font-size: 1.5em;
+      font-weight: bold;
+    }
+
+    .flex-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: var(--bg-gray);
+      padding: 16px;
+      border-radius: 8px;
+      flex: 1;
+      min-width: 250px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .card-title {
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    .card span {
+      font-weight: bold;
+      font-size: 1.2em;
+      color: var(--accent-dark);
+    }
+
+    .copy-btn {
+      margin-top: 8px;
+      background: #fff;
+      color: var(--accent-dark);
+      border: 1px solid var(--accent-dark);
+      padding: 6px 10px;
+      border-radius: 5px;
+      font-size: 0.9em;
+      cursor: pointer;
       width: 100%;
+    }
+
+    .copy-btn:hover {
+      background: #e0e0e0;
+    }
+
+    .form-section {
+      background: var(--bg-gray);
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .form-section h3 {
+      margin-top: 0;
+      color: var(--accent-dark);
+      font-weight: bold;
+    }
+
+    label {
+      font-weight: bold;
+      margin-top: 10px;
+      display: block;
+      font-size: 0.95em;
+    }
+
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 0.95em;
       box-sizing: border-box;
     }
-    .form-section { border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
+
+    button {
+      background-color: var(--accent-dark);
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+
+    button:hover {
+      background-color: #014d31;
+    }
+
+    #transactionsList .transaction-card {
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+
+    .transaction-header {
+      padding: 12px 16px;
+      background: #f1f1f1;
+      display: flex;
+      justify-content: space-between;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .transaction-header.success {
+      color: var(--success);
+    }
+
+    .transaction-header.failed {
+      color: var(--fail);
+    }
+
+    .transaction-details {
+      padding: 12px 16px;
+      font-size: 0.92em;
+      background: #fff;
+      display: none;
+      border-top: 1px solid #eee;
+    }
+
+    .transaction-card.active .transaction-details {
+      display: block;
+    }
+
+    #userNameResolved {
+      font-style: italic;
+      font-size: 0.9em;
+      color: gray;
+      margin-top: 6px;
+    }
+
+    @media (max-width: 500px) {
+      .card {
+        min-width: 100%;
+      }
+    }
   </style>
 </head>
 <body>
-  <h2>💼 Agent Wallet Dashboard</h2>
 
-  <div class="wallet-summary">
-    <p>Account Number: <span id="accountNumber">Loading...</span></p>
-    <p>Current Balance: ₦<span id="balance">Loading...</span></p>
+  <h2>VendPlug Wallet</h2>
+
+  <div class="flex-row">
+    <div class="card">
+      <div class="card-title">Account Number</div>
+      <span id="accountNumber">Loading...</span>
+      <button class="copy-btn" onclick="copyAccount()">Copy Account Number</button>
+      <div style="margin-top: 12px;">Current Balance: ₦<span id="balance">0</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Filter by Date</div>
+      <label for="startDate">Start Date</label>
+      <input type="date" id="startDate" />
+      <label for="endDate">End Date</label>
+      <input type="date" id="endDate" />
+      <button id="filterBtn">Filter</button>
+    </div>
   </div>
 
   <div class="form-section">
-    <h3>📅 Filter Transactions</h3>
-    <label for="startDate">Start Date</label>
-    <input type="date" id="startDate" />
-    <label for="endDate">End Date</label>
-    <input type="date" id="endDate" />
-    <button id="filterBtn">Filter</button>
-  </div>
-
-  <div class="form-section">
-    <h3>🔁 Transfer Funds</h3>
+    <h3>Transfer Funds</h3>
     <label for="recipientAccount">Recipient Account Number</label>
-    <input type="text" id="recipientAccount" placeholder="Enter recipient account" />
-    <div id="userNameResolved" style="margin-bottom: 10px; font-style: italic; color: gray;"></div>
-
+    <input type="text" id="recipientAccount" onblur="resolveUser()" placeholder="e.g. VP1234567890" />
+    <div id="userNameResolved"></div>
+    <label for="resolvedName">Resolved Name</label>
+    <input type="text" id="resolvedName" disabled style="background-color:#eee;" />
     <label for="transferAmount">Amount</label>
-    <input type="number" id="transferAmount" placeholder="Enter amount" />
+    <input type="number" id="transferAmount" placeholder="₦0.00" />
     <button onclick="handleTransfer()">Transfer</button>
   </div>
 
   <div class="form-section">
-    <h3>💸 Request Payout</h3>
+    <h3>Request Payout</h3>
     <label for="payoutAmount">Amount</label>
-    <input type="number" id="payoutAmount" placeholder="Enter payout amount" />
+    <input type="number" id="payoutAmount" placeholder="₦0.00" />
     <button onclick="handlePayout()">Request Payout</button>
   </div>
 
-  <div>
-    <h3>📜 Transaction History</h3>
+  <div class="form-section">
+    <h3>Transaction History</h3>
     <div id="transactionsList">Loading transactions...</div>
   </div>
 
-  <!-- Load backend config before agent logic -->
-<script src="/js/config.js"></script>
-<script src="/js/agent-wallet.js"></script>
+  <script>
+    function copyAccount() {
+      const acct = document.getElementById('accountNumber').textContent.trim();
+      navigator.clipboard.writeText(acct).then(() => {
+        alert("✅ Account number copied!");
+      });
+    }
 
+    // Collapsible transaction handler
+    document.addEventListener('click', function (e) {
+      if (e.target.closest('.transaction-header')) {
+        const card = e.target.closest('.transaction-card');
+        card.classList.toggle('active');
+      }
+    });
+  </script>
 
-  
+  <script src="/js/config.js"></script>
+  <script src="/js/agent-wallet.js"></script>
 </body>
 </html>

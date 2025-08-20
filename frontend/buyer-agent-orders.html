@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>My Orders | VendPlug</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --primary: #00cc99;
+      --bg-dark: #121212;
+      --card: #1e1e1e;
+      --text-light: #fff;
+      --muted: #aaa;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      color: var(--text-light);
+    }
+
+    header {
+      background-color: var(--card);
+      padding: 1rem;
+      text-align: center;
+      font-size: 1.3rem;
+      color: var(--primary);
+    }
+
+    .container {
+      padding: 1rem;
+    }
+
+    .order-card {
+      background: var(--card);
+      padding: 1rem;
+      border-radius: 10px;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    .order-card h4 {
+      margin: 0 0 0.5rem;
+      color: var(--primary);
+    }
+
+    .order-card p {
+      margin: 0.25rem 0;
+      color: var(--muted);
+    }
+
+    .spinner {
+      color: var(--muted);
+      text-align: center;
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <header>🧾 My Orders</header>
+  <div class="container">
+    <div id="spinner" class="spinner">Loading your orders...</div>
+    <div id="orders-list"></div>
+  </div>
+  <script src="js/config.js"></script>
+  <script src="/js/buyer-agent-orders.js"></script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VendPlug | Agent Auth</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #121212;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      flex-direction: column;
+    }
+
+    .auth-container {
+      background: #1e1e1e;
+      padding: 2rem;
+      border-radius: 10px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+
+    h2 {
+      text-align: center;
+      color: #00cc99;
+    }
+
+    form {
+      display: none;
+      margin-top: 1rem;
+    }
+
+    form.active {
+      display: block;
+    }
+
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 5px;
+    }
+
+    input {
+      background: #2c2c2c;
+      color: white;
+    }
+
+    button {
+      background: #00cc99;
+      color: black;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .toggle {
+      text-align: center;
+      margin-top: 1rem;
+    }
+
+    .toggle button {
+      background: transparent;
+      color: #00cc99;
+      border: none;
+      font-size: 0.9rem;
+    }
+
+    .message {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-container">
+    <h2>Agent Portal</h2>
+
+    <!-- Login Form -->
+    <form id="agentLoginForm" class="active">
+      <input id="agentLoginEmail" type="email" placeholder="Email" required />
+      <input id="agentLoginPassword" type="password" placeholder="Password" required />
+      <button type="submit">Login</button>
+      <div class="message" id="loginMessage"></div>
+    </form>
+
+    <!-- Register Form -->
+    <form id="agentRegisterForm">
+      <input id="agentFullName" type="text" placeholder="Full Name" required />
+      <input id="agentEmail" type="email" placeholder="Email" required />
+      <input id="agentPhoneNumber" type="text" placeholder="Phone Number" required />
+      <input id="agentPassword" type="password" placeholder="Password" required />
+      <button type="submit">Register</button>
+      <div class="message" id="registerMessage"></div>
+    </form>
+
+    <div class="toggle">
+      <button id="showAgentLoginBtn">Already have an account? Login</button> |
+      <button id="showAgentRegisterBtn">Register instead</button>
+    </div>
+  </div>
+
+  <script src="js/agent-auth.js"></script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VendPlug | Order Details</title>
+  <style>
+    body {
+      background: #121212;
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 1rem;
+    }
+    h2 { color: #00cc99; text-align: center; }
+    .details-card {
+      background: #1e1e1e;
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.4);
+      max-width: 600px;
+      margin: auto;
+    }
+    .status-timeline {
+      margin: 1rem 0;
+      padding: 0;
+      list-style: none;
+    }
+    .status-timeline li {
+      margin: 6px 0;
+      padding: 6px;
+      border-left: 3px solid #444;
+      padding-left: 10px;
+    }
+    .status-active {
+      border-color: #00cc99;
+      font-weight: bold;
+      color: #00cc99;
+    }
+    button {
+      background: #00cc99;
+      color: black;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 1rem;
+    }
+    button:disabled {
+      background: gray;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <h2>Order Details</h2>
+  <div id="orderDetails" class="details-card">Loading...</div>
+
+  <script src="js/config.js"></script>
+  <script src="js/buyer-vendor-order-details.js"></script>
+</body>
+</html>

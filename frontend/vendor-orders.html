@@ -1,159 +1,328 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Vendor Orders - VendPlug</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VendPlug | Vendor Orders</title>
   <style>
-    :root {
-      --primary-green: #3BA935;
-      --accent-dark: #002b18;
-      --light-bg: #f4fff8;
-    }
-
     body {
       margin: 0;
+      padding: 0;
       font-family: 'Segoe UI', sans-serif;
-      background-color: var(--light-bg);
-      color: #222;
+      background-color: #121212;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
     }
 
     header {
-      background-color: var(--accent-dark);
-      color: white;
       padding: 1rem 2rem;
-      text-align: center;
+      background-color: #1e1e1e;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #00cc99;
     }
 
-    .container {
-      max-width: 1000px;
-      margin: auto;
-      padding: 2rem 1.5rem;
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #00cc99;
+    }
+
+    header a {
+      color: #00cc99;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    header a:hover {
+      text-decoration: underline;
+    }
+
+    main {
+      flex: 1;
+      padding: 2rem;
     }
 
     h2 {
-      color: var(--primary-green);
+      color: #00cc99;
       margin-bottom: 1.5rem;
     }
 
-    .order-card {
-      background: white;
-      padding: 1.5rem;
+    /* Filters */
+    .filters {
+      margin-bottom: 1.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+      background: #1e1e1e;
+      padding: 1rem;
       border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-      margin-bottom: 1.5rem;
+      border: 2px solid #00cc99;
     }
 
-    .order-header {
+    .filters label {
+      font-size: 0.9rem;
+    }
+
+    .filters select,
+    .filters input,
+    .filters button {
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid #00cc99;
+      background: #121212;
+      color: white;
+      font-size: 0.9rem;
+    }
+
+    .filters button {
+      cursor: pointer;
+      border: 2px solid #00cc99;
+      transition: all 0.3s ease;
+    }
+
+    .filters button:hover {
+      background: #00cc99;
+      color: #121212;
+    }
+
+    /* Order card */
+    .order-card {
+      background-color: #1e1e1e;
+      border: 2px solid #00cc99;
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      text-align: left;
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+
+    .order-card img {
+      width: 80px;
+      height: 80px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 1px solid #00cc99;
+    }
+
+    .order-info {
+      flex: 1;
+    }
+
+    .order-info p {
+      margin: 0.2rem 0;
+      font-size: 0.9rem;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+
+    .status.pending { background: orange; color: black; }
+    .status.accepted { background: #00cc99; color: black; }
+    .status.rejected { background: red; color: white; }
+    .status.delivered { background: blue; color: white; }
+
+    .button-group {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    button {
+      padding: 6px 14px;
+      background-color: #1e1e1e;
+      border: 2px solid #00cc99;
+      color: white;
+      font-size: 0.85rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #00cc99;
+      color: #121212;
+    }
+
+    /* Modal */
+    #orderModal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+
+    .modal-content {
+      background: #1e1e1e;
+      border: 2px solid #00cc99;
+      border-radius: 12px;
+      padding: 1.5rem;
+      width: 90%;
+      max-width: 500px;
+      text-align: left;
+    }
+
+    .modal-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 1rem;
     }
 
-    .order-header h4 {
+    .modal-header h2 {
+      color: #00cc99;
       margin: 0;
     }
 
-    .order-details {
-      font-size: 0.95rem;
-      line-height: 1.6;
-      margin-bottom: 1rem;
-    }
-
-    .order-actions button {
-      background-color: var(--primary-green);
-      color: white;
+    .modal-header button {
+      background: none;
       border: none;
-      padding: 0.5rem 1.2rem;
-      border-radius: 5px;
+      color: #aaa;
+      font-size: 1.5rem;
       cursor: pointer;
-      margin-right: 0.5rem;
-      font-size: 0.9rem;
     }
 
-    .order-actions button.reject {
-      background-color: crimson;
+    .modal-header button:hover {
+      color: white;
     }
+    .btn-primary {
+  background: #00cc99;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  margin: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn-secondary {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  margin: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn-danger {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  margin: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn-close {
+  background: gray;
+  color: white;
+  padding: 8px 12px;
+  margin: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+}
 
-    .status {
-      font-weight: bold;
-      color: #555;
-    }
-
-    .status.pending {
-      color: #FFA500;
-    }
-
-    .status.completed {
-      color: green;
-    }
-
-    .status.rejected {
-      color: red;
-    }
-
-    @media (max-width: 600px) {
-      .order-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
-      }
-
-      .order-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-      }
-    }
   </style>
 </head>
 <body>
 
-<header>
-  <h1>Vendor Orders</h1>
-</header>
+  <!-- Header -->
+  <header>
+    <h1>Vendor Orders</h1>
+    <a href="vendor-dashboard.html">← Back to Dashboard</a>
+  </header>
 
-<div class="container">
-  <h2>Recent Orders</h2>
+  <!-- Orders Section -->
+  <main>
+    <h2>Incoming Orders</h2>
 
-  <div class="order-card">
-    <div class="order-header">
-      <h4>Order #VP-1001</h4>
-      <span class="status pending">Pending</span>
+    <!-- Filters -->
+    <div class="filters">
+      <label for="statusFilter">Filter by Status:</label>
+      <select id="statusFilter">
+        <option value="">All</option>
+        <option value="pending">Pending</option>
+        <option value="accepted">Accepted</option>
+        <option value="rejected">Rejected</option>
+        <option value="delivered">Delivered</option>
+      </select>
+
+      <label for="startDate">Start Date:</label>
+      <input type="date" id="startDate">
+
+      <label for="endDate">End Date:</label>
+      <input type="date" id="endDate">
+
+      <button id="applyFilters">Apply</button>
     </div>
-    <div class="order-details">
-      <p><strong>Product:</strong> 25L Palm Oil</p>
-      <p><strong>Quantity:</strong> 2</p>
-      <p><strong>Order Date:</strong> June 25, 2025 - 3:30PM</p>
-      <p><strong>Buyer:</strong> Ahmed A.</p>
-      <p><strong>Delivery:</strong> Pickup Station (Jabi)</p>
-    </div>
-    <div class="order-actions">
-      <button>Mark as Fulfilled</button>
-      <button class="reject">Reject</button>
+
+    <!-- Orders container -->
+    <div id="orders-container"></div>
+  </main>
+
+  <!-- Order Details Modal -->
+  <div id="orderModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Order Details</h2>
+        <button id="closeModalBtn">&times;</button>
+      </div>
+      <div id="orderDetails"></div>
+      <div class="button-group">
+        <div class="button-group">
+        </div>
+        
+      </div>
     </div>
   </div>
 
-  <div class="order-card">
-    <div class="order-header">
-      <h4>Order #VP-1000</h4>
-      <span class="status completed">Completed</span>
-    </div>
-    <div class="order-details">
-      <p><strong>Product:</strong> Tubers of Yam (x5)</p>
-      <p><strong>Quantity:</strong> 1 bundle</p>
-      <p><strong>Order Date:</strong> June 24, 2025 - 11:10AM</p>
-      <p><strong>Buyer:</strong> Grace E.</p>
-      <p><strong>Delivery:</strong> Pickup Station (Wuse)</p>
-    </div>
-    <div class="order-actions">
-      <button disabled>Already Fulfilled</button>
-    </div>
-  </div>
-
-</div>
-
+  <!-- Scripts -->
+  <script src="js/config.js"></script>
+  <script src="js/vendor-orders.js" defer></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      async function fetchOrders() {
+        const status = document.getElementById("statusFilter").value;
+        const startDate = document.getElementById("startDate").value;
+        const endDate = document.getElementById("endDate").value;
+  
+        let url = `/api/vendor-orders?`;
+  
+        if (status) url += `status=${status}&`;
+        if (startDate) url += `startDate=${startDate}&`;
+        if (endDate) url += `endDate=${endDate}&`;
+  
+        const token = localStorage.getItem("vendplug-token");
+  
+        const res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+  
+        const data = await res.json();
+        renderOrders(data);
+      }
+  
+      document.getElementById("applyFilters").addEventListener("click", fetchOrders);
+  
+      // Initial fetch
+      fetchOrders();
+    });
+  </script>
+  
 </body>
 </html>

@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VendPlug | Vendor Shops</title>
+  <style>
+    :root {
+      --primary-color: #00cc99;
+      --accent-color: #00cc99;
+      --bg-color: #121212;
+      --text-color: #ffffff;
+      --card-bg: #1e1e1e;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+    }
+
+    .shop-page {
+      padding: 1rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    h2 {
+      margin-top: 2rem;
+      color: var(--primary-color);
+    }
+
+    input[type="search"] {
+      width: 100%;
+      padding: 10px;
+      margin: 1rem 0;
+      border: none;
+      border-radius: 4px;
+      background-color: #2c2c2c;
+      color: white;
+    }
+
+    select {
+      padding: 8px;
+      margin-bottom: 1rem;
+      margin-left: 0.5rem;
+      border: none;
+      border-radius: 4px;
+      background-color: #2c2c2c;
+      color: white;
+    }
+
+    .horizontal-carousel {
+      display: flex;
+      overflow-x: auto;
+      gap: 1rem;
+      padding-bottom: 1rem;
+      scroll-snap-type: x mandatory;
+    }
+
+    .horizontal-carousel::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    .horizontal-carousel::-webkit-scrollbar-thumb {
+      background-color: var(--accent-color);
+      border-radius: 4px;
+    }
+
+    .vendor-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .vendor-card {
+      background-color: var(--card-bg);
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      padding: 1rem;
+      text-align: center;
+      transition: transform 0.2s;
+    }
+
+    .vendor-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .vendor-card img {
+      width: 100%;
+      height: 140px;
+      object-fit: cover;
+      border-radius: 6px;
+    }
+
+    .vendor-card h3 {
+      margin: 0.5rem 0 0.3rem;
+      color: var(--primary-color);
+    }
+
+    .vendor-card p {
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+      color: #ccc;
+    }
+
+    .vendor-card button {
+      margin: 0.3rem 4px;
+      padding: 6px 12px;
+      background-color: var(--accent-color);
+      color: black;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: bold;
+    }
+
+    .vendor-card button:hover {
+      background-color: #00b388;
+    }
+
+    .spinner {
+      text-align: center;
+      padding: 1rem;
+      color: var(--accent-color);
+      display: none;
+    }
+
+    @media (max-width: 500px) {
+      .vendor-card button {
+        display: block;
+        margin: 0.4rem auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shop-page">
+    <input type="search" id="searchBox" placeholder="Search vendors..." />
+
+    <label for="transactionFilter">Min Transactions:</label>
+    <select id="transactionFilter">
+      <option value="0">All</option>
+      <option value="10">10+</option>
+      <option value="50">50+</option>
+      <option value="100">100+</option>
+    </select>
+
+    <h2>Top Vendors</h2>
+    <div class="horizontal-carousel" id="topVendors"></div>
+
+    <h2>All Vendors</h2>
+    <div class="vendor-grid" id="vendorGrid"></div>
+
+    <div id="spinner" class="spinner">Loading...</div>
+  </div>
+
+  <script>
+    window.BACKEND_URL = window.location.hostname === "localhost"
+      ? "http://localhost:5012"
+      : "https://your-production-api.com";
+  
+    const vendorGrid = document.getElementById("vendorGrid");
+    const topVendorsEl = document.getElementById("topVendors");
+    const spinner = document.getElementById("spinner");
+    const searchBox = document.getElementById("searchBox");
+    const transactionFilter = document.getElementById("transactionFilter");
+  
+    let page = 1;
+    const limit = 10;
+    let loading = false;
+    let reachedEnd = false;
+  
+    // ✅ Read from URL → localStorage → fallback
+    const params = new URLSearchParams(window.location.search);
+    let state = params.get("state") || localStorage.getItem("vendplug-buyer-state") || "FCT";
+    let category = params.get("category") || localStorage.getItem("vendplug-category") || "Groceries";
+  
+    // ✅ Save for next time
+    localStorage.setItem("vendplug-buyer-state", state);
+    localStorage.setItem("vendplug-category", category);
+  
+    let search = "";
+    let minTransactions = 0;
+  
+    async function loadTopVendors() {
+      try {
+        const res = await fetch(`${window.BACKEND_URL}/api/vendors/shop-vendors?state=${encodeURIComponent(state)}&category=${encodeURIComponent(category)}&limit=5&minTransactions=20`);
+        const data = await res.json();
+        topVendorsEl.innerHTML = "";
+        data.forEach(v => {
+          topVendorsEl.innerHTML += vendorCardHTML(v, true);
+        });
+      } catch (err) {
+        console.error("Top vendors fetch error:", err);
+      }
+    }
+  
+    async function loadVendors(reset = false) {
+      if (loading || reachedEnd) return;
+      loading = true;
+      spinner.style.display = "block";
+  
+      if (reset) {
+        page = 1;
+        vendorGrid.innerHTML = "";
+        reachedEnd = false;
+      }
+  
+      const url = `${window.BACKEND_URL}/api/vendors/shop-vendors?state=${encodeURIComponent(state)}&category=${encodeURIComponent(category)}&page=${page}&limit=${limit}&search=${encodeURIComponent(search)}&minTransactions=${minTransactions}`;
+  
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+  
+        if (data.length < limit) reachedEnd = true;
+        data.forEach(v => {
+          vendorGrid.innerHTML += vendorCardHTML(v);
+        });
+  
+        page++;
+      } catch (err) {
+        console.error("Vendor fetch error:", err);
+      }
+  
+      spinner.style.display = "none";
+      loading = false;
+    }
+  
+    function vendorCardHTML(v, isTop = false) {
+      return `
+        <div class="vendor-card">
+          <img src="${v.brandImage || '/placeholder.jpg'}" alt="${v.shopName}" />
+          <h3>${v.shopName}</h3>
+          <p>${v.totalTransactions || 0} transactions</p>
+          <button onclick="viewShop('${v._id}')">View Shop</button>
+        </div>
+      `;
+    }
+  
+    function viewShop(id) {
+      window.location.href = `/view-shop.html?vendor=${id}`;
+    }
+  
+  
+    window.addEventListener("scroll", () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300) {
+        loadVendors();
+      }
+    });
+  
+    let debounceTimeout;
+    searchBox.addEventListener("input", e => {
+      clearTimeout(debounceTimeout);
+      debounceTimeout = setTimeout(() => {
+        search = e.target.value.trim();
+        loadVendors(true);
+      }, 500);
+    });
+  
+    transactionFilter.addEventListener("change", e => {
+      minTransactions = e.target.value;
+      loadVendors(true);
+    });
+  
+    // 🔄 Initial load
+    loadTopVendors();
+    loadVendors();
+  </script>
+  
+</body>
+</html>

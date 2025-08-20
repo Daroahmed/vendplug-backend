@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Vendor Shop - VendPlug</title>
+  <link rel="stylesheet" href="/css/styles.css"/>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background-color: #f4f4f4;
+    }
+
+    header {
+      background-color: #121212;
+      color: white;
+      padding: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h1 {
+      font-size: 20px;
+      margin: 0;
+    }
+
+    .cart-icon {
+      position: relative;
+      cursor: pointer;
+    }
+
+    .cart-icon img {
+      width: 28px;
+    }
+
+    .cart-count {
+      position: absolute;
+      top: -5px;
+      right: -8px;
+      background: red;
+      color: white;
+      border-radius: 50%;
+      padding: 2px 5px;
+      font-size: 12px;
+    }
+
+    .vendor-profile {
+      display: flex;
+      padding: 15px;
+      background: white;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .vendor-profile img {
+      width: 90px;
+      height: 90px;
+      object-fit: cover;
+      border-radius: 50%;
+      margin-right: 15px;
+    }
+
+    .vendor-profile h2 {
+      margin: 0 0 5px;
+    }
+
+    .products {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 15px;
+      padding: 15px;
+    }
+
+    .product-card {
+      background: white;
+      padding: 10px;
+      border-radius: 5px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      cursor: pointer;
+    }
+
+    .product-card img {
+      width: 100%;
+      height: 140px;
+      object-fit: cover;
+      border-radius: 5px;
+    }
+
+    .product-card h4 {
+      margin: 8px 0 4px;
+      font-size: 14px;
+    }
+
+    .product-card p {
+      color: #28a745;
+      font-weight: bold;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Vendor Shop</h1>
+    <div class="cart-icon" onclick="window.location.href='cart.html'">
+      <img src="/icons/cart-white.png" alt="Cart"/>
+      <span class="cart-count" id="cartCount">0</span>
+    </div>
+  </header>
+
+  <section id="vendorProfile" class="vendor-profile">
+    <!-- Vendor details will load here -->
+  </section>
+
+  <section id="vendorProducts" class="products">
+    <!-- Vendor products will load here -->
+  </section>
+
+  <script src="js/view-shop.js"></script>
+</body>
+</html>

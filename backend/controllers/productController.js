@@ -116,14 +116,15 @@ const updateProduct = async (req, res) => {
   }
 };
 
-  
+
+
 
 module.exports = {
   getAllProducts,
   createProduct,
   uploadProduct,
   deleteProduct,
-  updateProduct
+  updateProduct,
 };
 
 

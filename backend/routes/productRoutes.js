@@ -9,6 +9,7 @@ const {
 } = require('../controllers/productController');
 const { protectAgent } = require('../middleware/authMiddleware');
 const Product = require('../models/Product'); // Needed for the /:id GET route
+// backend/routes/productRoutes vendors.js
 
 // ✅ Public: Get all products
 router.get('/', getAllProducts);

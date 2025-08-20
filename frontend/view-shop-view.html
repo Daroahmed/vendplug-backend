@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VendPlug - Product View</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      font-family: Arial, sans-serif;
+      margin: 0;
+    }
+    .container {
+      padding: 15px;
+    }
+    .product-image {
+      width: 100%;
+      max-height: 300px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+    .product-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    .price {
+      font-size: 1.2rem;
+      color: #ff9800;
+      margin-top: 5px;
+    }
+    .sold {
+      font-size: 0.9rem;
+      color: #aaa;
+      margin-top: 3px;
+    }
+    .description {
+      margin-top: 15px;
+      line-height: 1.5;
+    }
+    .section-title {
+      font-size: 1.2rem;
+      margin-top: 20px;
+      border-bottom: 2px solid #ff9800;
+      padding-bottom: 5px;
+    }
+    .vendor-products {
+      display: flex;
+      overflow-x: auto;
+      gap: 10px;
+      padding: 10px 0;
+    }
+    .vendor-card {
+      background: #1f1f1f;
+      border-radius: 8px;
+      padding: 10px;
+      width: 140px;
+      flex: 0 0 auto;
+    }
+    .vendor-card img {
+      width: 100%;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 6px;
+    }
+    .vendor-card h4 {
+      font-size: 0.9rem;
+      margin: 5px 0;
+    }
+    .review {
+      background: #1f1f1f;
+      padding: 10px;
+      margin-top: 8px;
+      border-radius: 8px;
+    }
+    .account-number {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 10px;
+    }
+    .copy-btn {
+      background: #ff9800;
+      border: none;
+      color: white;
+      padding: 5px 8px;
+      font-size: 0.8rem;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .copy-btn:hover {
+      background: #e68a00;
+    }
+  </style>
+</head>
+<body>
+  
+<div class="container">
+  <img id="productImage" class="product-image" src="" alt="Product Image" />
+  <div class="product-title" id="productName"></div>
+  <div class="price" id="productPrice"></div>
+  <div class="sold" id="soldCount"></div>
+  <div class="description" id="productDescription"></div>
+  <div id="productDetails"></div>
+
+  <!-- Add to Cart -->
+  <button id="addToCartBtn" style="
+    background: #ff9800; 
+    border: none; 
+    color: white; 
+    padding: 10px 15px; 
+    border-radius: 5px; 
+    margin-top: 10px;
+    cursor: pointer;">
+    Add to Cart
+  </button>
+
+
+ <!-- Account Number Section -->
+ <div class="account-number">
+  <span id="accountNumber"></span>
+  <button class="copy-btn" onclick="copyAccountNumber()">Copy</button>
+</div>
+
+<div class="section-title">Vendor's Other Products</div>
+<div class="vendor-products" id="vendorProductsContainer"></div>
+
+<div class="section-title">Reviews</div>
+<div id="reviewsContainer"></div>
+<button id="loadMoreReviewsBtn" style="
+  background: #333; 
+  border: none; 
+  color: white; 
+  padding: 8px 12px; 
+  border-radius: 5px; 
+  cursor: pointer; 
+  display: none;">
+  Load More Reviews
+</button>
+
+<!-- Review Form -->
+<div id="reviewFormContainer" style="margin-top: 15px;">
+  <h4>Leave a Review</h4>
+  <select id="reviewRating">
+    <option value="">Rating...</option>
+    <option value="5">★★★★★ (5)</option>
+    <option value="4">★★★★☆ (4)</option>
+    <option value="3">★★★☆☆ (3)</option>
+    <option value="2">★★☆☆☆ (2)</option>
+    <option value="1">★☆☆☆☆ (1)</option>
+  </select>
+  <textarea id="reviewComment" placeholder="Write your comment..."></textarea>
+  <button id="submitReviewBtn">Submit Review</button>
+</div>
+</div>
+
+
+<script src="js/config.js"></script>
+  <script src="js/view-shop-view.js"></script>
+</body>
+</html>
+
+
+
+

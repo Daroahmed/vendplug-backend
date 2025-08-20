@@ -1,11 +1,11 @@
 // transferTest.js
-fetch('http://localhost:5002/api/wallet/transfer', {
+fetch('http://localhost:5001/api/wallet/transfer', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      fromAccountNumber: 'VP6747232524',
-      toAccountNumber: 'AP9854908866',
-      amount: 10000,
+      fromAccountNumber: 'VP2795188128',
+      toAccountNumber: 'BP3907799941',
+      amount: 5000,
       orderId: 'ORDER567',
     }),
   })

@@ -2,112 +2,125 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Vendor Products - VendPlug</title>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="css/vendor-style.css" />
+  <title>VendPlug | Manage Products</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <style>
     body {
-      margin: 0;
       font-family: 'Segoe UI', sans-serif;
-      background: #f4fff8;
-      color: #222;
-    }
-
-    header {
-      background-color: #002b18;
+      background-color: #121212;
       color: white;
-      padding: 1.2rem;
-      text-align: center;
-    }
-
-    .container {
-      max-width: 960px;
-      margin: 2rem auto;
-      padding: 1rem;
+      padding: 20px;
     }
 
     h2 {
-      margin-bottom: 1rem;
+      color: #00cc99;
+      text-align: center;
     }
 
-    #product-form input, #product-form select {
+    .product-form, .product-card {
+      background: #1e1e1e;
+      padding: 16px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+
+    label {
       display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    input, textarea, select, button {
       width: 100%;
-      margin-bottom: 1rem;
-      padding: 0.6rem;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-    }
-
-    #product-form button {
-      padding: 0.6rem 1.2rem;
-      background: #3BA935;
-      color: white;
+      padding: 10px;
+      margin-top: 6px;
+      border-radius: 5px;
       border: none;
-      border-radius: 6px;
-      cursor: pointer;
+      background: #2c2c2c;
+      color: white;
     }
 
-    .product-list {
-      margin-top: 2rem;
+    button {
+      background-color: #00cc99;
+      color: black;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 12px;
     }
 
     .product-card {
-      background: white;
-      border-radius: 8px;
-      padding: 1rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-      margin-bottom: 1rem;
+      border: 1px solid #333;
+    }
+
+    .product-header {
+      font-size: 1.1em;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .product-actions {
+      margin-top: 10px;
       display: flex;
-      justify-content: space-between;
-      align-items: center;
+      gap: 10px;
     }
 
-    .product-card .info {
-      flex-grow: 1;
-    }
-
-    .product-card .actions button {
-      margin-left: 0.5rem;
-      padding: 0.3rem 0.6rem;
+    .product-actions button {
+      flex: 1;
+      padding: 8px;
       border: none;
-      border-radius: 4px;
       cursor: pointer;
+      font-weight: bold;
+      border-radius: 5px;
     }
 
     .edit-btn {
-      background: #ffc107;
-      color: #333;
+      background-color: #ffaa00;
+      color: black;
     }
 
     .delete-btn {
-      background: #dc3545;
+      background-color: #dc3545;
       color: white;
     }
   </style>
 </head>
 <body>
-  <header>
-    <h2>Vendor Product Management</h2>
-  </header>
 
-  <div class="container">
-    <h2>Add Product</h2>
-    <form id="product-form">
-      <input type="text" id="name" placeholder="Product Name" required />
-      <input type="number" id="price" placeholder="Price (₦)" required />
-      <input type="text" id="category" placeholder="Category" required />
-      <input type="text" id="image" placeholder="Image URL (optional)" />
-      <button type="submit">Add Product</button>
-    </form>
+  <h2>Manage Products</h2>
 
-    <div class="product-list" id="product-list">
-      <h2>My Products</h2>
-      <!-- Products will be rendered here -->
-    </div>
-  </div>
-  <script src="js/config.js"></script>
-  <script src="js/vendor-products.js"></script>
+  <!-- Form to Add or Edit Product -->
+  <form class="product-form" id="addProductForm">
+    <h3 id="formTitle">Add New Product</h3>
+    <input type="hidden" id="productId" />
+
+    <label for="productName">Name</label>
+    <input type="text" id="productName" placeholder="Product Name" required />
+
+    <label for="productPrice">Price</label>
+    <input type="number" id="productPrice" placeholder="Price (₦)" required />
+
+    <label for="productDescription">Description</label>
+    <textarea id="productDescription" placeholder="Describe the product..."></textarea>
+
+    <label for="productCategory">Category</label>
+    <select id="productCategory" disabled>
+      <option value="">Loading...</option>
+    </select>
+
+    <label for="productStock">Stock</label>
+    <input type="number" id="productStock" placeholder="Quantity Available" required />
+
+    <label for="productImage">Product Image</label>
+    <input type="file" id="productImage" name="productImage" accept="image/*" />
+
+    <button type="submit">Submit</button>
+  </form>
+
+  <!-- Display Vendor Products -->
+  <div id="productList"></div>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/vendor-products.js"></script> <!-- ✅ Your JS script goes here -->
 </body>
 </html>

@@ -10,12 +10,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const token = agent.token;
+  const resolvedNameEl = document.getElementById('resolvedName');
 
-  // Load wallet data initially
   fetchWallet();
   fetchTransactions();
 
-  // Date filter button
   document.getElementById('filterBtn')?.addEventListener('click', () => {
     const start = document.getElementById('startDate').value;
     const end = document.getElementById('endDate').value;
@@ -52,7 +51,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const data = await res.json();
-
       const container = document.getElementById('transactionsList');
       container.innerHTML = '';
 
@@ -65,11 +63,26 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      data.transactions.forEach(txn => {
+      const nameCache = {};
+
+      for (const txn of data.transactions) {
         const isSender = txn.from === data.accountNumber;
+        const otherAccount = isSender ? txn.to : txn.from;
         const direction = isSender ? 'Sent to' : 'Received from';
-        const otherParty = isSender ? txn.to : txn.from;
-        const name = txn.initiatedBy?.name || 'Unknown';
+
+        if (!nameCache[otherAccount]) {
+          try {
+            const lookupRes = await fetch(`${window.BACKEND_URL}/api/wallet/lookup/${otherAccount}`);
+            const lookupData = await lookupRes.json();
+            nameCache[otherAccount] =
+              lookupData.user?.fullName ||
+              lookupData.user?.name ||
+              lookupData.user?.businessName ||
+              'Unknown';
+          } catch {
+            nameCache[otherAccount] = 'Unknown';
+          }
+        }
 
         const card = document.createElement('div');
         card.className = 'transaction-card';
@@ -82,17 +95,16 @@ document.addEventListener('DOMContentLoaded', () => {
               ₦${txn.amount.toLocaleString()}
             </div>
           </div>
-          <div class="transaction-direction">${direction}: ${otherParty}</div>
+          <div class="transaction-direction">${direction}: ${nameCache[otherAccount]} (${otherAccount})</div>
           <div class="transaction-meta">
             Ref: ${txn.ref}<br />
             Status: ${txn.status}<br />
-            By: ${name}<br />
-            Balance After: ₦${txn.balanceAfter?.toLocaleString() || 'N/A'}<br />
+            By: ${txn.initiatorType || 'N/A'}<br />
             Date: ${new Date(txn.createdAt).toLocaleString()}
           </div>
         `;
         container.appendChild(card);
-      });
+      }
     } catch (err) {
       console.error('Error fetching transactions:', err);
       document.getElementById('transactionsList').innerHTML = '<p>Error loading transactions.</p>';
@@ -102,19 +114,29 @@ document.addEventListener('DOMContentLoaded', () => {
   async function resolveUser() {
     const acct = document.getElementById('recipientAccount').value.trim();
     const display = document.getElementById('userNameResolved');
-    if (!acct) return (display.textContent = '');
+    resolvedNameEl.value = '';
+    display.textContent = '🔍 Resolving...';
+
+    if (!acct) {
+      display.textContent = '';
+      return;
+    }
 
     try {
       const res = await fetch(`${window.BACKEND_URL}/api/wallet/lookup/${acct}`);
       const data = await res.json();
 
-      if (data.userType && data.user && data.user.name) {
-        display.textContent = `Recipient: ${data.user.name} (${data.userType})`;
+      const name =
+        data.user?.fullName || data.user?.name || data.user?.businessName;
+
+      if (name && data.role) {
+        display.textContent = `✅ Recipient: ${name} (${data.role})`;
+        resolvedNameEl.value = name;
       } else {
-        display.textContent = 'User not found';
+        display.textContent = '❌ User not found';
       }
     } catch {
-      display.textContent = 'Error resolving user';
+      display.textContent = '⚠️ Error resolving account number';
     }
   }
 
@@ -173,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Global scope
+  // Global
   window.handleTransfer = handleTransfer;
   window.handlePayout = handlePayout;
   window.resolveUser = resolveUser;

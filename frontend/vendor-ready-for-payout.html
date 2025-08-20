@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>VendPlug | Ready for Payout</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #121212;
+      color: #fff;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background: #1e1e1e;
+      padding: 1rem;
+      text-align: center;
+      color: #00cc99;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .container {
+      padding: 1rem;
+    }
+
+    .order-card {
+      background: #1e1e1e;
+      padding: 1rem;
+      border-radius: 10px;
+      margin-bottom: 1rem;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+
+    .order-card h3 {
+      margin: 0 0 0.5rem;
+      color: #00cc99;
+    }
+
+    .order-info {
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+
+    button {
+      background: #00cc99;
+      color: black;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #00b386;
+    }
+
+    .empty {
+      text-align: center;
+      margin-top: 2rem;
+      color: #aaa;
+    }
+  </style>
+</head>
+<body>
+  <header>Ready for Payout</header>
+  <div class="container" id="readyPayoutContainer">
+    <p class="empty">Loading orders...</p>
+  </div>
+  <script src="js/config.js"></script>
+  <script src="js/vendor-ready-for-payout.js"></script>
+</body>
+</html>

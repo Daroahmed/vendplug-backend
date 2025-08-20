@@ -6,7 +6,7 @@ const generateToken = require("../utils/generateToken");
 const Wallet = require("../models/walletModel");
 const { createWalletIfNotExists } = require("../controllers/walletHelper");
 
-const Order = require("../models/order");
+const Order = require("../models/Order");
 
 // ✅ Register Agent
 const registerAgent = async (req, res) => {
@@ -73,7 +73,8 @@ const loginAgent = async (req, res) => {
     const isMatch = await bcrypt.compare(password, agent.password);
     if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
 
-    const token = generateToken(agent._id); // Make sure generateToken is defined
+    const token = generateToken(agent._id, 'agent');
+
 
     res.status(200).json({
       token,
