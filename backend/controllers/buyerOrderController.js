@@ -157,26 +157,35 @@ const confirmReceipt = asyncHandler(async (req, res) => {
   order.deliveredAt = Date.now();
   await order.save();
 
+    
     // ✅ Check if payout already exists
-    let payout = await Payout.findOne({ order: order._id });
+let payout = await Payout.findOne({ order: order._id });
 
-    if (!payout) {
-      payout = await Payout.create({
-        vendor: order.vendor._id,
-        order: order._id,
-        amount: order.totalAmount,
-        status: "ready_for_payout"
-      });
-    }
+if (!payout) {
+  payout = await Payout.create({
+    vendor: order.vendor._id,
+    order: order._id,
+    buyer: order.buyer,
+    amount: order.totalAmount,
+    status: "ready_for_payout"   // 🔥 move directly to payout stage
+  });
+} else {
+  // 🔥 If payout already exists, update it
+  payout.status = "ready_for_payout";
+  await payout.save();
+}
   
 
   // ✅ Notify vendor
-  await Notification.create({
-    recipientId: order.vendor._id,
-    recipientType: "vendor",
-    title: "Order Payment Released",
-    message: `Buyer confirmed delivery for order #${order._id}. ₦${order.totalAmount} is now available for payout.`,
-  });
+  const io = req.app.get('io');
+  await notifyUser(
+    io,
+    order.vendor._id,
+    'Vendor',
+    'Order Payment Released',
+    `Buyer confirmed delivery for order #${order._id}. ₦${order.totalAmount} is now available for payout.`,
+    order._id
+  );
 
   res.json({
     success: true,
@@ -186,6 +195,45 @@ const confirmReceipt = asyncHandler(async (req, res) => {
   });
 });
 
+const getBuyerOrderHistory = async (req, res) => {
+  try {
+    const buyerId = req.user._id;
+
+    // Fetch only completed/closed orders
+    const orders = await VendorOrder.find({
+      buyer: buyerId,
+      status: { $in: ["delivered", "cancelled", "rejected"] },
+    })
+      .populate("vendor", "shopName")
+      .populate("items.product", "name price")
+      .populate([
+        { path: "order", select: "totalAmount createdAt status buyer" },
+        { path: "vendor", select: "shopName email" }
+      ])
+      .sort({ createdAt: -1 });
+
+    const formatted = orders.map(order => ({
+      _id: order._id,
+      vendor: order.vendor?.shopName || "Unknown Vendor",
+      status: order.status,
+      createdAt: order.createdAt,
+      deliveredAt: order.deliveredAt || null,
+      totalAmount: order.totalAmount,
+      deliveryLocation: order.deliveryLocation,
+      products: order.items.map(i => ({
+        name: i.product?.name || "Unknown Product",
+        price: i.price || i.product?.price || 0,
+        quantity: i.quantity,
+      })),
+    }));
+
+    res.json(formatted);
+  } catch (error) {
+    console.error("❌ Error fetching buyer order history:", error);
+    res.status(500).json({ message: "Error fetching order history" });
+  }
+};
+
 
 
 module.exports = {
@@ -193,5 +241,7 @@ module.exports = {
   getBuyerOrderDetails,
   cancelOrder,
   trackOrder,
-  confirmReceipt 
+  confirmReceipt,
+  getBuyerOrderHistory
+  
 };

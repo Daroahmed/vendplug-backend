@@ -1,464 +1,1415 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>VendPlug - Redefining Local Commerce</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VendPlug – Vendor-led Marketplace</title>
   <link rel="icon" type="image/png" href="favicon.png">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     :root {
-      --primary-green: #3BA935;
-      --accent-dark: #002b18;
-      --light-bg: #f4fff8;
-      --dark-bg: #001c12;
+      --bg-primary: #121212;
+      --bg-secondary: #1e1e1e;
+      --bg-card: #2c2c2c;
+      --accent: #00cc99;
+      --text-primary: #fff;
+      --text-secondary: #ccc;
     }
-
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
     body {
       font-family: 'Segoe UI', sans-serif;
-      margin: 0;
-      background-color: var(--light-bg);
-      color: #333;
-      scroll-behavior: smooth;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      padding-top: 80px; /* Space for fixed header */
     }
-
+    
+    /* Header Styles */
     header {
+      background: var(--bg-secondary);
+      padding: 1rem 2rem;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      background-color: var(--accent-dark);
-      color: white;
-      padding: 1rem 1.5rem;
-      flex-wrap: wrap;
     }
-
-    header img {
-      max-height: 60px;
-    }
-
-    .hamburger {
+    
+    .header-container {
+      max-width: 1200px;
+      margin: 0 auto;
       display: flex;
-      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+    }
+    
+    .logo-img {
+      width: 8px;
+      height: 25px;
+      margin-right: 15px;
+      background-color: var(--accent);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 20px;
+    }
+    
+    .logo h1 {
+      color: var(--accent);
+      font-size: 1.8rem;
+      margin-bottom: 0.2rem;
+    }
+    
+    .logo p {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+    
+    /* Desktop Navigation */
+    .desktop-nav {
+      display: flex;
+    }
+    
+    .desktop-nav a {
+      color: var(--text-primary);
+      text-decoration: none;
+      margin: 0 1rem;
+      font-weight: 500;
+      transition: color 0.3s;
+    }
+    
+    .desktop-nav a:hover {
+      color: var(--accent);
+    }
+    
+    .auth-buttons {
+      display: flex;
+    }
+    
+    .auth-buttons button {
+      background: transparent;
+      color: var(--text-primary);
+      border: 1px solid var(--accent);
+      padding: 0.5rem 1rem;
+      border-radius: 5px;
+      margin-left: 0.8rem;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .auth-buttons button:hover {
+      background: var(--accent);
+      color: var(--bg-primary);
+    }
+    
+    /* Mobile Navigation */
+    .mobile-nav-toggle {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text-primary);
+      font-size: 1.5rem;
       cursor: pointer;
     }
-
-    .hamburger div {
-      width: 25px;
-      height: 3px;
-      background-color: white;
-      margin: 4px 0;
-    }
-
-    .sidebar {
+    
+    .mobile-nav {
       position: fixed;
-      top: 0;
-      left: -100%;
-      width: 250px;
-      height: 100%;
-      background-color: var(--accent-dark);
-      color: white;
-      z-index: 1000;
-      transition: left 0.3s ease-in-out;
+      top: 80px;
+      right: -100%;
+      width: 80%;
+      max-width: 300px;
+      height: calc(100vh - 80px);
+      background: var(--bg-secondary);
+      padding: 2rem;
+      transition: right 0.3s ease;
+      z-index: 999;
+      box-shadow: -5px 0 15px rgba(0,0,0,0.2);
+      overflow-y: auto;
+    }
+    
+    .mobile-nav.active {
+      right: 0;
+    }
+    
+    .mobile-nav a {
+      display: block;
+      color: var(--text-primary);
+      text-decoration: none;
+      padding: 1rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      font-weight: 500;
+    }
+    
+    .mobile-nav a:hover {
+      color: var(--accent);
+    }
+    
+    .mobile-auth {
+      margin-top: 2rem;
       display: flex;
       flex-direction: column;
-      padding: 2rem 1.5rem;
+      gap: 1rem;
     }
-
-    .sidebar a {
-      color: white;
-      text-decoration: none;
-      font-weight: 600;
-      margin: 1rem 0;
+    
+    .mobile-auth button {
+      background: transparent;
+      color: var(--text-primary);
+      border: 1px solid var(--accent);
+      padding: 0.8rem;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.3s;
+      width: 100%;
     }
-
-    .sidebar.show {
-      left: 0;
+    
+    .mobile-auth button:hover {
+      background: var(--accent);
+      color: var(--bg-primary);
     }
-
-    .overlay {
-      position: fixed;
+    
+    /* Hero Carousel */
+    .hero-carousel {
+      position: relative;
+      height: 100vh;
+      overflow: hidden;
+    }
+    
+    .hero-slide {
+      position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background-color: rgba(0,0,0,0.5);
-      z-index: 999;
-      display: none;
-    }
-
-    .overlay.show {
-      display: block;
-    }
-
-    nav.navbar {
-      display: none;
-    }
-
-    @media (min-width: 768px) {
-      .hamburger {
-        display: none;
-      }
-
-      nav.navbar {
-        display: flex;
-        justify-content: center;
-        background: var(--primary-green);
-        padding: 1rem;
-        flex-wrap: wrap;
-      }
-
-      nav.navbar a {
-        color: white;
-        text-decoration: none;
-        font-weight: 600;
-        margin: 0 1rem;
-      }
-
-      .sidebar, .overlay {
-        display: none !important;
-      }
-    }
-
-    .hero {
-      position: relative;
-      height: 500px;
-      overflow: hidden;
-    }
-
-    .hero-slide {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
       opacity: 0;
-      transition: opacity 1s ease-in-out;
+      transition: opacity 1s ease;
+      background-size: cover;
+      background-position: center;
     }
-
+    
     .hero-slide.active {
       opacity: 1;
-      z-index: 1;
     }
-
+    
+    .hero-slide::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+    }
+    
     .hero-content {
       position: absolute;
-      z-index: 2;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
       text-align: center;
-      color: white;
+      z-index: 2;
+      width: 80%;
+      max-width: 800px;
     }
-
-    .hero::before {
+    
+    .hero-content h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1.5rem;
+      min-height: 3.5rem;
+    }
+    
+    .hero-content p {
+      font-size: 1.2rem;
+      margin-bottom: 2rem;
+      color: var(--text-secondary);
+    }
+    
+    .btn {
+      background: var(--accent);
+      color: var(--bg-primary);
+      padding: 0.8rem 1.8rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      transition: opacity 0.3s;
+    }
+    
+    .btn:hover {
+      opacity: 0.9;
+    }
+    
+    .hero-indicators {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      z-index: 3;
+    }
+    
+    .hero-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    
+    .hero-indicator.active {
+      background: var(--accent);
+    }
+    
+    /* Sections */
+    section {
+      padding: 5rem 2rem;
+    }
+    
+    .section-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .section-title {
+      text-align: center;
+      font-size: 2.2rem;
+      margin-bottom: 3rem;
+      color: var(--accent);
+      min-height: 2.8rem;
+    }
+    
+    .typed-cursor {
+      opacity: 1;
+      animation: blink 0.7s infinite;
+    }
+    
+    @keyframes blink {
+      0% { opacity: 1; }
+      50% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+    
+    .section-subtitle {
+      text-align: center;
+      max-width: 800px;
+      margin: 0 auto 3rem;
+      color: var(--text-secondary);
+    }
+    
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 2rem;
+    }
+    
+    .card {
+      background: var(--bg-card);
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      transition: transform 0.3s;
+    }
+    
+    .card:hover {
+      transform: translateY(-5px);
+    }
+    
+    .card h3 {
+      color: var(--accent);
+      margin-bottom: 1rem;
+      font-size: 1.4rem;
+    }
+    
+    .user-type-section {
+      margin-bottom: 4rem;
+    }
+    
+    .user-type-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    
+    .user-type-header h2 {
+      font-size: 2rem;
+      color: var(--accent);
+      margin-bottom: 1rem;
+      min-height: 2.4rem;
+    }
+    
+    .user-type-header p {
+      max-width: 700px;
+      margin: 0 auto;
+      color: var(--text-secondary);
+    }
+    
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+    }
+    
+    .feature-item {
+      background: var(--bg-card);
+      padding: 1.5rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+    
+    .feature-item h3 {
+      color: var(--accent);
+      margin-bottom: 1rem;
+    }
+    
+    .payout-process {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+    
+    .process-step {
+      background: var(--bg-card);
+      padding: 1.5rem;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .process-step h3 {
+      color: var(--accent);
+      margin-bottom: 0.8rem;
+    }
+    
+    /* Agent Carousel */
+    .agent-carousel {
+      position: relative;
+      height: 500px;
+      overflow: hidden;
+      border-radius: 12px;
+      margin: 3rem 0;
+    }
+    
+    .agent-slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      transition: opacity 1s ease;
+      background-size: cover;
+      background-position: center;
+    }
+    
+    .agent-slide.active {
+      opacity: 1;
+    }
+    
+    .agent-slide::after {
       content: '';
       position: absolute;
-      inset: 0;
-      background: rgba(0,0,0,0.4);
-      z-index: 1;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
     }
-
-    .cta-button {
-      background: var(--primary-green);
-      color: white;
-      padding: 0.8rem 2rem;
-      border: none;
-      border-radius: 5px;
-      font-size: 1rem;
-      margin-top: 1rem;
-      cursor: pointer;
-    }
-
-    .section {
-      padding: 4rem 2rem;
-      max-width: 1000px;
-      margin: auto;
+    
+    .agent-content {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       text-align: center;
+      z-index: 2;
+      width: 80%;
+      max-width: 800px;
     }
-
+    
+    .agent-content h2 {
+      font-size: 2.5rem;
+      margin-bottom: 1.5rem;
+      color: var(--accent);
+    }
+    
+    .agent-content p {
+      font-size: 1.2rem;
+      line-height: 1.8;
+    }
+    
+    .agent-indicators {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      z-index: 3;
+    }
+    
+    .agent-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    
+    .agent-indicator.active {
+      background: var(--accent);
+    }
+    
+    /* App Showcase Section */
+    .app-showcase {
+      background: var(--bg-secondary);
+      padding: 5rem 0;
+    }
+    
     .carousel {
-      overflow: hidden;
       position: relative;
       max-width: 1000px;
-      margin: 2rem auto;
+      margin: 0 auto;
+      overflow: hidden;
       border-radius: 12px;
-      background: white;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
     }
-
-    .carousel-track {
+    
+    .carousel-inner {
       display: flex;
-      transition: transform 0.6s ease;
+      transition: transform 0.5s ease;
     }
-
-    .slide {
-      flex: 0 0 100%;
-      text-align: center;
+    
+    .carousel-item {
+      min-width: 100%;
+      position: relative;
     }
-
-    .slide img {
-      max-width: 100%;
-      height: 450px;
-      object-fit: cover;
-      border-radius: 10px;
+    
+    .carousel-item img {
+      width: 100%;
+      display: block;
+      border-radius: 12px;
     }
-
-    .faq-item {
-      text-align: left;
-      margin-bottom: 1.5rem;
-    }
-
-    footer {
-      background-color: var(--dark-bg);
-      color: white;
+    
+    .carousel-caption {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0,0,0,0.7);
       padding: 1.5rem;
       text-align: center;
+    }
+    
+    .carousel-caption h3 {
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+    
+    .carousel-controls {
+      position: absolute;
+      top: 50%;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      transform: translateY(-50%);
+      padding: 0 1rem;
+      z-index: 10;
+    }
+    
+    .carousel-control {
+      background: rgba(0,0,0,0.5);
+      color: white;
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    
+    .carousel-control:hover {
+      background: rgba(0,0,0,0.8);
+    }
+    
+    .carousel-indicators {
+      display: flex;
+      justify-content: center;
+      margin-top: 1.5rem;
+      gap: 0.5rem;
+    }
+    
+    .carousel-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.3);
+      border: none;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    
+    .carousel-indicator.active {
+      background: var(--accent);
+    }
+    
+    /* Demo Section */
+    .demo-section {
+      background: var(--bg-secondary);
+      padding: 5rem 2rem;
+      text-align: center;
+    }
+    
+    .video-container {
+      position: relative;
+      padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+      height: 0;
+      overflow: hidden;
+      max-width: 900px;
+      margin: 0 auto;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+    
+    .video-container iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      border-radius: 12px;
+    }
+    
+    /* Testimonials Section */
+    .testimonials {
+      padding: 5rem 2rem;
+    }
+    
+    .testimonial-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      margin-top: 3rem;
+    }
+    
+    .testimonial-card {
+      background: var(--bg-card);
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    
+    .testimonial-text {
+      font-style: italic;
+      margin-bottom: 1.5rem;
+      position: relative;
+      padding: 0 1.5rem;
+    }
+    
+    .testimonial-text::before,
+    .testimonial-text::after {
+      content: """;
+      font-size: 3rem;
+      color: var(--accent);
+      position: absolute;
+      line-height: 1;
+    }
+    
+    .testimonial-text::before {
+      top: -0.5rem;
+      left: 0;
+    }
+    
+    .testimonial-text::after {
+      content: """;
+      bottom: -2rem;
+      right: 0;
+    }
+    
+    .testimonial-author {
+      display: flex;
+      align-items: center;
+    }
+    
+    .author-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      margin-right: 1rem;
+      font-size: 1.2rem;
+    }
+    
+    .author-details h4 {
+      color: var(--accent);
+      margin-bottom: 0.2rem;
+    }
+    
+    .author-details p {
+      color: var(--text-secondary);
       font-size: 0.9rem;
+    }
+    
+    /* CTA Section */
+    .cta-section {
+      background: linear-gradient(to right, #111, #333);
+      text-align: center;
+      padding: 4rem 2rem;
+    }
+    
+    .cta-section h2 {
+      font-size: 2.2rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .cta-section p {
+      max-width: 700px;
+      margin: 0 auto 2rem;
+      color: var(--text-secondary);
+    }
+    
+    /* Footer */
+    footer {
+      background: var(--bg-secondary);
+      padding: 3rem 2rem;
+      text-align: center;
+    }
+    
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+      gap: 1.5rem;
+    }
+    
+    .footer-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+    }
+    
+    .footer-links a:hover {
+      color: var(--accent);
+    }
+    
+    .copyright {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+    
+    /* Media Queries */
+    @media (max-width: 968px) {
+      .desktop-nav, .auth-buttons {
+        display: none;
+      }
+      
+      .mobile-nav-toggle {
+        display: block;
+      }
+      
+      .hero-content h1 {
+        font-size: 2rem;
+      }
+      
+      .section-title {
+        font-size: 1.8rem;
+      }
+      
+      .agent-content h2 {
+        font-size: 2rem;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .header-container {
+        padding: 0.5rem 1rem;
+      }
+      
+      .hero-carousel {
+        height: 80vh;
+      }
+      
+      .hero-content {
+        width: 90%;
+      }
+      
+      .agent-carousel {
+        height: 400px;
+      }
+      
+      section {
+        padding: 3rem 1.5rem;
+      }
+      
+      .carousel-caption {
+        padding: 1rem;
+      }
+      
+      .carousel-caption h3 {
+        font-size: 1rem;
+      }
+      
+      .carousel-caption p {
+        font-size: 0.9rem;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .logo h1 {
+        font-size: 1.5rem;
+      }
+      
+      .hero-content h1 {
+        font-size: 1.8rem;
+      }
+      
+      .hero-content p {
+        font-size: 1rem;
+      }
+      
+      .section-title {
+        font-size: 1.6rem;
+      }
+      
+      .user-type-header h2 {
+        font-size: 1.6rem;
+      }
+      
+      .agent-content h2 {
+        font-size: 1.6rem;
+      }
+      
+      .agent-content p {
+        font-size: 1rem;
+      }
+      
+      .card, .feature-item {
+        padding: 1.5rem;
+      }
     }
   </style>
 </head>
 <body>
+  <header>
+    <div class="header-container">
+      <div class="logo">
+       <div class="logo-img"></div>
+        <div>
+          <h1>VendPlug</h1>
+          <p>Vendor-led Marketplace for Seamless Commerce</p>
+        </div>
+      </div>
+      
+      <nav class="desktop-nav">
+        <a href="#features">Features</a>
+        <a href="#buyers">Buyers</a>
+        <a href="#vendors">Vendors</a>
+        <a href="#agents">Agents</a>
+        <a href="#admin">Admin</a>
+      </nav>
+      
+      <div class="auth-buttons">
+        <button>Login</button>
+        <button>Sign Up</button>
+      </div>
+      
+      <button class="mobile-nav-toggle">
+        <i class="fas fa-bars"></i>
+      </button>
+    </div>
+  </header>
 
-<!-- Sidebar for Mobile Navigation -->
-<div id="sidebar" class="sidebar">
-  <a href="#">Home</a>
-  <a href="#about">About</a>
-  <a href="#escrow">Escrow</a>
-  <a href="#team">Team</a>
-  <a href="#faq">FAQs</a>
-  <a href="#contact">Contact</a>
-  <a href="#waitlist">Join Waitlist</a>
-</div>
-<div id="overlay" class="overlay" onclick="toggleSidebar()"></div>
+  <nav class="mobile-nav">
+    <a href="#features">Features</a>
+    <a href="#buyers">Buyers</a>
+    <a href="#vendors">Vendors</a>
+    <a href="#agents">Agents</a>
+    <a href="#admin">Admin</a>
+    <div class="mobile-auth">
+      <button>Login</button>
+      <button>Sign Up</button>
+    </div>
+  </nav>
 
-<!-- Header -->
-<header>
-  <img src="logo.png" alt="VendPlug Logo" />
-  <div id="hamburger" class="hamburger" onclick="toggleSidebar()">
-    <div></div>
-    <div></div>
-    <div></div>
-  </div>
-</header>
-
-<!-- Desktop Navigation -->
-<nav class="navbar">
-  <a href="#">Home</a>
-  <a href="#about">About</a>
-  <a href="#escrow">Escrow</a>
-  <a href="#team">Team</a>
-  <div class="dropdown">
-    <a href="#">More</a>
-    <div class="dropdown-content">
-      <a href="#faq"><i class="fa-solid fa-circle-question"></i> FAQs</a>
-      <a href="#contact"><i class="fa-solid fa-envelope"></i> Contact</a>
-      <a href="#waitlist"><i class="fa-solid fa-clock"></i> Waitlist</a>
+  <!-- Hero Carousel -->
+  <section class="hero-carousel">
+    <div class="hero-slide active" style="background-image: url('market-1.jpg');"></div>
+    <div class="hero-slide" style="background-image: url('market-2.jpg');"></div>
+    <div class="hero-slide" style="background-image: url('market-4.jpg');"></div>
+    <div class="hero-slide" style="background-image: url('market-5.jpg');"></div>
+    <div class="hero-slide" style="background-image: url('market-6.jpg');"></div>
+  </section>
+  
+    <div class="hero-content">
+      <h1 id="typed-heading"></h1>
+      <p>VendPlug is the first marketplace built around vendors. Upload products, manage payouts, and reach buyers directly while maintaining full control of your business.</p>
+      <a href="#vendors" class="btn">Join as Vendor</a>
+    </div>
+    
+    <div class="hero-indicators">
+      <div class="hero-indicator active"></div>
+      <div class="hero-indicator"></div>
+      <div class="hero-indicator"></div>
+      <div class="hero-indicator"></div>
+      <div class="hero-indicator"></div>
     </div>
   </div>
-</nav>
 
-<!-- Hero Section -->
-<section class="hero">
-  <img src="market-1.jpg" class="hero-slide active">
-  <img src="market-2.jpg" class="hero-slide">
-  <img src="market-3.jpg" class="hero-slide">
-  <img src="market-4.jpg" class="hero-slide">
-  <img src="market-5.jpg" class="hero-slide">
-  <img src="market-6.jpg" class="hero-slide">
-  <div class="hero-content">
-    <h1>Redefining Local Commerce</h1>
-    <p>Shop Nigeria’s markets with ease using VendPlug’s tech-powered platform.</p>
-    <button class="cta-button" onclick="document.getElementById('waitlist').scrollIntoView({behavior: 'smooth'})">
-      Join Our Waitlist
-    </button>
-  </div>
-</section>
+  <section id="features">
+    <div class="section-container">
+      <h2 class="section-title" id="features-title"></h2>
+      <p class="section-subtitle">Our platform is designed with all users in mind, creating a seamless ecosystem for commerce</p>
+      
+      <div class="grid">
+        <div class="card">
+          <h3>Vendor-first Approach</h3>
+          <p>Unlike others, our platform is designed around vendors – giving them tools to manage products, sales, and payouts with full transparency.</p>
+        </div>
+        <div class="card">
+          <h3>Smart Checkout</h3>
+          <p>Buyers add products to cart, select location, and checkout securely. Orders are automatically routed to the right vendors and agents.</p>
+        </div>
+        <div class="card">
+          <h3>Escrow Payments</h3>
+          <p>Funds are held safely until buyers confirm delivery. Vendors and agents get fair payouts with no disputes.</p>
+        </div>
+        <div class="card">
+          <h3>Real-time Updates</h3>
+          <p>Instant order notifications, payout updates, and delivery tracking keep everyone informed at all times.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-<!-- Add the rest of your sections here as already done -->
+  <section class="app-showcase">
+    <div class="section-container">
+      <h2 class="section-title">VendPlug in Action</h2>
+      <p class="section-subtitle">See how our platform works for different users</p>
+      
+      <div class="carousel">
+        <div class="carousel-inner">
+          <div class="carousel-item">
+            <img src="https://placehold.co/1000x600/2c2c2c/00cc99/png?text=Vendor+Dashboard" alt="Vendor Dashboard">
+            <div class="carousel-caption">
+              <h3>Vendor Dashboard</h3>
+              <p>Manage products, orders, and track earnings in one place</p>
+            </div>
+          </div>
+          <div class="carousel-item">
+            <img src="https://placehold.co/1000x600/2c2c2c/00cc99/png?text=Buyer+Experience" alt="Buyer Experience">
+            <div class="carousel-caption">
+              <h3>Buyer Experience</h3>
+              <p>Seamless shopping with secure escrow payments</p>
+            </div>
+          </div>
+          <div class="carousel-item">
+            <img src="https://placehold.co/1000x600/2c2c2c/00cc99/png?text=Agent+Interface" alt="Agent Interface">
+            <div class="carousel-caption">
+              <h3>Agent Interface</h3>
+              <p>Efficient order management and delivery tracking</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="carousel-controls">
+          <button class="carousel-control prev">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <button class="carousel-control next">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+        
+        <div class="carousel-indicators">
+          <button class="carousel-indicator active"></button>
+          <button class="carousel-indicator"></button>
+          <button class="carousel-indicator"></button>
+        </div>
+      </div>
+    </div>
+  </section>
 
-<!-- Scripts -->
-<script>
-  function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('overlay');
-    sidebar.classList.toggle('show');
-    overlay.classList.toggle('show');
-  }
+  <section id="buyers" style="background: var(--bg-secondary);">
+    <div class="section-container">
+      <div class="user-type-header">
+        <h2 id="buyers-title"></h2>
+        <p>Shopping made seamless. With VendPlug, buyers get choice, trust, and control every step of the way.</p>
+      </div>
+      
+      <div class="feature-grid">
+        <div class="feature-item">
+          <h3>Discover Products</h3>
+          <p>Browse across vendors, categories, and states — with smart filters for faster discovery.</p>
+        </div>
+        <div class="feature-item">
+          <h3>Track Orders</h3>
+          <p>From cart to doorstep, stay updated on every order's journey in real-time.</p>
+        </div>
+        <div class="feature-item">
+          <h3>Safe Payments</h3>
+          <p>Your money is held securely until you confirm delivery. No delivery, no release.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  document.addEventListener("DOMContentLoaded", function () {
-    const heroSlides = document.querySelectorAll('.hero-slide');
-    let current = 0;
+  <section id="vendors">
+    <div class="section-container">
+      <div class="user-type-header">
+        <h2 id="vendors-title"></h2>
+        <p>Sell smarter, not harder. VendPlug equips vendors with everything needed to grow, manage, and scale their businesses.</p>
+      </div>
+      
+      <div class="feature-grid">
+        <div class="feature-item">
+          <h3>Simple Store Setup</h3>
+          <p>Upload products, manage categories, and showcase your offerings effortlessly.</p>
+        </div>
+        <div class="feature-item">
+          <h3>Real-Time Orders</h3>
+          <p>Receive and respond to buyer orders instantly with smart notifications.</p>
+        </div>
+        <div class="feature-item">
+          <h3>Escrow Protection</h3>
+          <p>Payments are secured in escrow until buyers confirm delivery. Zero risks, only trust.</p>
+        </div>
+        <div class="feature-item">
+          <h3>Growth Insights</h3>
+          <p>Track sales, performance, and payouts with real-time dashboards.</p>
+        </div>
+      </div>
+      
+      <h3 class="section-title" style="font-size: 1.8rem; margin-top: 4rem;">Transparent Payout Process</h3>
+      
+      <div class="payout-process">
+        <div class="process-step">
+          <h3>1. Buyer Pays</h3>
+          <p>Funds are secured in escrow as soon as an order is placed.</p>
+        </div>
+        <div class="process-step">
+          <h3>2. Vendor Delivers</h3>
+          <p>You fulfill the order knowing your payment is safe and guaranteed.</p>
+        </div>
+        <div class="process-step">
+          <h3>3. Buyer Confirms</h3>
+          <p>Once the buyer confirms receipt, the payment is released automatically.</p>
+        </div>
+        <div class="process-step">
+          <h3>4. Instant Payout</h3>
+          <p>Funds move directly into your wallet, ready for withdrawal.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-    function showNextHeroSlide() {
-      heroSlides[current].classList.remove('active');
-      current = (current + 1) % heroSlides.length;
-      heroSlides[current].classList.add('active');
-    }
+  <section id="agents" style="background: var(--bg-secondary);">
+    <div class="section-container">
+      <div class="user-type-header">
+        <h2 id="agents-title"></h2>
+        <p>Become the bridge between local markets and digital commerce, earning commissions while serving your community.</p>
+      </div>
+      
+      <div class="feature-grid">
+        <div class="feature-item">
+          <h3>Digitizing Local Markets</h3>
+          <p>Agents live inside the local markets, bridging the gap between offline stalls and online buyers.</p>
+        </div>
+        <div class="feature-item">
+          <h3>Empowered Earners</h3>
+          <p>Accept order requests, purchase from vendors, and earn transparent commissions through escrow payments.</p>
+        </div>
+        <div class="feature-item">
+          <h3>Trusted & Scalable</h3>
+          <p>Build reputation based on performance. Serve your neighborhood or expand across states.</p>
+        </div>
+      </div>
+      
+      <!-- Agent Carousel -->
+      <div class="agent-carousel">
+        <div class="agent-slide active" style="background-image: url('https://images.unsplash.com/photo-1621905252507-b35492cc74b4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1800&q=80');"></div>
+        <div class="agent-slide" style="background-image: url('https://images.unsplash.com/photo-1608190003443-86a6a2c2f14c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1800&q=80');"></div>
+        <div class="agent-slide" style="background-image: url('https://images.unsplash.com/photo-1598301257982-0cf01499abb2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1800&q=80');"></div>
+        
+        <div class="agent-content">
+          <h2>More Than Delivery</h2>
+          <p>VendPlug agents are the lifeblood of our ecosystem - digitizing Nigeria's markets, making commerce safe, fast, and limitless.</p>
+        </div>
+        
+        <div class="agent-indicators">
+          <div class="agent-indicator active"></div>
+          <div class="agent-indicator"></div>
+          <div class="agent-indicator"></div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-    setInterval(showNextHeroSlide, 4000);
-  });
+  <section id="admin">
+    <div class="section-container">
+      <div class="user-type-header">
+        <h2 id="admin-title"></h2>
+        <p>Powerful tools to monitor, manage, and optimize the entire marketplace ecosystem.</p>
+      </div>
+      
+      <div class="feature-grid">
+        <div class="feature-item">
+          <h3>System Overview</h3>
+          <p>Monitor transactions, user activity, and platform health in real-time with comprehensive dashboards.</p>
+        </div>
+        <div class="feature-item">
+          <h3>User Management</h3>
+          <p>Manage vendors, buyers, and agents with sophisticated tools for verification and support.</p>
+        </div>
+        <div class="feature-item">
+          <h3>Dispute Resolution</h3>
+          <p>Fair mediation tools to handle disputes between buyers, vendors, and agents efficiently.</p>
+        </div>
+        <div class="feature-item">
+          <h3>Analytics & Reporting</h3>
+          <p>Deep insights into marketplace performance, trends, and opportunities for growth.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  document.addEventListener("DOMContentLoaded", function () {
-    const track = document.querySelector('.carousel-track');
-    if (track) {
-      let index = 0;
-      function moveCarousel() {
-        index++;
-        if (index >= track.children.length) index = 0;
-        track.style.transform = `translateX(-${index * 100}%)`;
+  <!-- Demo Section -->
+  <section class="demo-section">
+    <div class="section-container">
+      <h2 class="section-title">See VendPlug in Action</h2>
+      <p class="section-subtitle">Watch our quick demo to see how VendPlug works for vendors, buyers, and agents</p>
+      
+      <div class="video-container">
+        <!-- Placeholder for video - replace with your actual video embed code -->
+        <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--bg-card);border-radius:12px;">
+          <div style="text-align:center;">
+            <i class="fas fa-play-circle" style="font-size:4rem;color:var(--accent);margin-bottom:1rem;"></i>
+            <p>Video demo coming soon</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials Section -->
+  <section class="testimonials">
+    <div class="section-container">
+      <h2 class="section-title">What Our Users Say</h2>
+      <p class="section-subtitle">Hear from vendors, buyers, and agents who are using VendPlug</p>
+      
+      <div class="testimonial-grid">
+        <div class="testimonial-card">
+          <div class="testimonial-text">
+            VendPlug has transformed my business. I can now reach customers across Nigeria without worrying about payment security.
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar">C</div>
+            <div class="author-details">
+              <h4>Chinedu Okoro</h4>
+              <p>Vendor, Lagos</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="testimonial-card">
+          <div class="testimonial-text">
+            As an agent, I'm earning more than I ever did before. The escrow system ensures I get paid for every successful delivery.
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar">A</div>
+            <div class="author-details">
+              <h4>Amina Yusuf</h4>
+              <p>Agent, Kano</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="testimonial-card">
+          <div class="testimonial-text">
+            I love shopping on VendPlug because I can trust that my money is safe until I receive exactly what I ordered.
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar">T</div>
+            <div class="author-details">
+              <h4>Tolu Adeyemi</h4>
+              <p>Buyer, Abuja</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-section">
+    <h2>Ready to Join the Marketplace Revolution?</h2>
+    <p>Whether you're a vendor looking to scale, a buyer seeking trust and convenience, or an agent ready to earn — VendPlug is built for you.</p>
+    <a href="#" class="btn">Get Started Today</a>
+  </section>
+
+  <footer>
+    <div class="footer-content">
+      <div class="footer-links">
+        <a href="#">About Us</a>
+        <a href="#">Contact</a>
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+        <a href="#">FAQ</a>
+      </div>
+      <p class="copyright">© 2025 VendPlug. All Rights Reserved. Made for Vendors. Built on Trust.</p>
+    </div>
+  </footer>
+
+  <script>
+    // Mobile Navigation
+    const mobileNavToggle = document.querySelector('.mobile-nav-toggle');
+    const mobileNav = document.querySelector('.mobile-nav');
+    
+    mobileNavToggle.addEventListener('click', () => {
+      mobileNav.classList.toggle('active');
+      const icon = mobileNavToggle.querySelector('i');
+      if (mobileNav.classList.contains('active')) {
+        icon.classList.remove('fa-bars');
+        icon.classList.add('fa-times');
+      } else {
+        icon.classList.remove('fa-times');
+        icon.classList.add('fa-bars');
       }
-      setInterval(moveCarousel, 3500);
+    });
+    
+    // Close mobile nav when clicking on links
+    const mobileNavLinks = document.querySelectorAll('.mobile-nav a');
+    mobileNavLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        mobileNav.classList.remove('active');
+        const icon = mobileNavToggle.querySelector('i');
+        icon.classList.remove('fa-times');
+        icon.classList.add('fa-bars');
+      });
+    });
+    
+    // Typing animation
+    function typeEffect(element, text, speed = 100) {
+      let i = 0;
+      element.innerHTML = '';
+      
+      function type() {
+        if (i < text.length) {
+          element.innerHTML += text.charAt(i);
+          i++;
+          setTimeout(type, speed);
+        } else {
+          element.innerHTML += '<span class="typed-cursor">|</span>';
+        }
+      }
+      
+      type();
     }
-  });
-</script>
-
-<section class="section" id="about">
-  <h2>About VendPlug</h2>
-  <p>Our mission is to digitize and organize Africa’s informal market system. We empower local economies by simplifying how people shop, pay, and connect through secure digital experiences.</p>
-</section>
-
-<section id="carousel" class="section" style="background:#f9f9f9;">
-  <h2>Beyond shopping with ease, safety, and comfort — every order placed on VendPlug helps provide employment and economic empowerment to local agents within our communities.</h2>
-  <div class="carousel">
-    <div class="carousel-track">
-      <div class="slide">
-        <img src="vendplug-action-1.jpg" alt="Pickup Station" />
-        <p>A dedicated agent is out in the market, shopping with your submitted list — ensuring you get the right items, fresh and on time!</p>
-      </div>
-      <div class="slide">
-        <img src="vendplug-action-2.jpg" alt="Delivery to Customer" />
-        <p>This customer is all smiles — she just received her full order and can now spend quality time with her loved ones, hassle-free.</p>
-      </div>
-      <div class="slide">
-        <img src="vendplug-action-3.jpg" alt="Shopping with Vendor" />
-        <p>You can pick up sorted and packed orders from VendPlug pickup stations — making it easy to collect everything on your way home from work. No more going round the market in traffic or stress.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="escrow" class="section" style="background:#fff;">
-  <h2>Escrow for Safer Marketplaces</h2>
-  <p style="max-width:800px;margin:auto;font-size:18px;line-height:1.6;">
-    In many online marketplaces, transactions happen directly between buyers and sellers—with little protection if things go wrong. 
-    VendPlug changes that by adding a secure escrow layer to the buying experience.
-  </p>
-  <button class="cta-button" onclick="alert('More about Escrow coming soon!')">Learn More</button>
-</section>
-
-<section id="team" class="section">
-  <h2>Faces of VendPlug</h2>
-  <div style="display:flex;justify-content:center;flex-wrap:wrap;gap:40px;margin-top:30px;">
-    <div style="max-width:200px;text-align:center;">
-      <img src="ceo.jpg" alt="Ahmed Abdullahi" style="border-radius:50%;width:130px;height:150px;">
-      <h3 style="margin-top:10px;">Ahmed</h3>
-      <p style="font-size:14px;color:#666;">Founder & CEO </p>
-    </div>
-    <div style="max-width:200px;text-align:center;">
-      <img src="cto.jpeg" alt="CTO" style="border-radius:50%;width:130px;height:150px;">
-      <h3 style="margin-top:10px;">Muwaffaq</h3>
-      <p style="font-size:14px;color:#666;">Co-Founder & CTO</p>
-    </div>
-  </div>
-</section>
-
-<section id="locations" class="section" style="background:#f7fff9;">
-  <h2>Where We Operate</h2>
-  <div style="display:flex;justify-content:center;gap:40px;flex-wrap:wrap;margin-top:30px;">
-    <div style="text-align:center;">
-      <img src="https://img.icons8.com/fluency/48/marker.png" />
-      <h4>Abuja</h4>
-      <p>Jabi, Wuse, Garki</p>
-    </div>
-    <div style="text-align:center;">
-      <img src="https://img.icons8.com/fluency/48/marker.png" />
-      <h4>Lagos</h4>
-      <p>Ikeja, Lekki, Yaba</p>
-    </div>
-    <div style="text-align:center;">
-      <img src="https://img.icons8.com/fluency/48/marker.png" />
-      <h4>Jos</h4>
-      <p>Terminus, Bukuru</p>
-    </div>
-  </div>
-</section>
-
-<section id="security" class="section">
-  <h2>Secure Payments, Peace of Mind</h2>
-  <div style="display:flex;justify-content:center;gap:40px;flex-wrap:wrap;margin-top:30px;">
-    <div style="max-width:260px;text-align:center;">
-      <img src="https://img.icons8.com/fluency/64/safe.png"/>
-      <h3>Escrow Wallet</h3>
-      <p style="font-size:14px;">Funds are held securely until delivery is confirmed.</p>
-    </div>
-    <div style="max-width:260px;text-align:center;">
-      <img src="encryption.jpeg" style="border-radius:50%;width:64px;height:64px;">
-      <h3>Encrypted</h3>
-      <p style="font-size:14px;">All payments happen securely within our app, ensuring your money is safe from start to finish. Every transaction is encrypted and traceable.</p>
-    </div>
-    <div style="max-width:260px;text-align:center;">
-      <img src="https://img.icons8.com/fluency/64/agreement.png"/>
-      <h3>Dispute Support</h3>
-      <p style="font-size:14px;">We mediate disputes so buyers and sellers are protected.</p>
-    </div>
-  </div>
-</section>
-
-<section id="waitlist" class="section" style="background:#fff;">
-  <h2>Join the Waitlist</h2>
-  <p>Be the first to know when we launch in your area.</p>
-  <input type="email" placeholder="Your email here" />
-  <br />
-  <button class="cta-button" style="margin-top:1rem;">Notify Me</button>
-</section>
-
-<section id="contact" class="section">
-  <h2>Contact Us</h2>
-  <p>Have a question or suggestion? Reach out via email:</p>
-  <p><strong>info@vendplug.com.ng</strong></p>
-</section>
-
-<section id="faq" class="section">
-  <h2>Frequently Asked Questions</h2>
-  <div class="faq-item">
-    <h3>🔐 What is VendPlug Escrow?</h3>
-    <p>VendPlug Escrow is a secure payment solution that holds funds until a buyer confirms they have received the product as described.
-    You can buy from anyone, anywhere in Nigeria, knowing your money is safe.</p>
-  </div>
-  <div class="faq-item">
-    <h3>📱 How do I join VendPlug as a vendor or agent?</h3>
-    <p>You can register interest through our platform and our team will follow up with onboarding instructions.</p>
-  </div>
-  <div class="faq-item">
-    <h3>🧾 What can I buy with VendPlug?</h3>
-    <p>Everything you’d find in a real market! From tomatoes, rice, onions, palm oil, beans, peppers, meat, fish, and yams — to electronics, fabrics, phone accessories, shoes, bags, clothes, and even services like tailoring or repairs. If it's in a market, you can get it through VendPlug.</p>
-  </div>
-</section>
-
-<footer>
-  &copy; 2025 VendPlug. All rights reserved.
-</footer>
-
-<!-- ✅ Carousel Script -->
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const track = document.querySelector('.carousel-track');
-    let index = 0;
-
-    function moveCarousel() {
-      index++;
-      if (index >= track.children.length) index = 0;
-      track.style.transform = `translateX(-${index * 100}%)`;
+    
+    // Initialize typing animations when in viewport
+    const observerOptions = {
+      threshold: 0.5,
+      rootMargin: '0px 0px -100px 0px'
+    };
+    
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const target = entry.target;
+          
+          switch(target.id) {
+            case 'typed-heading':
+              typeEffect(target, 'Empowering Vendors, Connecting Buyers');
+              break;
+            case 'features-title':
+              typeEffect(target, 'Why VendPlug?');
+              break;
+            case 'buyers-title':
+              typeEffect(target, 'For Buyers');
+              break;
+            case 'vendors-title':
+              typeEffect(target, 'For Vendors');
+              break;
+            case 'agents-title':
+              typeEffect(target, 'For Agents');
+              break;
+            case 'admin-title':
+              typeEffect(target, 'Admin Dashboard');
+              break;
+          }
+          
+          observer.unobserve(target);
+        }
+      });
+    }, observerOptions);
+    
+    // Observe elements for typing animation
+    const elementsToType = [
+      'typed-heading', 'features-title', 'buyers-title', 
+      'vendors-title', 'agents-title', 'admin-title'
+    ];
+    
+    elementsToType.forEach(id => {
+      const element = document.getElementById(id);
+      if (element) {
+        observer.observe(element);
+      }
+    });
+    
+    // Hero Carousel
+    const heroSlides = document.querySelectorAll('.hero-slide');
+    const heroIndicators = document.querySelectorAll('.hero-indicator');
+    let heroCurrentIndex = 0;
+    
+    function updateHeroCarousel() {
+      heroSlides.forEach((slide, index) => {
+        if (index === heroCurrentIndex) {
+          slide.classList.add('active');
+        } else {
+          slide.classList.remove('active');
+        }
+      });
+      
+      heroIndicators.forEach((indicator, index) => {
+        if (index === heroCurrentIndex) {
+          indicator.classList.add('active');
+        } else {
+          indicator.classList.remove('active');
+        }
+      });
     }
-
-    setInterval(moveCarousel, 3500);
-  });
-</script>
-
+    
+    function advanceHeroSlide() {
+      heroCurrentIndex = (heroCurrentIndex < heroSlides.length - 1) ? heroCurrentIndex + 1 : 0;
+      updateHeroCarousel();
+    }
+    
+    // Add click events to hero indicators
+    heroIndicators.forEach((indicator, index) => {
+      indicator.addEventListener('click', () => {
+        heroCurrentIndex = index;
+        updateHeroCarousel();
+      });
+    });
+    
+    // Auto-advance hero carousel
+    setInterval(advanceHeroSlide, 5000);
+    
+    // Agent Carousel
+    const agentSlides = document.querySelectorAll('.agent-slide');
+    const agentIndicators = document.querySelectorAll('.agent-indicator');
+    let agentCurrentIndex = 0;
+    
+    function updateAgentCarousel() {
+      agentSlides.forEach((slide, index) => {
+        if (index === agentCurrentIndex) {
+          slide.classList.add('active');
+        } else {
+          slide.classList.remove('active');
+        }
+      });
+      
+      agentIndicators.forEach((indicator, index) => {
+        if (index === agentCurrentIndex) {
+          indicator.classList.add('active');
+        } else {
+          indicator.classList.remove('active');
+        }
+      });
+    }
+    
+    function advanceAgentSlide() {
+      agentCurrentIndex = (agentCurrentIndex < agentSlides.length - 1) ? agentCurrentIndex + 1 : 0;
+      updateAgentCarousel();
+    }
+    
+    // Add click events to agent indicators
+    agentIndicators.forEach((indicator, index) => {
+      indicator.addEventListener('click', () => {
+        agentCurrentIndex = index;
+        updateAgentCarousel();
+      });
+    });
+    
+    // Auto-advance agent carousel
+    setInterval(advanceAgentSlide, 5000);
+    
+    // App Showcase Carousel
+    const carouselInner = document.querySelector('.carousel-inner');
+    const carouselItems = document.querySelectorAll('.carousel-item');
+    const prevButton = document.querySelector('.carousel-control.prev');
+    const nextButton = document.querySelector('.carousel-control.next');
+    const indicators = document.querySelectorAll('.carousel-indicator');
+    
+    let currentIndex = 0;
+    const itemCount = carouselItems.length;
+    
+    function updateCarousel() {
+      carouselInner.style.transform = `translateX(-${currentIndex * 100}%)`;
+      
+      // Update indicators
+      indicators.forEach((indicator, index) => {
+        if (index === currentIndex) {
+          indicator.classList.add('active');
+        } else {
+          indicator.classList.remove('active');
+        }
+      });
+    }
+    
+    prevButton.addEventListener('click', () => {
+      currentIndex = (currentIndex > 0) ? currentIndex - 1 : itemCount - 1;
+      updateCarousel();
+    });
+    
+    nextButton.addEventListener('click', () => {
+      currentIndex = (currentIndex < itemCount - 1) ? currentIndex + 1 : 0;
+      updateCarousel();
+    });
+    
+    // Add click events to indicators
+    indicators.forEach((indicator, index) => {
+      indicator.addEventListener('click', () => {
+        currentIndex = index;
+        updateCarousel();
+      });
+    });
+    
+    // Auto-advance carousel
+    setInterval(() => {
+      currentIndex = (currentIndex < itemCount - 1) ? currentIndex + 1 : 0;
+      updateCarousel();
+    }, 5000);
+  </script>
 </body>
 </html>
-
-
-
-
-
-

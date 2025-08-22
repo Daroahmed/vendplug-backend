@@ -1,64 +1,541 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Product Details | VendPlug</title>
-<style>
-body {
-  font-family: 'Segoe UI', sans-serif;
-  background-color: #121212;
-  color: #f1f1f1;
-  margin: 0;
-}
-.container {
-  max-width: 800px;
-  margin: auto;
-  padding: 20px;
-}
-.product-image {
-  width: 100%;
-  height: 300px;
-  object-fit: cover;
-  border-radius: 10px;
-}
-.product-title {
-  font-size: 24px;
-  margin-top: 15px;
-}
-.price {
-  font-size: 20px;
-  color: #00a86b;
-  margin-top: 5px;
-}
-.description {
-  margin-top: 15px;
-  line-height: 1.5;
-}
-.add-btn {
-  margin-top: 20px;
-  padding: 12px 20px;
-  background-color: #00a86b;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  font-size: 16px;
-  cursor: pointer;
-}
-.add-btn:hover {
-  background-color: #007a50;
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VendPlug – Vendor-led Marketplace</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #222;
+      background: #f9f9f9;
+    }
+    header {
+      background: #111;
+      color: #fff;
+      padding: 20px 40px;
+      text-align: center;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 2rem;
+      color: #00b894;
+    }
+    header p {
+      margin: 5px 0 0;
+      font-size: 1rem;
+    }
+    nav {
+      margin-top: 15px;
+    }
+    nav a {
+      color: #fff;
+      margin: 0 10px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    nav a:hover {
+      color: #00b894;
+    }
+    section {
+      padding: 60px 20px;
+      max-width: 1100px;
+      margin: auto;
+    }
+    section h2 {
+      text-align: center;
+      font-size: 2rem;
+      margin-bottom: 20px;
+      color: #111;
+    }
+    .hero {
+      background: linear-gradient(to right, #111, #333);
+      color: #fff;
+      padding: 100px 20px;
+      text-align: center;
+    }
+    .hero h1 {
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+    }
+    .hero p {
+      font-size: 1.2rem;
+      max-width: 700px;
+      margin: auto;
+      margin-bottom: 20px;
+    }
+    .btn {
+      background: #00b894;
+      color: #fff;
+      padding: 12px 25px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn:hover {
+      background: #019874;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    .card h3 {
+      margin-top: 10px;
+      color: #00b894;
+    }
+    footer {
+      background: #111;
+      color: #ccc;
+      text-align: center;
+      padding: 20px;
+      font-size: 0.9rem;
+    }
+    footer a {
+      color: #00b894;
+      text-decoration: none;
+    }
+    @media(max-width:600px) {
+      header h1 {
+        font-size: 1.5rem;
+      }
+      .hero h1 {
+        font-size: 2rem;
+      }
+    }
+  </style>
 </head>
 <body>
-<div class="container">
-  <img id="productImage" class="product-image" src="" alt="">
-  <h1 id="productName" class="product-title"></h1>
-  <p id="productPrice" class="price"></p>
-  <p id="productDescription" class="description"></p>
-  <p id="itemsSold"></p>
-  <button class="add-btn" id="addToCartBtn">Add to Cart</button>
-</div>
-<script src="/js/view-shop-view.js"></script>
+
+  <header>
+    <h1>VendPlug</h1>
+    <p>Vendor-led Marketplace for Seamless Commerce</p>
+    <nav>
+      <a href="#features">Features</a>
+      <a href="#vendors">Vendors</a>
+      <a href="#buyers">Buyers</a>
+      <a href="#agents">Agents</a>
+      <a href="#how">How It Works</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <h1>Empowering Vendors, Connecting Buyers</h1>
+    <p>VendPlug is the first marketplace built around vendors. Upload products, manage payouts, and reach buyers directly while 
+    <a href="#vendors" class="btn">Join as Vendor</a>
+  </section>
+
+  <section id="features">
+    <h2>Why VendPlug?</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Vendor-first</h3>
+        <p>Unlike others, our platform is designed around vendors – giving them tools to manage products, sales, and payouts with full transparency.</p>
+      </div>
+      <div class="card">
+        <h3>Smart Checkout</h3>
+        <p>Buyers add products to cart, select location, and checkout securely. Orders are automatically routed to the right vendors and agents.</p>
+      </div>
+      <div class="card">
+        <h3>Escrow Payments</h3>
+        <p>Funds are held safely until buyers confirm delivery. Vendors and agents get fair payouts with no disputes.</p>
+      </div>
+      <div class="card">
+        <h3>Real-time Updates</h3>
+        <p>Instant order notifications, payout updates, and delivery tracking keep everyone informed at all times.</p>
+      </div>
+    </div>
+  </section>
+
+    <!-- Header -->
+    <header style="background:#111;color:#fff;padding:40px 20px;text-align:center;">
+      <h1 style="margin:0;font-size:42px;">VendPlug</h1>
+      <p style="font-size:18px;margin-top:10px;">The future of transparent vendor-led marketplaces</p>
+    </header>
+  
+    <!-- Hero -->
+    <section style="padding:50px 20px;text-align:center;background:#fff;">
+      <h2 style="font-size:32px;margin-bottom:20px;">Powering Vendors. Delighting Buyers.</h2>
+      <p style="max-width:700px;margin:0 auto 30px auto;font-size:18px;">
+        VendPlug is more than a marketplace — it’s a platform that empowers vendors with tools for growth, ensures 
+        buyers enjoy trust and convenience, and guarantees complete payout transparency. Whether you sell or shop, 
+        VendPlug works for you.
+      </p>
+      <a href="#vendor" style="background:#111;color:#fff;padding:12px 25px;text-decoration:none;border-radius:6px;">Learn More</a>
+    </section>
+  
+  
+    <!-- Buyer Section -->
+    <section id="buyer" style="padding:60px 20px;background:#fff;text-align:center;">
+      <h2 style="font-size:28px;margin-bottom:20px;">For Buyers</h2>
+      <p style="max-width:700px;margin:0 auto 40px auto;font-size:17px;">
+        Shopping made seamless. With VendPlug, buyers get choice, trust, and control every step of the way.
+      </p>
+      <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:20px;">
+        <div style="flex:1;min-width:250px;max-width:300px;background:#f9f9f9;padding:20px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.05);">
+          <h3>Discover Products</h3>
+          <p>Browse across vendors, categories, and states — with smart filters for faster discovery.</p>
+        </div>
+        <div style="flex:1;min-width:250px;max-width:300px;background:#f9f9f9;padding:20px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.05);">
+          <h3>Track Orders</h3>
+          <p>From cart to doorstep, stay updated on every order’s journey in real-time.</p>
+        </div>
+        <div style="flex:1;min-width:250px;max-width:300px;background:#f9f9f9;padding:20px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.05);">
+          <h3>Safe Payments</h3>
+          <p>Your money is held securely until you confirm delivery. No delivery, no release.</p>
+        </div>
+      </div>
+    </section>
+  <section id="buyers">
+    <h2>For Buyers</h2>
+    <p style="text-align:center; max-width:800px; margin:auto;">Shop conveniently from multiple vendors, create carts, and track orders in real time. Pay securely through escrow and confirm when your delivery arrives – your satisfaction is guaranteed.</p>
+  </section>
+
+
+
+  <section id="how">
+    <h2>How It Works</h2>
+    <div class="grid">
+      <div class="card"><h3>1. Vendors Upload</h3><p>Vendors upload and manage their products on VendPlug.</p></div>
+      <div class="card"><h3>2. Buyers Order</h3><p>Buyers browse, add to cart, and checkout with ease.</p></div>
+      <div class="card"><h3>4. Payouts</h3><p>Once delivery is confirmed, escrow releases payment to vendors and agents.</p></div>
+    </div>
+  </section>
+  <!-- Vendor Section -->
+  <section id="vendor" style="padding:60px 20px;background:#f3f3f3;text-align:center;">
+    <h2 style="font-size:28px;margin-bottom:20px;">For Vendors</h2>
+    <p style="max-width:700px;margin:0 auto 40px auto;font-size:17px;">
+      Sell smarter, not harder. VendPlug equips vendors with everything needed to grow, manage, and scale their businesses.
+    </p>
+    <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:20px;">
+      <div style="flex:1;min-width:250px;max-width:300px;background:#fff;padding:20px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.1);">
+        <h3>Simple Store Setup</h3>
+        <p>Upload products, manage categories, and showcase your offerings effortlessly.</p>
+      </div>
+      <div style="flex:1;min-width:250px;max-width:300px;background:#fff;padding:20px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.1);">
+        <h3>Real-Time Orders</h3>
+        <p>Receive and respond to buyer orders instantly with smart notifications.</p>
+      </div>
+      <div style="flex:1;min-width:250px;max-width:300px;background:#fff;padding:20px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.1);">
+        <h3>Escrow Protection</h3>
+        <p>Payments are secured in escrow until buyers confirm delivery. Zero risks, only trust.</p>
+      </div>
+    </div>
+  </section>
+  
+
+  <section id="vendors">
+    <h2>For Vendors</h2>
+    <p style="text-align:center; max-width:800px; margin:auto;">Upload your products, manage stock, set prices, and get paid quickly. With built-in order management and transparent payout tracking, VendPlug puts vendors in control of their business like never before.</p>
+  </section>
+
+    <!-- Features -->
+    <section style="padding:60px 20px; background:#f0f0f0; text-align:center;">
+      <h2 style="font-size:28px; margin-bottom:40px;">Why Vendors Love VendPlug</h2>
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap:30px; max-width:1000px; margin:0 auto;">
+        <div style="background:#fff; padding:20px; border-radius:12px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">
+          <h3 style="color:#111;">📦 Vendor Control</h3>
+          <p>Vendors upload, edit, and manage their products with full flexibility.</p>
+        </div>
+        <div style="background:#fff; padding:20px; border-radius:12px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">
+          <h3 style="color:#111;">🤝 Escrow Payments</h3>
+          <p>Buyers pay upfront. Funds are held securely until delivery is confirmed.</p>
+        </div>
+        <div style="background:#fff; padding:20px; border-radius:12px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">
+          <h3 style="color:#111;">📍 Location Based</h3>
+          <p>Vendors and buyers can connect locally or across states, with smart location filters.</p>
+        </div>
+        <div style="background:#fff; padding:20px; border-radius:12px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">
+          <h3 style="color:#111;">📊 Growth Insights</h3>
+          <p>Track sales, performance, and payouts with real-time dashboards.</p>
+        </div>
+      </div>
+    </section>
+
+
+
+    <!-- Hero -->
+    <section style="padding:60px 20px; text-align:center; background:#fff;">
+      <h2 style="font-size:32px; margin-bottom:20px; color:#111;">Sell Smarter. Get Paid Faster.</h2>
+      <p style="font-size:18px; max-width:700px; margin:0 auto;">
+        VendPlug is the vendor-first marketplace that connects you with real buyers, 
+        guarantees secure payments through escrow, and ensures you always get paid on time.
+      </p>
+      <button style="margin-top:30px; padding:15px 30px; background:#111; color:#fff; border:none; border-radius:8px; font-size:16px; cursor:pointer;">
+        Join as a Vendor
+      </button>
+    </section>
+
+  <section style="padding:60px 20px; background:#f9f9f9;">
+    <div style="max-width:1100px; margin:0 auto; text-align:center;">
+      <h2 style="font-size:32px; margin-bottom:20px; color:#111;">The VendPlug Agent Platform</h2>
+      <p style="font-size:18px; line-height:1.6; color:#333; margin-bottom:40px;">
+        To appreciate VendPlug agents, one must understand a reality often invisible to the rest of the world. 
+        In Nigeria, shopping is more than commerce — it’s an adventure through open-air markets that fuel daily life. 
+        These markets are vibrant but chaotic, lacking digital infrastructure, transparency, and safety nets. 
+        VendPlug agents are changing that.
+      </p>
+  
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px,1fr)); gap:30px; text-align:left;">
+        
+        <div style="background:#fff; padding:25px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.05);">
+          <h3 style="font-size:22px; color:#111; margin-bottom:15px;">Digitizing Local Markets</h3>
+          <p style="font-size:16px; line-height:1.6; color:#555;">
+            Agents live inside the local markets, bridging the gap between offline stalls and online buyers. 
+            They upload product prices, create listings, and ensure local vendors are visible to the entire country. 
+            From food staples like rice and tomatoes to electronics and fabrics — agents bring Nigeria’s informal markets online.
+          </p>
+        </div>
+  
+        <div style="background:#fff; padding:25px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.05);">
+          <h3 style="font-size:22px; color:#111; margin-bottom:15px;">Empowered Earners</h3>
+          <p style="font-size:16px; line-height:1.6; color:#555;">
+            When buyers place orders, VendPlug creates a list that goes to the agent pool. 
+            Agents accept these requests, purchase from vendors, and earn commissions through transparent escrow payments. 
+            This model transforms agents into trusted commerce enablers, not just delivery intermediaries.
+          </p>
+        </div>
+  
+        <div style="background:#fff; padding:25px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.05);">
+          <h3 style="font-size:22px; color:#111; margin-bottom:15px;">Trusted, Transparent, and Scalable</h3>
+          <p style="font-size:16px; line-height:1.6; color:#555;">
+            Every transaction flows through the VendPlug wallet, ensuring trust and transparency. 
+            Escrow protects both buyers and vendors, while agents build reputations based on performance and reliability. 
+            Whether serving their immediate neighborhood or expanding across states, there’s no limit to an agent’s reach.
+          </p>
+        </div>
+  
+      </div>
+  
+      <div style="margin-top:50px;">
+        <h3 style="font-size:24px; margin-bottom:15px; color:#111;">Agents Are More Than Delivery</h3>
+        <p style="font-size:18px; line-height:1.6; color:#333; max-width:800px; margin:0 auto;">
+          VendPlug agents are the lifeblood of our ecosystem. 
+          They are not just moving goods — they are digitizing Nigeria’s markets, making commerce safe, fast, and limitless. 
+          With VendPlug, an agent isn’t just a worker — they are entrepreneurs, community connectors, 
+          and pioneers bringing the most local parts of the economy into the digital age.
+        </p>
+      </div>
+    </div>
+  </section>
+
+</body>
+</html>
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VendPlug - Smart Vendor Marketplace</title>
+</head>
+<body style="margin:0; font-family: Arial, sans-serif; background:#f9f9f9; color:#333;">
+
+  <!-- Header -->
+  <header style="background:#111; color:#fff; padding:20px; text-align:center;">
+    <h1 style="margin:0; font-size:28px;">VendPlug</h1>
+    <p style="margin:5px 0 0; font-size:16px;">Smart Vendor Marketplace – Built for Transparency, Growth & Trust</p>
+  </header>
+
+
+
+
+
+  <!-- Transparency & Payout -->
+  <section style="padding:60px 20px; background:#fff; text-align:center;">
+    <h2 style="font-size:28px; margin-bottom:30px;">💰 Payout & Transparency</h2>
+    <p style="font-size:18px; max-width:800px; margin:0 auto 40px;">
+      VendPlug is built with trust at its core. Every transaction goes through a transparent process:
+    </p>
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:30px; max-width:1000px; margin:0 auto;">
+      <div style="background:#f9f9f9; padding:20px; border-radius:12px; border:1px solid #ddd;">
+        <h3 style="color:#111;">1. Buyer Pays</h3>
+        <p>Funds are secured in escrow as soon as an order is placed.</p>
+      </div>
+      <div style="background:#f9f9f9; padding:20px; border-radius:12px; border:1px solid #ddd;">
+        <h3 style="color:#111;">2. Vendor Delivers</h3>
+        <p>You fulfill the order knowing your payment is safe and guaranteed.</p>
+      </div>
+      <div style="background:#f9f9f9; padding:20px; border-radius:12px; border:1px solid #ddd;">
+        <h3 style="color:#111;">3. Buyer Confirms</h3>
+        <p>Once the buyer confirms receipt, the payment is released automatically.</p>
+      </div>
+      <div style="background:#f9f9f9; padding:20px; border-radius:12px; border:1px solid #ddd;">
+        <h3 style="color:#111;">4. Instant Payout</h3>
+        <p>Funds move directly into your wallet, ready for withdrawal.</p>
+      </div>
+    </div>
+    <p style="margin-top:40px; font-size:16px; color:#555;">
+      No hidden charges. No delays. Just fair, transparent, and timely payouts.
+    </p>
+  </section>
+
+  <!-- Call to Action -->
+  <section style="padding:60px 20px; background:#111; color:#fff; text-align:center;">
+    <h2 style="font-size:28px; margin-bottom:20px;">Ready to Grow with VendPlug?</h2>
+    <p style="font-size:18px; margin:0 auto 30px; max-width:700px;">
+      Join thousands of vendors redefining how businesses sell and scale online.
+    </p>
+    <button style="padding:15px 30px; background:#fff; color:#111; border:none; border-radius:8px; font-size:16px; cursor:pointer;">
+      Get Started Today
+    </button>
+  </section>
+
+  <!-- Footer -->
+  <footer style="background:#222; color:#aaa; padding:20px; text-align:center; font-size:14px;">
+    <p style="margin:5px 0;">&copy; 2025 VendPlug. All Rights Reserved.</p>
+    <p style="margin:5px 0;">Made for Vendors. Built on Trust.</p>
+  </footer>
+
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>VendPlug - Vendor & Buyer Marketplace</title>
+</head>
+<body style="margin:0;font-family:Arial, sans-serif;line-height:1.6;background:#f9f9f9;color:#333;">
+
+
+
+  <!-- Payout Transparency Section -->
+  <section style="padding:60px 20px;background:#f3f3f3;text-align:center;">
+    <h2 style="font-size:28px;margin-bottom:20px;">Payouts & Transparency</h2>
+    <p style="max-width:700px;margin:0 auto 40px auto;font-size:17px;">
+      Trust is at the core of VendPlug. Vendors and buyers can both see where money is at every stage.
+    </p>
+    <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:20px;">
+      <div style="flex:1;min-width:250px;max-width:300px;background:#fff;padding:20px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.1);">
+        <h3>Live Payout Tracking</h3>
+        <p>Vendors know exactly when payments move from pending to ready-for-payout to completed.</p>
+      </div>
+      <div style="flex:1;min-width:250px;max-width:300px;background:#fff;padding:20px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.1);">
+        <h3>Zero Hidden Fees</h3>
+        <p>Clear commissions and no surprises. What you earn is what you see.</p>
+      </div>
+      <div style="flex:1;min-width:250px;max-width:300px;background:#fff;padding:20px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.1);">
+        <h3>Buyer Confidence</h3>
+        <p>Buyers confirm receipt before vendors are paid. Fair for both sides.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Call to Action -->
+  <section style="padding:60px 20px;text-align:center;background:#111;color:#fff;">
+    <h2 style="font-size:28px;margin-bottom:20px;">Be Part of the Marketplace Revolution</h2>
+    <p style="max-width:700px;margin:0 auto 30px auto;font-size:18px;">
+      Whether you’re a vendor looking to scale or a buyer seeking trust and convenience — VendPlug is built for you.
+    </p>
+    <a href="#vendor" style="background:#fff;color:#111;padding:12px 25px;text-decoration:none;border-radius:6px;">Join VendPlug Today</a>
+  </section>
+  <!-- Agent Platform Section -->
+
+
+
+  <!-- Footer -->
+  <footer style="padding:20px;background:#222;color:#aaa;text-align:center;font-size:14px;">
+    <p>&copy; 2025 VendPlug. All rights reserved.</p>
+  </footer>
+
+</body>
+</html>
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VendPlug - Vendor-led Marketplace</title>
+</head>
+<body style="margin:0;font-family:Arial,Helvetica,sans-serif;line-height:1.6;color:#333;">
+
+  <!-- Hero Section -->
+  <section style="padding:60px 20px;text-align:center;background:#111;color:#fff;">
+    <h1 style="font-size:2.5em;margin-bottom:20px;">VendPlug</h1>
+    <p style="max-width:700px;margin:0 auto;font-size:1.2em;">
+      The first truly vendor-led marketplace built for Africa. Vendors upload products, manage sales, and receive transparent payouts, while buyers shop confidently with full visibility and protection.
+    </p>
+    <a href="#vendors" style="display:inline-block;margin-top:25px;padding:12px 24px;background:#f7931e;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;">Get Started</a>
+  </section>
+
+  <!-- Vendors Section -->
+  <section id="vendors" style="padding:60px 20px;background:#f9f9f9;">
+    <h2 style="text-align:center;font-size:2em;margin-bottom:40px;">For Vendors</h2>
+    <div style="max-width:1000px;margin:0 auto;">
+      <p style="margin-bottom:20px;">VendPlug puts vendors at the heart of commerce. With tools designed to give you control:</p>
+      <ul style="list-style:none;padding:0;max-width:700px;margin:0 auto;">
+        <li style="padding:10px 0;">📦 Upload and manage your products easily</li>
+        <li style="padding:10px 0;">💵 Transparent payouts and no hidden fees</li>
+        <li style="padding:10px 0;">📊 Vendor dashboard with full visibility of orders and revenue</li>
+        <li style="padding:10px 0;">🤝 Build direct relationships with buyers</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Payout Transparency Section -->
+  <section style="padding:60px 20px;background:#fff;">
+    <h2 style="text-align:center;font-size:2em;margin-bottom:40px;">Payouts & Transparency</h2>
+    <div style="max-width:1000px;margin:0 auto;">
+      <p style="margin-bottom:20px;">We’ve redefined how vendors get paid. No guesswork, no black box:</p>
+      <ul style="list-style:none;padding:0;max-width:700px;margin:0 auto;">
+        <li style="padding:10px 0;">✔️ Every sale is tracked in real time</li>
+        <li style="padding:10px 0;">✔️ Buyers confirm receipt before payouts move to "Ready"</li>
+        <li style="padding:10px 0;">✔️ Vendors view their queue, ready-for-payout list, and history clearly</li>
+        <li style="padding:10px 0;">✔️ Automated clearing ensures no duplicates or delays</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Buyers Section -->
+  <section style="padding:60px 20px;background:#f9f9f9;">
+    <h2 style="text-align:center;font-size:2em;margin-bottom:40px;">For Buyers</h2>
+    <div style="max-width:1000px;margin:0 auto;">
+      <p style="margin-bottom:20px;">Shopping on VendPlug is designed for trust and convenience:</p>
+      <ul style="list-style:none;padding:0;max-width:700px;margin:0 auto;">
+        <li style="padding:10px 0;">🛒 Intuitive browsing across multiple vendors</li>
+        <li style="padding:10px 0;">📍 Add delivery locations with ease</li>
+        <li style="padding:10px 0;">🔔 Real-time order updates and notifications</li>
+        <li style="padding:10px 0;">💳 Secure payments held in escrow until you confirm delivery</li>
+        <li style="padding:10px 0;">🤝 Confidence knowing your money is protected until order completion</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Admin Section -->
+  <section style="padding:60px 20px;background:#fff;">
+    <h2 style="text-align:center;font-size:2em;margin-bottom:40px;">For Admins</h2>
+    <div style="max-width:1000px;margin:0 auto;">
+      <p style="margin-bottom:20px;">Behind the scenes, VendPlug’s admin platform ensures everything runs smoothly, fairly, and transparently:</p>
+      <ul style="list-style:none;padding:0;max-width:700px;margin:0 auto;">
+        <li style="padding:10px 0;">🔎 Monitor transactions across vendors and buyers</li>
+        <li style="padding:10px 0;">⚖️ Resolve disputes with full data visibility</li>
+        <li style="padding:10px 0;">📊 Manage platform-wide analytics and growth insights</li>
+        <li style="padding:10px 0;">💼 Enforce compliance and fair marketplace practices</li>
+        <li style="padding:10px 0;">🔔 Track and oversee payouts to ensure transparency</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer style="padding:40px 20px;text-align:center;background:#111;color:#fff;">
+    <p>&copy; 2025 VendPlug. Built for vendors. Trusted by buyers.</p>
+  </footer>
+
 </body>
 </html>

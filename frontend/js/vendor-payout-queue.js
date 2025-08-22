@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Fetch vendor payout queue (orders with status = pending_receipt)
   async function fetchPayoutQueue() {
     try {
-      const response = await fetch("http://localhost:5012/api/vendor-payout/queue", {
+      const response = await fetch("http://localhost:5000/api/vendor-payout/queue", {
         method: "GET",
         headers: {
           "Authorization": `Bearer ${token}`,

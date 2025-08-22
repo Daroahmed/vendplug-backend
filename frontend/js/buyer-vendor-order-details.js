@@ -36,7 +36,7 @@ async function fetchOrderDetails(id) {
 }
 
 function renderOrderDetails(order) {
-  const vendorName = order.vendor?.shopName || "Unknown Vendor";
+  const vendorName = order.vendor || "Unknown Vendor";
   const statuses = ["pending", "accepted", "preparing", "out_for_delivery", "delivered"];
   const currentIndex = statuses.indexOf(order.status);
 

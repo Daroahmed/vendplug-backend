@@ -4,59 +4,260 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>VendPlug | Vendor Shops</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     :root {
-      --primary-color: #00cc99;
-      --accent-color: #00cc99;
-      --bg-color: #121212;
-      --text-color: #ffffff;
-      --card-bg: #1e1e1e;
+      --primary: #00cc99;
+      --bg-dark: #121212;
+      --bg-card: #1e1e1e;
+      --bg-secondary: #2c2c2c;
+      --text-light: #fff;
+      --muted: #aaa;
+      --accent: #00cc99;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
 
     body {
       font-family: 'Segoe UI', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-light);
       margin: 0;
-      background-color: var(--bg-color);
-      color: var(--text-color);
+      padding-top: 70px;
     }
 
-    .shop-page {
+    /* Header Styles */
+    .header {
+      background-color: var(--bg-card);
       padding: 1rem;
-      max-width: 1100px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .menu-toggle {
+      background: none;
+      border: none;
+      color: var(--text-light);
+      font-size: 1.5rem;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+
+    .logo {
+      width: 40px;
+      height: 40px;
+      background-color: var(--primary);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 20px;
+    }
+
+    .header h1 {
+      font-size: 1.5rem;
+      color: var(--primary);
+      margin: 0;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .cart-icon {
+      color: var(--text-light);
+      font-size: 1.2rem;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+
+    .cart-count {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background-color: var(--primary);
+      color: #000;
+      font-size: 0.7rem;
+      font-weight: bold;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Hamburger Menu */
+    .menu-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 999;
+      display: none;
+    }
+
+    .side-menu {
+      position: fixed;
+      top: 0;
+      left: -300px;
+      width: 300px;
+      height: 100%;
+      background: var(--bg-card);
+      z-index: 1000;
+      padding: 1.5rem;
+      overflow-y: auto;
+      transition: left 0.3s ease;
+    }
+
+    .side-menu.active {
+      left: 0;
+    }
+
+    .menu-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .menu-header h3 {
+      color: var(--primary);
+    }
+
+    .close-menu {
+      background: none;
+      border: none;
+      color: var(--text-light);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .menu-section {
+      margin-bottom: 1.5rem;
+    }
+
+    .menu-section h4 {
+      color: var(--primary);
+      margin-bottom: 0.8rem;
+      font-size: 1rem;
+    }
+
+    .menu-links {
+      list-style: none;
+    }
+
+    .menu-links li {
+      margin-bottom: 0.5rem;
+    }
+
+    .menu-links a {
+      display: block;
+      padding: 0.8rem 1rem;
+      color: var(--text-light);
+      text-decoration: none;
+      border-radius: 8px;
+      transition: all 0.3s;
+    }
+
+    .menu-links a:hover {
+      background: var(--bg-secondary);
+      color: var(--primary);
+    }
+
+    /* Main Content */
+    .shop-page {
+      padding: 1.5rem;
+      max-width: 1200px;
       margin: 0 auto;
     }
 
-    h2 {
-      margin-top: 2rem;
-      color: var(--primary-color);
+    /* Search and Filters */
+    .search-container {
+      background: var(--bg-card);
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     }
 
-    input[type="search"] {
+    .search-box {
       width: 100%;
-      padding: 10px;
-      margin: 1rem 0;
+      padding: 0.9rem 1rem;
+      border-radius: 8px;
       border: none;
-      border-radius: 4px;
-      background-color: #2c2c2c;
-      color: white;
+      font-size: 1rem;
+      background-color: var(--bg-secondary);
+      color: var(--text-light);
+      margin-bottom: 1rem;
     }
 
-    select {
-      padding: 8px;
-      margin-bottom: 1rem;
-      margin-left: 0.5rem;
+    .filters {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .filter-label {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .filter-select {
+      padding: 0.6rem;
+      border-radius: 6px;
       border: none;
-      border-radius: 4px;
-      background-color: #2c2c2c;
-      color: white;
+      background-color: var(--bg-secondary);
+      color: var(--text-light);
+    }
+
+    /* Vendor Sections */
+    .section-title {
+      color: var(--primary);
+      margin: 2rem 0 1rem;
+      font-size: 1.5rem;
     }
 
     .horizontal-carousel {
       display: flex;
       overflow-x: auto;
-      gap: 1rem;
-      padding-bottom: 1rem;
+      gap: 1.2rem;
+      padding: 0.5rem 0.5rem 1.5rem;
       scroll-snap-type: x mandatory;
+      margin-bottom: 2rem;
     }
 
     .horizontal-carousel::-webkit-scrollbar {
@@ -64,193 +265,511 @@
     }
 
     .horizontal-carousel::-webkit-scrollbar-thumb {
-      background-color: var(--accent-color);
+      background-color: var(--primary);
       border-radius: 4px;
     }
 
     .vendor-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
       gap: 1.5rem;
+      margin-bottom: 2rem;
     }
 
     .vendor-card {
-      background-color: var(--card-bg);
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.5);
-      padding: 1rem;
-      text-align: center;
-      transition: transform 0.2s;
+      background: var(--bg-card);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      transition: transform 0.3s;
+      cursor: pointer;
     }
 
     .vendor-card:hover {
       transform: translateY(-5px);
     }
 
-    .vendor-card img {
+    .vendor-image {
       width: 100%;
-      height: 140px;
+      height: 160px;
       object-fit: cover;
-      border-radius: 6px;
     }
 
-    .vendor-card h3 {
-      margin: 0.5rem 0 0.3rem;
-      color: var(--primary-color);
+    .vendor-info {
+      padding: 1.2rem;
     }
 
-    .vendor-card p {
+    .vendor-info h3 {
+      margin: 0 0 0.5rem;
+      color: var(--primary);
+      font-size: 1.1rem;
+    }
+
+    .vendor-details {
+      color: var(--muted);
       font-size: 0.9rem;
       margin-bottom: 0.5rem;
-      color: #ccc;
     }
 
-    .vendor-card button {
-      margin: 0.3rem 4px;
-      padding: 6px 12px;
-      background-color: var(--accent-color);
-      color: black;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.85rem;
+    .transaction-count {
+      color: var(--primary);
       font-weight: bold;
+      margin-bottom: 1rem;
     }
 
-    .vendor-card button:hover {
-      background-color: #00b388;
+    .view-shop-btn {
+      display: block;
+      width: 100%;
+      padding: 0.7rem;
+      background-color: var(--primary);
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .view-shop-btn:hover {
+      background-color: var(--accent);
+    }
+
+    /* Loading Spinner */
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 3rem;
     }
 
     .spinner {
-      text-align: center;
-      padding: 1rem;
-      color: var(--accent-color);
-      display: none;
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      border-top: 4px solid var(--primary);
+      animation: spin 1s linear infinite;
     }
 
-    @media (max-width: 500px) {
-      .vendor-card button {
-        display: block;
-        margin: 0.4rem auto;
+    .no-results, .error {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .vendor-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+      }
+      
+      .filters {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .filter-group {
+        width: 100%;
+        justify-content: space-between;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .header h1 {
+        font-size: 1.2rem;
+      }
+      
+      .vendor-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .shop-page {
+        padding: 1rem;
       }
     }
   </style>
 </head>
 <body>
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-container">
+      <button class="menu-toggle" id="menuToggle">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div class="logo"></div>
+      <h1>Vendor Shops</h1>
+    </div>
+    
+    <div class="header-actions">
+      <a href="buyer-vendor-checkout.html" class="cart-icon">
+        <i class="fas fa-shopping-cart"></i>
+        <span class="cart-count" id="cartCount">0</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Hamburger Menu -->
+  <div class="menu-overlay" id="menuOverlay"></div>
+  <div class="side-menu" id="sideMenu">
+    <div class="menu-header">
+      <h3>Menu</h3>
+      <button class="close-menu" id="closeMenu">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="menu-section">
+      <h4>AGENTS</h4>
+      <ul class="menu-links">
+        <li><a href="buyer-agent-cart.html"><i class="fas fa-shopping-cart"></i> Cart</a></li>
+        <li><a href="buyer-agent-orders.html"><i class="fas fa-clipboard-list"></i> Orders</a></li>
+        <li><a href="buyer-agent-payout-history.html"><i class="fas fa-history"></i> Order History</a></li>
+        <li><a href="buyer-list.html"><i class="fas fa-list"></i> Custom List</a></li>
+      </ul>
+    </div>
+
+    <div class="menu-section">
+      <h4>VENDORS</h4>
+      <ul class="menu-links">
+        <li><a href="buyer-vendor-checkout.html"><i class="fas fa-shopping-cart"></i> Cart</a></li>
+        <li><a href="buyer-vendor-orders.html"><i class="fas fa-clipboard-list"></i> Orders</a></li>
+        <li><a href="buyer-payout-history.html"><i class="fas fa-history"></i> Order History</a></li>
+      </ul>
+    </div>
+
+    <div class="menu-section">
+      <ul class="menu-links">
+        <li><a href="buyer-wallet.html"><i class="fas fa-wallet"></i> Wallet</a></li>
+        <li><a href="buyer-profile.html"><i class="fas fa-user"></i> Profile</a></li>
+        <li><a href="support.html"><i class="fas fa-headset"></i> Support & Disputes</a></li>
+        <li><a href="buyer-auth.html"><i class="fas fa-sign-out-alt"></i> Sign Out</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Main Content -->
   <div class="shop-page">
-    <input type="search" id="searchBox" placeholder="Search vendors..." />
+    <!-- Search and Filters -->
+    <div class="search-container">
+      <input type="search" class="search-box" id="searchBox" placeholder="Search vendors..." />
+      
+      <div class="filters">
+        <div class="filter-group">
+          <span class="filter-label">State:</span>
+          <select class="filter-select" id="stateFilter">
+            <option value="FCT">FCT</option>
+            <option value="Lagos">Lagos</option>
+            <option value="Abuja">Abuja</option>
+            <option value="Kano">Kano</option>
+            <option value="Rivers">Rivers</option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <span class="filter-label">Category:</span>
+          <select class="filter-select" id="categoryFilter">
+                <!-- Everyday Essentials -->
+        <option value="Supermarkets/Groceries and Provisions">Supermarkets/Groceries and Provisions</option>
+        <option value="Soft Drinks & Water">Soft Drinks & Water</option>
+        <option value="Kitchen Utensils & Plastics">Kitchen Utensils & Plastics</option>
+        <option value="Gas Plants">Gas Plants</option>
+        <option value="Fruits & Vegetables">Fruits & Vegetables</option>
+        <option value="Grains">Grains</option>
+      
+        <!-- Meat & Animal Products -->
+        <option value="Suya & Balango">Suya & Balango</option>
+        <option value="Raw Meat Sellers">Raw Meat Sellers</option>
+        <option value="Poultry (Chicken, Eggs, Turkey)">Poultry (Chicken, Eggs, Turkey)</option>
+        <option value="Livestock (Goat, Ram, Cow)">Livestock (Goat, Ram, Cow)</option>
+        <option value="Fish & Seafood">Fish & Seafood</option>
+      
+        <!-- Food & Hospitality -->
+        <option value="Restaurants">Restaurants</option>
+        <option value="Catering & Small Chops">Catering & Small Chops</option>
+        <option value="Hotels & Apartments">Hotels & Apartments</option>
+        <option value="Event Rentals (Canopies, Chairs)">Event Rentals (Canopies, Chairs)</option>
+      
+        <!-- Fashion & Lifestyle -->
+        <option value="Boutiques">Boutiques</option>
+        <option value="Thrift / Okrika / Gonjo">Thrift / Okrika / Gongo</option>
+        <option value="Tokunbo / Belguim Products">Tokunbo / Belguim Products</option>
+        <option value="Shoes and Bags">Shoes and Bags</option>
+        <option value="Jewelry & Accessories">Jewelry & Accessories</option>
+        <option value="Tailoring & Fashion Design">Tailoring & Fashion Design</option>
+        <option value="Textiles & Fabrics">Textiles & Fabrics</option>
+        <option value="Wigs & Hair">Wigs & Hair</option>
+        <option value="Cosmetics & Skincare">Cosmetics & Skincare</option>
+        <option value="Perfumes / Fragrances / incense">Perfumes & Fragrances</option>
+        <option value="Nigerian Caps e.g. Zana">Nigerian Caps e.g. Zana</option>
+      
+        <!-- Home & Living -->
+        <option value="Furniture">Furniture</option>
+        <option value="Home Appliances">Home Appliances</option>
+        <option value="Interior Decor & Curtains">Interior Decor & Curtains</option>
+        <option value="Cleaning Services">Cleaning Services</option>
+        <option value="Flowers & Gardens">Flowers & Gardens</option>
+      
+        <!-- Building & Construction -->
+        <option value="Building Materials">Building Materials</option>
+        <option value="Aluminium & Roofing">Aluminium & Roofing</option>
+        <option value="Cement, Blocks & Interlock">Cement, Blocks & Interlock</option>
+        <option value="Gravel, Sharp Sand & Quarry">Gravel, Sharp Sand & Quarry</option>
+        <option value="Electrical Supplies">Electrical Supplies</option>
+        <option value="Plumbing Materials">Plumbing Materials</option>
+        <option value="Tiles & Paints">Tiles & Paints</option>
+        <option value="Metal & Iron Works">Metal & Iron Works</option>
+        <option value="Carpenters & Artisans">Carpenters & Artisans</option>
+      
+        <!-- Health & Beauty -->
+        <option value="Pharmacy & Patent Stores">Pharmacy & Patent Stores</option>
+        <option value="Hospital & Medical Equipment">Hospital & Medical Equipment</option>
+        <option value="Herbal Medicine">Herbal Medicine</option>
+        <option value="Maternity & Clinics">Maternity & Clinics</option>
+        <option value="Fitness & Supplements">Fitness & Supplements</option>
+      
+        <!-- Electronics & Gadgets -->
+        <option value="Phones & Accessories / Laptops & Computers">Phones & Accessories / Laptops & Computers</option>
+        <option value="Solar & Inverters">Solar & Inverters</option>
+        <option value="CCTV & Security Devices">CCTV & Security Devices</option>
+        <option value="Home Appliances">Home Appliances</option>
+        <option value="Game Consoles & Accessories">Game Consoles & Accessories</option>
+      
+        <!-- Office & Services -->
+        <option value="Printing Press">Printing Press</option>
+        <option value="Stationery & Office Supplies">Stationery & Office Supplies</option>
+        <option value="Internet & Data Services">Internet & Data Services</option>
+        <option value="Freelancers & Digital Services">Freelancers & Digital Services</option>
+      
+        <!-- Auto & Transport -->
+        <option value="Car Dealers / Tokunbo Cars">Car Dealers / Tokunbo Cars</option>
+        <option value="Car Spare Parts">Car Spare Parts</option>
+        <option value="Auto Mechanics">Auto Mechanics</option>
+        <option value="Tyres, Batteries & Accessories">Tyres, Batteries & Accessories</option>
+        <option value="Car Wash & Detailing">Car Wash & Detailing</option>
+      
+        <!-- Laundry & Cleaning -->
+        <option value="Laundry Services">Laundry Services</option>
+        <option value="Dry Cleaning">Dry Cleaning</option>
+        <option value="House Cleaning">House Cleaning</option>
+      
+        <!-- Agriculture -->
+        <option value=" Animal Feed & Supplements">Animal Feed & Supplements</option>
+        <option value="Fish Farming">Fish Farming</option>
+      
+        <!-- Pets -->
+        <option value="Pets (Dogs, Cats, Birds)">Pets (Dogs, Cats, Birds)</option>
+        <option value="Pet Food & Accessories">Pet Food & Accessories</option>
+        <option value="Veterinary Clinics">Veterinary Clinics</option>
+        <option value="Pet Grooming">Pet Grooming</option>
+      
+        <!-- Real Estate -->
+        <option value="Real Estate Agents">Real Estate Agents</option>
+        <option value="Rentals & Sales">Rentals & Sales</option>
+        <option value="Facility Management">Facility Management</option>
+        <option value="Movers & Packers">Movers & Packers</option>
+      
+        <!-- Professional -->
+        <option value="Legal Services">Legal Services</option>
+        <option value="Accounting & Tax">Accounting & Tax</option>
+        <option value="Private Tutors">Private Tutors</option>
+        <option value="Event Planners">Event Planners</option>
+        <option value="Photography & Videography">Photography & Videography</option>
+        <option value="Tech Repairs">Tech Repairs</option>
+      </select>
 
-    <label for="transactionFilter">Min Transactions:</label>
-    <select id="transactionFilter">
-      <option value="0">All</option>
-      <option value="10">10+</option>
-      <option value="50">50+</option>
-      <option value="100">100+</option>
-    </select>
 
-    <h2>Top Vendors</h2>
-    <div class="horizontal-carousel" id="topVendors"></div>
+            
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <span class="filter-label">Min Transactions:</span>
+          <select class="filter-select" id="transactionFilter">
+            <option value="0">All</option>
+            <option value="10">10+</option>
+            <option value="50">50+</option>
+            <option value="100">100+</option>
+          </select>
+        </div>
+      </div>
+    </div>
 
-    <h2>All Vendors</h2>
-    <div class="vendor-grid" id="vendorGrid"></div>
+    <!-- Top Vendors Section -->
+    <h2 class="section-title">Top Vendors</h2>
+    <div class="horizontal-carousel" id="topVendors">
+      <!-- Top vendors will be loaded here -->
+    </div>
 
-    <div id="spinner" class="spinner">Loading...</div>
+    <!-- All Vendors Section -->
+    <h2 class="section-title">All Vendors</h2>
+    <div class="vendor-grid" id="vendorGrid">
+      <!-- All vendors will be loaded here -->
+    </div>
+
+    <!-- Loading Spinner -->
+    <div class="loading" id="loadingSpinner">
+      <div class="spinner"></div>
+    </div>
   </div>
 
   <script>
-    window.BACKEND_URL = window.location.hostname === "localhost"
-      ? "http://localhost:5012"
+    // Menu functionality
+    const menuToggle = document.getElementById('menuToggle');
+    const closeMenu = document.getElementById('closeMenu');
+    const menuOverlay = document.getElementById('menuOverlay');
+    const sideMenu = document.getElementById('sideMenu');
+
+    function openMenu() {
+      sideMenu.classList.add('active');
+      menuOverlay.style.display = 'block';
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeMenuFunc() {
+      sideMenu.classList.remove('active');
+      menuOverlay.style.display = 'none';
+      document.body.style.overflow = 'auto';
+    }
+
+    menuToggle.addEventListener('click', openMenu);
+    closeMenu.addEventListener('click', closeMenuFunc);
+    menuOverlay.addEventListener('click', closeMenuFunc);
+
+    // Update cart count from localStorage
+    function updateCartCount() {
+      const cart = JSON.parse(localStorage.getItem('cart')) || [];
+      const totalItems = cart.reduce((total, item) => total + (item.quantity || 1), 0);
+      document.getElementById('cartCount').textContent = totalItems;
+    }
+
+    // Vendor data loading functionality
+    document.addEventListener('DOMContentLoaded', () => {
+      updateCartCount();
+      
+      // Set initial values for filters from localStorage or defaults
+      const stateFilter = document.getElementById('stateFilter');
+      const categoryFilter = document.getElementById('categoryFilter');
+      
+      const savedState = localStorage.getItem('vendplug-buyer-state') || 'FCT';
+      const savedCategory = localStorage.getItem('vendplug-category') || 'Groceries';
+      
+      stateFilter.value = savedState;
+      categoryFilter.value = savedCategory;
+      
+      // Load vendors
+      loadVendors();
+    });
+
+    // Backend URL configuration
+    window.BACKEND_URL = window.location.hostname === "localhost" 
+      ? "http://localhost:5000" 
       : "https://your-production-api.com";
-  
+
     const vendorGrid = document.getElementById("vendorGrid");
     const topVendorsEl = document.getElementById("topVendors");
-    const spinner = document.getElementById("spinner");
+    const loadingSpinner = document.getElementById("loadingSpinner");
     const searchBox = document.getElementById("searchBox");
     const transactionFilter = document.getElementById("transactionFilter");
-  
+    const stateFilter = document.getElementById("stateFilter");
+    const categoryFilter = document.getElementById("categoryFilter");
+
     let page = 1;
     const limit = 10;
     let loading = false;
     let reachedEnd = false;
-  
-    // ✅ Read from URL → localStorage → fallback
-    const params = new URLSearchParams(window.location.search);
-    let state = params.get("state") || localStorage.getItem("vendplug-buyer-state") || "FCT";
-    let category = params.get("category") || localStorage.getItem("vendplug-category") || "Groceries";
-  
-    // ✅ Save for next time
-    localStorage.setItem("vendplug-buyer-state", state);
-    localStorage.setItem("vendplug-category", category);
-  
     let search = "";
     let minTransactions = 0;
-  
+    let state = stateFilter.value;
+    let category = categoryFilter.value;
+
+    // Save filter preferences
+    function saveFilters() {
+      localStorage.setItem('vendplug-buyer-state', state);
+      localStorage.setItem('vendplug-category', category);
+    }
+
     async function loadTopVendors() {
       try {
         const res = await fetch(`${window.BACKEND_URL}/api/vendors/shop-vendors?state=${encodeURIComponent(state)}&category=${encodeURIComponent(category)}&limit=5&minTransactions=20`);
         const data = await res.json();
+        
+        if (!data || data.length === 0) {
+          topVendorsEl.innerHTML = '<p class="no-results">No top vendors found</p>';
+          return;
+        }
+        
         topVendorsEl.innerHTML = "";
         data.forEach(v => {
           topVendorsEl.innerHTML += vendorCardHTML(v, true);
         });
       } catch (err) {
         console.error("Top vendors fetch error:", err);
+        topVendorsEl.innerHTML = '<p class="error">Error loading top vendors</p>';
       }
     }
-  
+
     async function loadVendors(reset = false) {
       if (loading || reachedEnd) return;
       loading = true;
-      spinner.style.display = "block";
-  
+      loadingSpinner.style.display = "flex";
+
       if (reset) {
         page = 1;
         vendorGrid.innerHTML = "";
         reachedEnd = false;
       }
-  
+
       const url = `${window.BACKEND_URL}/api/vendors/shop-vendors?state=${encodeURIComponent(state)}&category=${encodeURIComponent(category)}&page=${page}&limit=${limit}&search=${encodeURIComponent(search)}&minTransactions=${minTransactions}`;
-  
+
       try {
         const res = await fetch(url);
         const data = await res.json();
-  
+
         if (data.length < limit) reachedEnd = true;
-        data.forEach(v => {
-          vendorGrid.innerHTML += vendorCardHTML(v);
-        });
-  
+        
+        if (data.length === 0 && page === 1) {
+          vendorGrid.innerHTML = '<p class="no-results">No vendors found</p>';
+        } else {
+          data.forEach(v => {
+            vendorGrid.innerHTML += vendorCardHTML(v);
+          });
+        }
+
         page++;
       } catch (err) {
         console.error("Vendor fetch error:", err);
+        vendorGrid.innerHTML = '<p class="error">Error loading vendors</p>';
       }
-  
-      spinner.style.display = "none";
+
+      loadingSpinner.style.display = "none";
       loading = false;
     }
-  
+
     function vendorCardHTML(v, isTop = false) {
       return `
-        <div class="vendor-card">
-          <img src="${v.brandImage || '/placeholder.jpg'}" alt="${v.shopName}" />
-          <h3>${v.shopName}</h3>
-          <p>${v.totalTransactions || 0} transactions</p>
-          <button onclick="viewShop('${v._id}')">View Shop</button>
+        <div class="vendor-card" onclick="viewShop('${v._id}')">
+          <img src="${v.brandImage || v.image || '/placeholder.jpg'}" alt="${v.shopName || v.businessName}" class="vendor-image" />
+          <div class="vendor-info">
+            <h3>${v.shopName || v.businessName}</h3>
+            <p class="vendor-details">${v.state} • ${v.category}</p>
+            <p class="transaction-count">${v.totalTransactions || 0} transactions</p>
+            <button class="view-shop-btn">View Shop</button>
+          </div>
         </div>
       `;
     }
-  
+
     function viewShop(id) {
       window.location.href = `/view-shop.html?vendor=${id}`;
     }
-  
-  
-    window.addEventListener("scroll", () => {
-      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300) {
-        loadVendors();
-      }
-    });
-  
+
+    // Event listeners for filters
     let debounceTimeout;
     searchBox.addEventListener("input", e => {
       clearTimeout(debounceTimeout);
@@ -259,16 +778,36 @@
         loadVendors(true);
       }, 500);
     });
-  
+
     transactionFilter.addEventListener("change", e => {
       minTransactions = e.target.value;
       loadVendors(true);
     });
-  
-    // 🔄 Initial load
+
+    stateFilter.addEventListener("change", e => {
+      state = e.target.value;
+      saveFilters();
+      loadTopVendors();
+      loadVendors(true);
+    });
+
+    categoryFilter.addEventListener("change", e => {
+      category = e.target.value;
+      saveFilters();
+      loadTopVendors();
+      loadVendors(true);
+    });
+
+    // Infinite scroll
+    window.addEventListener("scroll", () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300) {
+        loadVendors();
+      }
+    });
+
+    // Initial load
     loadTopVendors();
     loadVendors();
   </script>
-  
 </body>
 </html>

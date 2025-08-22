@@ -8,9 +8,12 @@ const { registerVendor, loginVendor } = require("../controllers/vendorAuthContro
 const { getVendorStats } = require('../controllers/vendorAuthController.js');
 const { getShopView, addVendorReview } = require('../controllers/vendorAuthController');
 const { getVendorsByCategoryAndState } = require('../controllers/vendorAuthController');
+const { updateVendorProfile } = require("../controllers/vendorAuthController");
 const {
   getVendorById,
 } = require('../controllers/vendorAuthController.js');
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' }); 
 
 // ✅ STATIC ROUTES FIRST
 router.get('/shop-vendors', asyncHandler(async (req, res) => {
@@ -73,8 +76,14 @@ router.post('/:vendorId/reviews', protectBuyer, addVendorReview);
 
 router.get('/by-category-and-state', getVendorsByCategoryAndState);
 
+router.put("/profile", protectVendor, upload.single("brandImage"), updateVendorProfile);
+
 
 module.exports = router;
+
+
+
+
 
 
 

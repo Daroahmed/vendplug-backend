@@ -20,7 +20,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     vendorProfileEl.innerHTML = `
-      <img src="${vendor.profilePicture || '/default-avatar.png'}" alt="Vendor Photo" />
       <div class="shop-info">
         <h2>${vendor.fullName}</h2>
         <p><strong>Phone:</strong> <a class="whatsapp-link" href="https://wa.me/${vendor.phoneNumber}" target="_blank">${vendor.phoneNumber}</a></p>

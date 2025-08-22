@@ -2,7 +2,7 @@
 const PayoutQueue = require("../models/payoutModel");
 const Wallet = require("../models/walletModel");
 const Transaction = require("../models/Transaction");
-const { createNotification } = require('./createNotification');
+const  createNotification  = require('./createNotification');
 
 /**
  * Sends a notification with Socket.IO + DB persist

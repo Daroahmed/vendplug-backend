@@ -42,6 +42,19 @@
       color: white;
     }
 
+    input[type="file"] {
+      padding: 6px;
+      background: #2c2c2c;
+      color: #bbb;
+    }
+
+    #brandPreview {
+      display: block;
+      margin-top: 10px;
+      max-width: 120px;
+      border-radius: 8px;
+    }
+
     button {
       margin-top: 20px;
       padding: 10px;
@@ -97,6 +110,13 @@
     <label for="cacNumber">CAC Number</label>
     <input type="text" id="cacNumber" />
 
+    <label for="shopDescription">Shop Description</label>
+    <input type="text" id="shopDescription" />
+
+    <label for="brandImage">Brand Image</label>
+    <input type="file" id="brandImage" accept="image/*" />
+    <img id="brandPreview" alt="Brand Preview" />
+
     <button onclick="updateProfile()">Save Changes</button>
 
     <div id="statusMsg" class="msg"></div>
@@ -115,6 +135,18 @@
 
     document.addEventListener("DOMContentLoaded", () => {
       loadProfile();
+
+      // Preview uploaded brand image
+      document.getElementById("brandImage").addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            document.getElementById("brandPreview").src = reader.result;
+          };
+          reader.readAsDataURL(file);
+        }
+      });
     });
 
     function loadProfile() {
@@ -125,25 +157,33 @@
       document.getElementById("businessAddress").value = vendor.businessAddress || "";
       document.getElementById("phoneNumber").value = vendor.phoneNumber || "";
       document.getElementById("cacNumber").value = vendor.cacNumber || "";
+      document.getElementById("shopDescription").value = vendor.shopDescription || "";
+      if (vendor.brandImage) {
+        document.getElementById("brandPreview").src = vendor.brandImage;
+      }
     }
 
     async function updateProfile() {
-      const updated = {
-        shopName: document.getElementById("shopName").value,
-        businessName: document.getElementById("businessName").value,
-        businessAddress: document.getElementById("businessAddress").value,
-        phoneNumber: document.getElementById("phoneNumber").value,
-        cacNumber: document.getElementById("cacNumber").value,
-      };
+      const formData = new FormData();
+      formData.append("shopName", document.getElementById("shopName").value);
+      formData.append("businessName", document.getElementById("businessName").value);
+      formData.append("businessAddress", document.getElementById("businessAddress").value);
+      formData.append("phoneNumber", document.getElementById("phoneNumber").value);
+      formData.append("cacNumber", document.getElementById("cacNumber").value);
+      formData.append("shopDescription", document.getElementById("shopDescription").value);
+
+      const brandFile = document.getElementById("brandImage").files[0];
+      if (brandFile) {
+        formData.append("brandImage", brandFile);
+      }
 
       try {
         const res = await fetch(`${BACKEND}/api/vendors/profile`, {
           method: "PUT",
           headers: {
-            "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify(updated),
+          body: formData,
         });
 
         const data = await res.json();

@@ -1,0 +1,293 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VendPlug – Vendor-led Marketplace</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background: #f9f9f9;
+    }
+    header {
+      background: #111;
+      color: #fff;
+      padding: 20px 40px;
+      text-align: center;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 2.5rem;
+      color: #00b894;
+    }
+    header p {
+      margin: 5px 0 0;
+      font-size: 1.1rem;
+    }
+    nav {
+      margin-top: 15px;
+    }
+    nav a {
+      color: #fff;
+      margin: 0 10px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    nav a:hover {
+      color: #00b894;
+    }
+    section {
+      padding: 60px 20px;
+      max-width: 1100px;
+      margin: auto;
+    }
+    h2 {
+      text-align: center;
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+      color: #111;
+    }
+    h3 {
+      color: #00b894;
+      font-size: 1.5rem;
+    }
+    .hero {
+      background: linear-gradient(to right, #111, #333);
+      color: #fff;
+      padding: 100px 20px;
+      text-align: center;
+    }
+    .hero h1 {
+      font-size: 3rem;
+      margin-bottom: 20px;
+    }
+    .hero p {
+      font-size: 1.2rem;
+      max-width: 700px;
+      margin: auto;
+      margin-bottom: 20px;
+    }
+    .btn {
+      background: #00b894;
+      color: #fff;
+      padding: 12px 25px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      transition: background 0.3s;
+    }
+    .btn:hover {
+      background: #019874;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 30px;
+    }
+    .card {
+      background: #fff;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      text-align: center;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    }
+    .section-light {
+      background: #f9f9f9;
+    }
+    .section-dark {
+      background: #eee;
+    }
+    footer {
+      background: #111;
+      color: #ccc;
+      text-align: center;
+      padding: 20px;
+      font-size: 0.9rem;
+    }
+    footer a {
+      color: #00b894;
+      text-decoration: none;
+    }
+    @media(max-width:600px) {
+      header h1 {
+        font-size: 2rem;
+      }
+      .hero h1 {
+        font-size: 2.5rem;
+      }
+      h2 {
+        font-size: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>VendPlug</h1>
+    <p>The vendor-led marketplace for seamless commerce.</p>
+    <nav>
+      <a href="#buyers">Buyers</a>
+      <a href="#vendors">Vendors</a>
+      <a href="#agents">Agents</a>
+      <a href="#admin">Admin</a>
+      <a href="#payouts">Payouts</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <h1>Empowering Vendors, Connecting Buyers</h1>
+    <p>VendPlug is the first marketplace built around vendors. Upload products, manage payouts, and reach buyers directly while ensuring complete trust and transparency.</p>
+    <a href="#vendors" class="btn">Join as a Vendor</a>
+  </section>
+
+  ---
+
+  <section id="buyers" class="section-light">
+    <h2>For Buyers: Shop with Trust & Confidence</h2>
+    <p style="text-align:center; max-width:800px; margin:auto; margin-bottom: 40px;">
+      Discover products from multiple vendors, track your orders in real time, and pay securely. Your money is protected until your delivery arrives.
+    </p>
+    <div class="grid">
+      <div class="card">
+        <h3>🛍️ Discover & Browse</h3>
+        <p>Explore a wide range of products with smart filters to find exactly what you need.</p>
+      </div>
+      <div class="card">
+        <h3>📍 Real-time Tracking</h3>
+        <p>Stay updated on your order's journey, from the moment you checkout to its arrival at your doorstep.</p>
+      </div>
+      <div class="card">
+        <h3>🛡️ Secure Escrow Payments</h3>
+        <p>Your payment is held safely until you confirm delivery. Your satisfaction is guaranteed.</p>
+      </div>
+    </div>
+  </section>
+
+  ---
+
+  <section id="vendors" class="section-dark">
+    <h2>For Vendors: Sell Smarter, Not Harder</h2>
+    <p style="text-align:center; max-width:800px; margin:auto; margin-bottom: 40px;">
+      VendPlug provides you with the tools to manage and grow your business. Take control of your store, orders, and payouts with complete transparency.
+    </p>
+    <div class="grid">
+      <div class="card">
+        <h3>📦 Easy Store Management</h3>
+        <p>Upload products, manage stock, and set prices with full flexibility and control.</p>
+      </div>
+      <div class="card">
+        <h3>📊 Growth Insights</h3>
+        <p>Access a real-time dashboard to track sales, view performance, and understand your business growth.</p>
+      </div>
+      <div class="card">
+        <h3>🤝 Direct Buyer Relationships</h3>
+        <p>Connect directly with your customers and build a loyal following.</p>
+      </div>
+    </div>
+  </section>
+
+  ---
+
+  <section id="agents" class="section-light">
+    <h2>For Agents: Digitizing Local Commerce</h2>
+    <p style="text-align:center; max-width:800px; margin:auto; margin-bottom: 40px;">
+      Our agents are the lifeblood of our ecosystem. They bridge the gap between offline markets and online buyers, earning commissions while helping digitize local businesses.
+    </p>
+    <div class="grid">
+      <div class="card">
+        <h3>🏙️ Bridge Local & Digital</h3>
+        <p>Agents live inside local markets, bringing informal vendors online and making their products available to a wider audience.</p>
+      </div>
+      <div class="card">
+        <h3>💰 Earn Commissions</h3>
+        <p>Fulfill orders from the agent pool and earn commissions through a transparent escrow payout system.</p>
+      </div>
+      <div class="card">
+        <h3>📈 Build a Business</h3>
+        <p>Track your performance and build a reputation as a trusted commerce enabler in your community.</p>
+      </div>
+    </div>
+  </section>
+
+  ---
+  
+  <section id="payouts" class="section-dark">
+    <h2>Payouts & Transparency</h2>
+    <p style="text-align:center; max-width:800px; margin:auto; margin-bottom: 40px;">
+      Trust is at the core of VendPlug. Every transaction is transparent, from the moment a buyer pays to the moment a vendor gets paid.
+    </p>
+    <div class="grid">
+      <div class="card">
+        <h3>1. Buyer Pays Securely</h3>
+        <p>Funds are held safely in escrow as soon as an order is placed.</p>
+      </div>
+      <div class="card">
+        <h3>2. Order is Fulfilled</h3>
+        <p>The vendor and/or agent delivers the product, knowing the payment is guaranteed.</p>
+      </div>
+      <div class="card">
+        <h3>3. Buyer Confirms Receipt</h3>
+        <p>The buyer confirms they have received the order, triggering the next step.</p>
+      </div>
+      <div class="card">
+        <h3>4. Payout is Released</h3>
+        <p>The funds are automatically and instantly released from escrow to the vendor and agent.</p>
+      </div>
+    </div>
+  </section>
+
+  ---
+  
+  <section id="admin" class="section-light">
+    <h2>For Admins: Oversee a Fair & Secure Marketplace</h2>
+    <p style="text-align:center; max-width:800px; margin:auto; margin-bottom: 40px;">
+      The admin platform ensures every part of the ecosystem runs smoothly, securely, and transparently.
+    </p>
+    <div class="grid">
+      <div class="card">
+        <h3>🔎 Monitor & Analyze</h3>
+        <p>Oversee all transactions, manage growth insights, and track platform-wide analytics.</p>
+      </div>
+      <div class="card">
+        <h3>⚖️ Resolve Disputes</h3>
+        <p>Handle issues and resolve disputes with full data visibility and a clear audit trail.</p>
+      </div>
+      <div class="card">
+        <h3>🔐 Ensure Compliance</h3>
+        <p>Enforce fair marketplace practices and oversee all payouts to maintain trust and security.</p>
+      </div>
+    </div>
+  </section>
+
+  ---
+
+  <section class="section-dark" style="text-align:center;">
+    <h2>Ready to be part of the VendPlug revolution?</h2>
+    <p style="max-width:700px;margin:0 auto 30px auto;font-size:1.2rem;">
+      Whether you’re a vendor looking to scale or a buyer seeking trust and convenience, VendPlug is built for you.
+    </p>
+    <a href="#vendors" class="btn">Join VendPlug Today</a>
+  </section>
+
+  <footer>
+    <p>&copy; 2025 VendPlug. All Rights Reserved.</p>
+    <p>Built for Vendors. Trusted by Buyers.</p>
+  </footer>
+
+</body>
+</html>
+
+

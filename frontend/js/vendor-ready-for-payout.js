@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   try {
     // Fetch payouts marked as "ready_for_payout"
-    const res = await fetch("http://localhost:5008/api/vendor-payout/ready", {
+    const res = await fetch("http://localhost:5000/api/vendor-payout/ready", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -52,7 +52,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const payoutId = e.target.getAttribute("data-id");
 
         try {
-          const payoutRes = await fetch(`http://localhost:5008/api/vendor-payout/request/${payoutId}`, {
+          const payoutRes = await fetch(`http://localhost:5000/api/vendor-payout/request/${payoutId}`, {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",

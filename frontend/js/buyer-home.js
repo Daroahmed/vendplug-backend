@@ -10,6 +10,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // 🪵 Optional debug
   console.log("Buyer token:", token);
 
+  // Hide the loading spinner when products are loaded
+  const loadingElement = document.querySelector('.loading');
+  
   // 🛒 2. Fetch and display products
   fetch("/api/products")
     .then(response => response.json())
@@ -30,33 +33,39 @@ document.addEventListener("DOMContentLoaded", () => {
         const card = document.createElement("div");
         card.className = "product-card";
         card.innerHTML = `
-          <img src="${product.image || 'https://via.placeholder.com/150x120'}" alt="${product.name}" />
-          <div class="info">
+          <img src="${product.image || 'https://placehold.co/200x160/2c2c2c/00cc99/png?text=Product'}" class="product-image" alt="${product.name}">
+          <div class="product-info">
             <h4>${product.name}</h4>
-            <p>₦${Number(product.price).toLocaleString()} / ${product.unit || "unit"}</p>
+            <p>${product.description || 'Fresh from local farms'}</p>
+            <div class="product-price">₦${Number(product.price).toLocaleString()} / ${product.unit || "unit"}</div>
+            <button 
+              class="add-to-cart"
+              data-id="${product._id}"
+              data-name="${product.name}"
+              data-price="${product.price}"
+              data-unit="${product.unit}"
+              data-image="${product.image}"
+            >
+              <i class="fas fa-plus"></i>
+            </button>
           </div>
-          <button 
-            class="add-to-cart"
-            data-id="${product._id}"
-            data-name="${product.name}"
-            data-price="${product.price}"
-            data-unit="${product.unit}"
-            data-image="${product.image}"
-          >
-            Add +
-          </button>
         `;
         container.appendChild(card);
       });
 
+      // Hide loading spinner after products are loaded
+      if (loadingElement) {
+        loadingElement.style.display = 'none';
+      }
+
       // 🛒 3. Cart functionality
       document.querySelectorAll(".add-to-cart").forEach(button => {
-        button.addEventListener("click", () => {
-          const id = button.dataset.id;
-          const name = button.dataset.name;
-          const price = parseFloat(button.dataset.price);
-          const unit = button.dataset.unit;
-          const image = button.dataset.image;
+        button.addEventListener("click", function() {
+          const id = this.dataset.id;
+          const name = this.dataset.name;
+          const price = parseFloat(this.dataset.price);
+          const unit = this.dataset.unit;
+          const image = this.dataset.image;
 
           // ✅ Safe parsing of cart
           let cart = [];
@@ -76,16 +85,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
           localStorage.setItem("cart", JSON.stringify(cart));
 
-          button.textContent = "Added ✓";
-          button.disabled = true;
-          setTimeout(() => {
-            button.textContent = "Add +";
-            button.disabled = false;
-          }, 1200);
+          // Update cart count in header
+          const cartCount = document.querySelector('.cart-count');
+          if (cartCount) {
+            const totalItems = cart.reduce((total, item) => total + item.qty, 0);
+            cartCount.textContent = totalItems;
+          }
+
+          // Visual feedback for adding to cart
+          const icon = this.querySelector('i');
+          if (icon) {
+            icon.className = 'fas fa-check';
+            setTimeout(() => {
+              icon.className = 'fas fa-plus';
+            }, 1000);
+          }
         });
       });
     })
     .catch(err => {
       console.error("❌ Failed to load products:", err);
+      // Hide loading spinner even if there's an error
+      if (loadingElement) {
+        loadingElement.style.display = 'none';
+      }
     });
 });
