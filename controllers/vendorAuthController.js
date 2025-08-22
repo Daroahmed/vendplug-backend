@@ -7,6 +7,8 @@ const { createWalletIfNotExists } = require("./walletHelper"); // <== use new he
 const Order = require('../models/vendorOrderModel');
 const PayoutQueue = require('../models/payoutModel');
 const Buyer = require("../models/Buyer");
+const cloudinary = require('cloudinary').v2;
+const fs = require('fs');
 
 
 // ✅ Generate JWT token
@@ -269,6 +271,56 @@ const addVendorReview = async (req, res) => {
 };
 
 
+// ✅ Update Vendor Profile with Cloudinary Image Upload
+const updateVendorProfile = asyncHandler(async (req, res) => {
+  try {
+    const vendorId = req.vendor._id;
+    const vendor = await Vendor.findById(vendorId);
+    if (!vendor) {
+      return res.status(404).json({ message: "Vendor not found" });
+    }
+
+    // 📷 Upload brand image if provided
+    if (req.file) {
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "vendplug/vendor-brand", // store brand images in separate folder
+      });
+      vendor.brandImage = result.secure_url;
+
+      // Clean up local temp file
+      fs.unlinkSync(req.file.path);
+    }
+
+    // 📝 Update optional fields
+    if (req.body.shopDescription !== undefined) {
+      vendor.shopDescription = req.body.shopDescription;
+    }
+    if (req.body.businessAddress !== undefined) {
+      vendor.businessAddress = req.body.businessAddress;
+    }
+
+    await vendor.save();
+
+    res.status(200).json({
+      message: "Vendor profile updated successfully",
+      vendor: {
+        _id: vendor._id,
+        fullName: vendor.fullName,
+        shopName: vendor.shopName,
+        brandImage: vendor.brandImage,
+        shopDescription: vendor.shopDescription,
+        businessAddress: vendor.businessAddress,
+        averageRating: vendor.averageRating,
+        totalTransactions: vendor.totalTransactions,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error updating vendor profile:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+
 module.exports = {
   registerVendor,
   loginVendor,
@@ -277,7 +329,8 @@ module.exports = {
   getVendorsByCategoryAndState,
   getVendorProfile,
   getShopView,
-  addVendorReview
+  addVendorReview,
+  updateVendorProfile
 };
 
 
