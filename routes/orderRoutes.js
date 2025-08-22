@@ -9,13 +9,11 @@ const {
   updateOrderStatus
 } = require('../controllers/agentOrderController');
 
-const { protectAgent, protectBuyer } = require('../middleware/authMiddleware');
+const { protectAgent, } = require('../middleware/authMiddleware');
 
 // ✅ AGENT Routes
 router.get('/agent', protectAgent, getAgentOrders);
 router.get('/agent/history', protectAgent, getAgentOrderHistory);
-
-// ✅ AGENT Order actions
 router.put('/:orderId/status', protectAgent, updateOrderStatus);
 
 module.exports = router;

@@ -146,24 +146,11 @@ const getAgentStats = async (req, res) => {
   }
 };
 
-// ✅ Get Agent Orders
-const getAgentOrders = async (req, res) => {
-  try {
-    const agentId = req.user._id;
-    const orders = await Order.find({ agent: agentId })
-      .populate('buyer', 'fullName email')
-      .populate('agent', 'fullName');
 
-    res.json(orders);
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching orders', error: error.message });
-  }
-};
 
 module.exports = {
   registerAgent,
   loginAgent,
   getAgentProfile,
   getAgentStats,
-  getAgentOrders,
 };
