@@ -9,7 +9,8 @@ const {
 } = require('../controllers/productController');
 const { protectAgent } = require('../middleware/authMiddleware');
 const Product = require('../models/Product'); // Needed for the /:id GET route
-// backend/routes/productRoutes vendors.js
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' }); // Temp storage before Cloudinary
 
 // ✅ Public: Get all products
 router.get('/', getAllProducts);
@@ -26,10 +27,10 @@ router.get('/:id', async (req, res) => {
 });
 
 // ✅ Protected: Upload a product
-router.post('/upload', protectAgent, uploadProduct);
+router.post('/upload', protectAgent, upload.single('productImage'), uploadProduct);
 
 // ✅ Protected: Create a product (optional)
-router.post('/create', protectAgent, createProduct);
+router.post('/create', protectAgent, upload.single('productImage'), createProduct);
 
 // ✅ Protected: Update product
 router.put('/:id', protectAgent, updateProduct);
@@ -38,3 +39,5 @@ router.put('/:id', protectAgent, updateProduct);
 router.delete('/:id', protectAgent, deleteProduct);
 
 module.exports = router;
+
+

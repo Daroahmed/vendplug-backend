@@ -1,7 +1,9 @@
 // backend/controllers/productController.js
-
+const asyncHandler = require('express-async-handler');
 const Product = require('../models/Product');
 const Agent = require('../models/Agent');
+const cloudinary = require('cloudinary').v2;
+const fs = require('fs');
 
 // ✅ Get all products
 const getAllProducts = async (req, res) => {
@@ -18,14 +20,26 @@ const getAllProducts = async (req, res) => {
 // ✅ Create product (for agent or admin)
 const createProduct = async (req, res) => {
   try {
-    const { name, description, price, category, image } = req.body;
+    const { name, description, price, category, } = req.body;
+
+    // 📷 Upload product image if provided
+    let imageUrl = '';
+    if (req.file) {
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: 'vendplug/vendor-products',
+      });
+      imageUrl = result.secure_url;
+
+      // Clean up local temp file
+      fs.unlinkSync(req.file.path);
+    }
 
     const newProduct = new Product({
       name,
       description,
       price,
       category,
-      image,
+      image: imageUrl || null,
       addedBy: req.user.id
     });
 
@@ -43,10 +57,10 @@ const uploadProduct = async (req, res) => {
     const agentId = req.user.id;
 
     console.log("➡️ Uploading Product with data:", {
-      name, description, price, category, imageUrl, agentId
+      name, description, price, category,   image: imageUrl, agentId
     });
 
-    if (!name || !price || !imageUrl) {
+    if (!name || !price || !image) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
@@ -55,7 +69,7 @@ const uploadProduct = async (req, res) => {
       description,
       price,
       category,
-      imageUrl,
+      image: imageUrl,
       agent: agentId
     });
 
@@ -99,13 +113,21 @@ const updateProduct = async (req, res) => {
     const agent = await Agent.findById(req.user.id);
     console.log(`📝 Product "${product.name}" edited by agent: ${agent?.fullName || 'Unknown'} (${agent?._id})`);
 
-    const { name, description, price, category, imageUrl } = req.body;
+    const { name, description, price, category, } = req.body;
 
     product.name = name || product.name;
     product.description = description || product.description;
     product.price = price || product.price;
     product.category = category || product.category;
-    product.imageUrl = imageUrl || product.imageUrl;
+      // 📷 Update image if new one is uploaded
+  if (req.file) {
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: 'vendplug/vendor-products',
+    });
+    product.image = result.secure_url;
+    fs.unlinkSync(req.file.path); // clean temp file
+  }
+
 
     await product.save();
 
@@ -117,8 +139,6 @@ const updateProduct = async (req, res) => {
 };
 
 
-
-
 module.exports = {
   getAllProducts,
   createProduct,
@@ -126,10 +146,3 @@ module.exports = {
   deleteProduct,
   updateProduct,
 };
-
-
-
-
-
-
-
