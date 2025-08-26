@@ -157,12 +157,12 @@ const getVendorProductsByVendorId = asyncHandler(async (req, res) => {
 const getVendorProductsForBuyers = asyncHandler(async (req, res) => {
   const vendorId = req.params.vendorId;
 
-  const products = await VendorProduct.find({ vendor: vendorId });
+  const products = await VendorProduct.find({ vendor: vendorId }).populate(
+    "vendor",
+    "shopName fullName brandImage category"
+  );
 
-  if (!products || products.length === 0) {
-    return res.status(404).json({ message: 'No products found for this vendor' });
-  }
-
+  // Always return array
   res.json(products);
 });
 
