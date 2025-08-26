@@ -19,14 +19,14 @@ const registerBuyer = asyncHandler(async (req, res) => {
     throw new Error("Buyer already exists");
   }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+ 
 
   const tempVirtualAccount = "BP" + Date.now(); // temporary value
 
   const newBuyer = new Buyer({
     fullName,
     email,
-    password: hashedPassword,
+    password,
     phoneNumber,
     address,
     virtualAccount: tempVirtualAccount, // ⛑️ prevent null insert

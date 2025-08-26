@@ -45,6 +45,8 @@ const protectAgent = asyncHandler(async (req, res, next) => {
     const agent = await Agent.findById(decoded.id).select('-password');
     if (!agent) return res.status(401).json({ message: 'Agent not found' });
 
+    req.agent = agent; // <-- CHANGE HERE
+
     req.user = { ...agent.toObject(), role: 'agent' };
 
     next();

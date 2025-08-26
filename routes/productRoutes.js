@@ -27,10 +27,8 @@ router.get('/:id', async (req, res) => {
 });
 
 // ✅ Protected: Upload a product
-router.post('/upload', protectAgent, upload.single('productImage'), uploadProduct);
-
-// ✅ Protected: Create a product (optional)
-router.post('/create', protectAgent, upload.single('productImage'), createProduct);
+router.post('/upload', protectAgent, upload.single('image'), uploadProduct);
+router.post('/create', protectAgent, upload.single('image'), createProduct);
 
 // ✅ Protected: Update product
 router.put('/:id', protectAgent, updateProduct);
@@ -39,5 +37,6 @@ router.put('/:id', protectAgent, updateProduct);
 router.delete('/:id', protectAgent, deleteProduct);
 
 module.exports = router;
+
 
 
