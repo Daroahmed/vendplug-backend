@@ -80,7 +80,7 @@ const checkoutCart = async (req, res) => {
           amount: totalCost,
           description: "Order payment held in escrow",
           initiatedBy: req.buyer._id,
-          initiatorType: "buyer"
+          initiatorType: "Buyer"
         }
       ],
       { session }

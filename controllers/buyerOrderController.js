@@ -1,9 +1,13 @@
 // controllers/buyerOrderController.js
 const asyncHandler = require("express-async-handler");
+const mongoose = require('mongoose');
 const VendorOrder = require('../models/vendorOrderModel');
 const Payout = require('../models/payoutModel');
 const Notification = require('../models/Notification');
-const { notifyUser, handleError } = require('../utils/orderHelpers');
+const Wallet = require('../models/walletModel');
+const Transaction = require('../models/Transaction');
+const { handleError } = require('../utils/orderHelpers');
+const { sendOrderStatusNotification, sendPayoutNotification } = require('../utils/notificationHelper');
 
 // Fetch all orders for the logged-in buyer
 const getBuyerVendorOrders = async (req, res) => {
@@ -97,15 +101,8 @@ const cancelOrder = async (req, res) => {
 
     const io = req.app.get('io');
 
-    // Notify agents/vendors
-    if (order.agent) {
-      await notifyUser(io, order.agent, 'Agent', `❌ Order Cancelled`, `Buyer cancelled order #${order._id}`, order._id);
-    }
-    if (order.vendor) {
-      await notifyUser(io, order.vendor, 'Vendor', `❌ Order Cancelled`, `Buyer cancelled order #${order._id}`, order._id);
-    }
-
-    await notifyUser(io, buyerId, 'Buyer', `🛑 Order Cancelled`, `You cancelled order #${order._id}`, order._id);
+    // Send cancellation notifications
+    await sendOrderStatusNotification(io, order, 'cancelled');
 
     res.json({ message: 'Order cancelled successfully', order });
   } catch (error) {
@@ -129,11 +126,21 @@ const trackOrder = async (req, res) => {
 };
 
 // ✅ Confirm receipt & release escrow
-const confirmReceipt = asyncHandler(async (req, res) => {
+const confirmReceipt = async (req, res) => {
   const buyerId = req.user._id; // ✅ fixed
   const { orderId } = req.params;
 
-  const order = await VendorOrder.findById(orderId).populate("vendor");
+  console.log('🔍 Finding order:', orderId);
+  const order = await VendorOrder.findById(orderId).populate({
+    path: "vendor",
+    select: "_id virtualAccount walletBalance"
+  });
+  console.log('📦 Found order:', {
+    id: order._id,
+    vendorId: order.vendor?._id,
+    amount: order.totalAmount,
+    status: order.status
+  });
 
   if (!order) {
     res.status(404);
@@ -152,48 +159,96 @@ const confirmReceipt = asyncHandler(async (req, res) => {
     throw new Error("Order cannot be confirmed yet");
   }
 
-  // ✅ Update order status
-  order.status = "delivered";
-  order.deliveredAt = Date.now();
-  await order.save();
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
+  try {
+    // ✅ Update order status
+    order.status = "delivered";
+    order.deliveredAt = Date.now();
+    await order.save({ session });
+
+    // ✅ Credit vendor's wallet
+    console.log('🔍 Finding vendor wallet:', order.vendor._id);
+    const wallet = await Wallet.findOne({ 
+      user: order.vendor._id,
+      role: 'vendor'
+    }).session(session);
+
+    if (!wallet) {
+      throw new Error("Vendor wallet not found");
+    }
+
+    console.log('💰 Current wallet balance:', wallet.balance);
+    console.log('💵 Order amount to add:', order.totalAmount);
+
+    // Update wallet balance
+    const newBalance = Number(wallet.balance || 0) + Number(order.totalAmount);
+    console.log('🏦 New balance will be:', newBalance);
     
-    // ✅ Check if payout already exists
-let payout = await Payout.findOne({ order: order._id });
+    wallet.balance = newBalance;
+    const savedWallet = await wallet.save({ session });
+    console.log('✅ Saved wallet balance:', savedWallet.balance);
 
-if (!payout) {
-  payout = await Payout.create({
-    vendor: order.vendor._id,
-    order: order._id,
-    buyer: order.buyer,
-    amount: order.totalAmount,
-    status: "ready_for_payout"   // 🔥 move directly to payout stage
-  });
-} else {
-  // 🔥 If payout already exists, update it
-  payout.status = "ready_for_payout";
-  await payout.save();
+    // ✅ Log transaction
+    await Transaction.create([{
+      ref: new mongoose.Types.ObjectId().toString(),
+      type: "transfer",
+      status: "successful",
+      amount: order.totalAmount,
+      description: "Order payment released from escrow",
+      from: "escrow",
+      to: wallet.virtualAccount,
+      initiatedBy: order.vendor._id,
+      initiatorType: "Vendor"
+    }], { session });
+
+    // ✅ Create or update payout record
+    let payout = await Payout.findOne({ order: order._id }).session(session);
+    if (!payout) {
+      payout = await Payout.create([{
+        vendor: order.vendor._id,
+        order: order._id,
+        buyer: order.buyer,
+        amount: order.totalAmount,
+        status: "ready_for_payout"
+      }], { session });
+      payout = payout[0]; // Create returns an array
+    } else {
+      payout.status = "ready_for_payout";
+      await payout.save({ session });
+    }
+
+    await session.commitTransaction();
+
+    // ✅ Send notifications (after successful transaction)
+    const io = req.app.get('io');
+    await sendOrderStatusNotification(io, order, 'delivered');
+    await sendPayoutNotification(io, {
+      vendorId: order.vendor._id,
+      amount: order.totalAmount,
+      status: 'ready',
+      orderId: order._id
+    });
+
+    res.json({
+      success: true,
+      message: "Delivery confirmed. Funds moved to vendor payout queue.",
+      order,
+      payout
+    });
+
+  } catch (error) {
+    await session.abortTransaction();
+    console.error('❌ Error in confirmReceipt:', error);
+    res.status(500).json({ 
+      message: "Error confirming receipt", 
+      error: error.message 
+    });
+  } finally {
+    session.endSession();
+  }
 }
-  
-
-  // ✅ Notify vendor
-  const io = req.app.get('io');
-  await notifyUser(
-    io,
-    order.vendor._id,
-    'Vendor',
-    'Order Payment Released',
-    `Buyer confirmed delivery for order #${order._id}. ₦${order.totalAmount} is now available for payout.`,
-    order._id
-  );
-
-  res.json({
-    success: true,
-    message: "Delivery confirmed. Funds moved to vendor payout queue.",
-    order,
-    payout
-  });
-});
 
 const getBuyerOrderHistory = async (req, res) => {
   try {
@@ -243,5 +298,4 @@ module.exports = {
   trackOrder,
   confirmReceipt,
   getBuyerOrderHistory
-  
 };

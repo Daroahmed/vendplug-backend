@@ -24,9 +24,12 @@ const vendorOrderSchema = new mongoose.Schema({
     {
       status: String,
       updatedBy: String, // "buyer" or "vendor"
-      timestamp: { type: Date, default: Date.now }
+      timestamp: { type: Date, default: Date.now },
+      reason: String // For rejection reasons
     }
-  ]
+  ],
+  rejectionReason: String, // Store rejection reason
+  rejectedAt: Date // When order was rejected
   
 }, { timestamps: true });
 

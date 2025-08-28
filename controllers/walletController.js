@@ -2,9 +2,10 @@ const Wallet = require('../models/walletModel');
 const Transaction = require('../models/Transaction');
 const Vendor = require('../models/vendorModel');
 const Buyer = require('../models/Buyer');
-const agent = require('../models/Agent');
+const Agent = require('../models/Agent');
 
 const asyncHandler = require('express-async-handler');
+const { sendWalletNotification } = require('../utils/notificationHelper');
 // Unified wallet controller for agent, buyer, and vendor
 const getWallet = async (req, res) => {
   try {
@@ -46,11 +47,46 @@ const getTransactions = async (req, res) => {
       if (endDate) query.createdAt.$lte = new Date(endDate);
     }
 
+    console.log('🔍 Fetching transactions for account:', accountNumber);
+    console.log('🔍 Query:', JSON.stringify(query));
+    
     const transactions = await Transaction.find(query)
-      .sort({ createdAt: -1 })
-      .populate('initiatedBy', 'fullName name businessName');
+      .sort({ createdAt: -1 });
+    
+    console.log('📊 Found transactions:', transactions.length);
+    console.log('📊 Sample transaction:', transactions[0] ? {
+      id: transactions[0]._id,
+      initiatorType: transactions[0].initiatorType,
+      initiatedBy: transactions[0].initiatedBy
+    } : 'No transactions');
+    
+    // Try to populate, but handle errors gracefully
+    let populatedTransactions = transactions;
+    try {
+      populatedTransactions = await Transaction.populate(transactions, {
+        path: 'initiatedBy',
+        select: 'fullName name businessName',
+        model: function(doc) {
+          // Dynamically resolve the model based on initiatorType
+          const modelName = doc.initiatorType;
+          console.log('🔍 Resolving model for:', modelName);
+          
+          switch(modelName) {
+            case 'Buyer': return require('../models/Buyer');
+            case 'Agent': return require('../models/Agent');
+            case 'Vendor': return require('../models/vendorModel');
+            default: 
+              console.log('⚠️ Unknown model type:', modelName);
+              return null;
+          }
+        }
+      });
+    } catch (populateError) {
+      console.log('⚠️ Populate failed, using unpopulated transactions:', populateError.message);
+      // Continue with unpopulated transactions
+    }
 
-    const transactionsWithName = transactions.map((txn) => {
+    const transactionsWithName = populatedTransactions.map((txn) => {
       const userObj = txn.initiatedBy;
       const initiatorName =
         userObj?.fullName || userObj?.name || userObj?.businessName || 'Unknown';

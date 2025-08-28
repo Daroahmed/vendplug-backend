@@ -5,6 +5,7 @@ const bcrypt = require("bcryptjs");
 const { createWalletIfNotExists } = require("../controllers/walletHelper");
 const Order = require("../models/Order");
 const { notifyUser, handleError } = require('../utils/orderHelpers');
+const { sendVerificationEmail } = require('../utils/emailService');
 
 // @desc    Register new buyer
 // @desc    Register new buyer
@@ -40,12 +41,21 @@ const registerBuyer = asyncHandler(async (req, res) => {
   
   savedBuyer.virtualAccount = wallet.virtualAccount;
   await savedBuyer.save();
-  
 
-const updatedBuyer = await Buyer.findById(savedBuyer._id).select("-password");
+  // Send verification email
+  try {
+    const verificationToken = generateToken(savedBuyer._id, "verification");
+    await sendVerificationEmail(email, verificationToken);
+    console.log("✉️ Verification email sent to:", email);
+  } catch (error) {
+    console.error("❌ Error sending verification email:", error);
+    // Continue with registration even if email fails
+  }
+
+  const updatedBuyer = await Buyer.findById(savedBuyer._id).select("-password");
 
   res.status(201).json({
-    message: "Buyer registered successfully",
+    message: "Registration successful! Please check your email to verify your account.",
     buyer: updatedBuyer,
   });
 });
