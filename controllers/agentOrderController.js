@@ -2,17 +2,17 @@
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const {
-  notifyUser,
   applyOrderStatus,
   queuePayout,
   handleError
 } = require('../utils/orderHelpers');
+const {
+  sendNotification,
+  sendOrderStatusNotification,
+  sendPayoutNotification
+} = require('../utils/notificationHelper');
 
-// Helper to notify buyer + party (agent/vendor)
-const sendOrderNotification = async (req, recipientId, recipientType, title, body, orderId) => {
-  const io = req.app.get('io');
-  await notifyUser(io, recipientId, recipientType, title, body, orderId);
-};
+// This helper is no longer needed as we're using the new notification system
 
 const getAgentOrders = async (req, res) => {
   try {
@@ -96,14 +96,14 @@ const createOrder = async (req, res) => {
       const saved = await order.save();
       savedOrders.push(saved);
 
-      await sendOrderNotification(
-        req,
-        partyId,
-        partyType,
-        '🛒 New Order Received',
-        `You have a new order with ${items.length} item(s) worth ₦${totalAmount}.`,
-        saved._id
-      );
+      await sendNotification(io, {
+        recipientId: partyId,
+        recipientType: partyType,
+        notificationType: 'ORDER_CREATED',
+        args: [saved._id, totalAmount],
+        orderId: saved._id,
+        meta: { itemCount: items.length }
+      });
     }
 
     res.status(201).json({ message: 'Order(s) placed successfully', orders: savedOrders });
@@ -136,8 +136,8 @@ const updateOrderStatus = async (req, res) => {
 
     if (status === 'fulfilled' && isVendor) await queuePayout(order);
 
-    const buyerId = order.buyer.toString();
-    await sendOrderNotification(req, buyerId, 'Buyer', '📦 Order Status Update', `Your order #${order._id} is now "${status}".`, order._id);
+    // Send status update notification
+    await sendOrderStatusNotification(io, order, status);
 
     res.json({ message: 'Order status updated', order });
   } catch (error) {

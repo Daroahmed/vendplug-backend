@@ -33,7 +33,7 @@ const vendorSchema = new mongoose.Schema(
     role: { type: String, default: 'vendor' },
 
     virtualAccount: { type: String, unique: true },
-  
+    walletBalance: { type: Number, default: 0 },
 
     category: {
       type: [String],

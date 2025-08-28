@@ -1,5 +1,7 @@
 const Payout = require("../models/payoutModel");
 const Order = require("../models/vendorOrderModel");
+const Vendor = require("../models/vendorModel");
+const { sendPayoutNotification } = require('../utils/notificationHelper');
 
 // Helper: standard population for orders
 const orderPopulate = [
@@ -69,6 +71,15 @@ const requestPayout = async (req, res) => {
     payout.status = "requested";
     payout.requestedAt = new Date();
     await payout.save();
+
+    // Send payout request notification
+    const io = req.app.get('io');
+    await sendPayoutNotification(io, {
+      vendorId: req.vendor._id,
+      amount: payout.amount,
+      status: 'requested',
+      orderId: payout.order
+    });
 
     res.json({ message: "Payout requested successfully", payout });
   } catch (error) {
@@ -154,3 +165,5 @@ module.exports = {
   getPayoutHistory,
   getPayoutSummary
 };
+
+

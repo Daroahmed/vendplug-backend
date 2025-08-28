@@ -13,6 +13,14 @@ const buyerSchema = new mongoose.Schema(
       type: String,
       unique: true,
       sparse: true
+    },
+    isEmailVerified: {
+      type: Boolean,
+      default: false
+    },
+    emailVerifiedAt: {
+      type: Date,
+      default: null
     }
   },
   { timestamps: true }

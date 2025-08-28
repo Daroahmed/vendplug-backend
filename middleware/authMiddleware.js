@@ -72,6 +72,9 @@ const protectVendor = asyncHandler(async (req, res, next) => {
         return res.status(401).json({ message: 'Vendor not found' });
       }
 
+    
+      req.user = { ...vendor.toObject(), role: 'vendor' }; // keep if other code relies on req.user
+
       req.vendor = vendor;
       next();
 

@@ -4,7 +4,8 @@ const router = express.Router();
 const {
   getUserNotifications,
   markNotificationAsRead,
-  markAllAsRead
+  markAllAsRead,
+  createNotification
 } = require('../controllers/notificationController');
 const { protectAnyUser } = require('../middleware/authMiddleware'); // works for all roles
 
@@ -16,5 +17,8 @@ router.put('/:id/read', protectAnyUser, markNotificationAsRead);
 
 // ✅ Mark all notifications as read
 router.put('/read-all', protectAnyUser, markAllAsRead);
+
+// ✅ Create a new notification
+router.post('/', protectAnyUser, createNotification);
 
 module.exports = router;

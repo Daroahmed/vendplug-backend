@@ -10,6 +10,7 @@ const path = require('path');
 const http = require('http');
 const socketIO = require('socket.io');
 const cloudinary = require('cloudinary').v2;
+const Notification = require('./models/Notification');
 
 // ✅ Cloudinary configuration
 cloudinary.config({
@@ -39,7 +40,6 @@ mongoose.connect(process.env.MONGO_URI)
 
 // ✅ Import routes
 const buyerRoutes = require('./routes/buyerRoutes');
-const adminRoutes = require('./routes/adminAuth');
 const orderRoutes = require('./routes/orderRoutes');
 const agentRoutes = require('./routes/agentRoutes');
 const buyerOrderRoutes = require('./routes/buyerOrderRoutes');
@@ -51,11 +51,13 @@ const walletRoutes = require('./routes/walletRoutes');
 const vendorRoutes = require('./routes/vendorRoutes');
 const vendorCartRoutes = require('./routes/vendorCartRoutes');
 const vendorCheckoutRoutes = require('./routes/vendorCheckoutRoutes');
-const payoutRoutes = require('./routes/payoutRoutes')
+const payoutRoutes = require('./routes/payoutRoutes');
+const authRoutes = require('./routes/authRoutes');
+const paystackRoutes = require('./routes/paystackRoutes');
+
 
 // ✅ Mount API routes
 app.use('/api/buyers', buyerRoutes);
-app.use('/api/admin', adminRoutes);
 app.use('/api/agents', agentRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/buyer-orders', buyerOrderRoutes);
@@ -67,8 +69,9 @@ app.use('/api/wallet', walletRoutes);
 app.use('/api/vendor-products', vendorProductRoutes);
 app.use('/api/vendor-cart', vendorCartRoutes);
 app.use('/api/vendor-checkout', vendorCheckoutRoutes)
-app.use('/api/vendor-payout', payoutRoutes)
-
+app.use('/api/vendor-payout', payoutRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/paystack', paystackRoutes);
 // ✅ Test route
 app.get('/', (req, res) => res.send('Backend is running 🚀'));
 
@@ -79,19 +82,59 @@ const io = socketIO(server, {
 });
 
 
+// Function to emit pending notifications
+async function emitPendingNotifications(userId, socket) {
+  try {
+    // Find unread notifications for this user
+    const notifications = await Notification.find({
+      recipientId: userId,
+      read: false
+    })
+    .sort('-createdAt')
+    .limit(10);
+
+    // Emit each unread notification
+    notifications.forEach(notification => {
+      socket.emit('new-notification', notification);
+    });
+  } catch (error) {
+    console.error('❌ Error emitting pending notifications:', error);
+  }
+}
+
 // ✅ Socket.IO connection
 io.on('connection', (socket) => {
-  console.log('Client connected:', socket.id);
+  console.log('✅ Client connected:', socket.id);
 
+  // Handle user registration for notifications
   socket.on('register', (userId) => {
-    socket.join(`notifications:${userId}`);
-    console.log(`User joined room notifications:${userId}`);
+    if (!userId) {
+      console.warn('⚠️ Registration attempted without userId');
+      return;
+    }
+
+    // Join user-specific room
+    const room = `user:${userId}`;
+    socket.join(room);
+    console.log(`✅ User ${userId} joined room ${room}`);
+
+    // Send any pending notifications
+    emitPendingNotifications(userId, socket);
   });
 
+  // Handle disconnection
   socket.on('disconnect', () => {
-    console.log('Client disconnected:', socket.id);
+    console.log('❌ Client disconnected:', socket.id);
+  });
+
+  // Handle errors
+  socket.on('error', (error) => {
+    console.error('🔥 Socket error:', error);
   });
 });
+
+// Make io instance available to other modules
+app.set('io', io);
 
 // ✅ Global Error Handling
 app.use((err, req, res, next) => {

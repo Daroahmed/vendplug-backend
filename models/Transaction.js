@@ -41,7 +41,7 @@ const transactionSchema = new mongoose.Schema({
   },
   initiatorType: {
     type: String,
-    enum: ['buyer', 'agent', 'vendor'],
+    enum: ['Buyer', 'Agent', 'Vendor'],
   }
 }, { timestamps: true });
 
