@@ -7,7 +7,6 @@ console.log("Exported controller functions:", Object.keys(controller)); // ðŸ› ï
 const {
   registerBuyer,
   loginBuyer,
-  resetBuyerPassword,
   getBuyerProfile
 } = controller;
 
@@ -15,7 +14,7 @@ const { protectBuyer } = require('../middleware/authMiddleware');
 
 router.post('/register', registerBuyer);
 router.post('/login', loginBuyer);
-router.post('/reset-password', resetBuyerPassword);
+
 router.get('/profile', protectBuyer, getBuyerProfile);
 
 

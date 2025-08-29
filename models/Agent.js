@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
 const agentSchema = new mongoose.Schema({
   fullName: { type: String, required: true },
@@ -17,5 +18,23 @@ const agentSchema = new mongoose.Schema({
   },
 
 }, { timestamps: true });
+
+// Password hash middleware
+agentSchema.pre('save', async function (next) {
+  if (!this.isModified('password')) return next();
+  
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Compare password method
+agentSchema.methods.matchPassword = async function (enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
+};
 
 module.exports = mongoose.model('Agent', agentSchema);

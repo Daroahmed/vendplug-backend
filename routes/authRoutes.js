@@ -1,8 +1,56 @@
 const express = require('express');
 const router = express.Router();
-const { verifyEmail } = require('../controllers/authController');
+const { sendVerification, verifyEmail, requestPasswordReset, resetPassword, testToken } = require('../controllers/authController');
+const { testConnection } = require('../utils/emailService');
 
-// Email verification route
+// Email verification routes
+router.post('/send-verification', sendVerification);
 router.post('/verify-email', verifyEmail);
+router.get('/verify-email', verifyEmail); // Add GET route for email verification links
+
+// Password reset routes
+router.post('/request-reset', requestPasswordReset);
+router.post('/reset-password', resetPassword);
+
+// Test email connection (for debugging)
+router.get('/test-email', async (req, res) => {
+  try {
+    const isConnected = await testConnection();
+    if (isConnected) {
+      res.json({ success: true, message: 'Email connection successful' });
+    } else {
+      res.status(500).json({ success: false, message: 'Email connection failed' });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Email test error', error: error.message });
+  }
+});
+
+// Test token endpoint (for debugging)
+router.post('/test-token', testToken);
+
+// Debug endpoint to check all tokens in database
+router.get('/debug-tokens', async (req, res) => {
+  try {
+    const Token = require('../models/Token');
+    const tokens = await Token.find({}).sort({ createdAt: -1 }).limit(10);
+    
+    res.json({
+      message: 'Recent tokens in database',
+      count: tokens.length,
+      tokens: tokens.map(t => ({
+        id: t._id,
+        userId: t.userId,
+        userModel: t.userModel,
+        type: t.type,
+        expires: t.expires,
+        isExpired: t.expires < new Date(),
+        createdAt: t.createdAt
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching tokens', error: error.message });
+  }
+});
 
 module.exports = router;

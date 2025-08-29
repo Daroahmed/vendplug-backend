@@ -10,6 +10,12 @@ const path = require('path');
 const http = require('http');
 const socketIO = require('socket.io');
 const cloudinary = require('cloudinary').v2;
+
+// ✅ Import all models to ensure they're registered
+const Buyer = require('./models/Buyer');
+const Vendor = require('./models/vendorModel');
+const Agent = require('./models/Agent');
+const Token = require('./models/Token');
 const Notification = require('./models/Notification');
 
 // ✅ Cloudinary configuration
