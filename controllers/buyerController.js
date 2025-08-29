@@ -81,23 +81,7 @@ const loginBuyer = asyncHandler(async (req, res) => {
   }
 });
 
-// ✅ Reset Password
-const resetBuyerPassword = async (req, res) => {
-  try {
-    const { email, newPassword } = req.body;
 
-    const buyer = await Buyer.findOne({ email });
-    if (!buyer) return res.status(404).json({ message: "Buyer not found" });
-
-    buyer.password = await bcrypt.hash(newPassword, 10);
-    await buyer.save();
-
-    res.status(200).json({ message: "Password reset successfully" });
-  } catch (error) {
-    console.error("❌ Reset Error:", error.message);
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-};
 
 // @desc    Get buyer profile
 // @route   GET /api/buyers/profile
@@ -138,7 +122,6 @@ const getBuyerOrderStats = asyncHandler(async (req, res) => {
 module.exports = {
   registerBuyer,
   loginBuyer,
-  resetBuyerPassword,
   getBuyerProfile,
   getBuyerOrderStats,
   notifyUser, handleError
