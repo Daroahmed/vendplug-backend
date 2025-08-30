@@ -17,6 +17,7 @@ const Vendor = require('./models/vendorModel');
 const Agent = require('./models/Agent');
 const Token = require('./models/Token');
 const Notification = require('./models/Notification');
+const ShareAnalytics = require('./models/ShareAnalytics');
 
 // ✅ Cloudinary configuration
 cloudinary.config({
@@ -60,6 +61,7 @@ const vendorCheckoutRoutes = require('./routes/vendorCheckoutRoutes');
 const payoutRoutes = require('./routes/payoutRoutes');
 const authRoutes = require('./routes/authRoutes');
 const paystackRoutes = require('./routes/paystackRoutes');
+const analyticsRoutes = require('./routes/analyticsRoutes');
 
 
 // ✅ Mount API routes
@@ -78,6 +80,7 @@ app.use('/api/vendor-checkout', vendorCheckoutRoutes)
 app.use('/api/vendor-payout', payoutRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/paystack', paystackRoutes);
+app.use('/api/analytics', analyticsRoutes);
 // ✅ Test route
 app.get('/', (req, res) => res.send('Backend is running 🚀'));
 

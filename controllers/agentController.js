@@ -22,19 +22,17 @@ const registerAgent = async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create new agent
-
     // ✅ Generate virtual account number
-const virtualAccount = "AP" + Date.now();
+    const virtualAccount = "AP" + Date.now();
 
-// ✅ Create new agent
-const newAgent = new Agent({
-  fullName,
-  email,
-  phoneNumber,
-  password: hashedPassword,
-  virtualAccount, // <- FIXED: now correctly inside the object
-});
+    // ✅ Create new agent
+    const newAgent = new Agent({
+      fullName,
+      email,
+      phoneNumber,
+      password: hashedPassword,
+      virtualAccount,
+    });
 
     const savedAgent = await newAgent.save();
 
@@ -45,8 +43,18 @@ const newAgent = new Agent({
     savedAgent.virtualAccount = wallet.virtualAccount;
     await savedAgent.save();
 
+    // ✅ Send verification email
+    const { sendVerificationEmail } = require('../utils/emailService');
+    const verificationToken = require('jsonwebtoken').sign(
+      { id: savedAgent._id, type: 'verification' },
+      process.env.JWT_SECRET || 'vendplugSecret',
+      { expiresIn: '24h' }
+    );
+    
+    await sendVerificationEmail(email, verificationToken);
+
     res.status(201).json({
-      message: "Agent registered successfully",
+      message: "Agent registered successfully. Please check your email to verify your account.",
       agent: {
         _id: savedAgent._id,
         fullName: savedAgent.fullName,

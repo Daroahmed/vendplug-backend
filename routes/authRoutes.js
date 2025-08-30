@@ -53,4 +53,28 @@ router.get('/debug-tokens', async (req, res) => {
   }
 });
 
+// Test verification endpoint with token in query
+router.get('/test-verify', async (req, res) => {
+  try {
+    const { token } = req.query;
+    
+    if (!token) {
+      return res.status(400).json({ 
+        message: 'Token is required',
+        query: req.query,
+        url: req.url
+      });
+    }
+    
+    res.json({ 
+      message: 'Token received successfully',
+      token: token.substring(0, 20) + '...',
+      query: req.query,
+      url: req.url
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error testing verification', error: error.message });
+  }
+});
+
 module.exports = router;

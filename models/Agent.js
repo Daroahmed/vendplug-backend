@@ -10,12 +10,12 @@ const agentSchema = new mongoose.Schema({
     type: String,
     default: 'Agent'
   },
-  virtualAccount
-: {
+  virtualAccount: {
     type: String,
     unique: true,
     required: true
   },
+  totalTransactions: { type: Number, default: 0 },
 
 }, { timestamps: true });
 

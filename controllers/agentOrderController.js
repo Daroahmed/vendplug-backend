@@ -11,6 +11,7 @@ const {
   sendOrderStatusNotification,
   sendPayoutNotification
 } = require('../utils/notificationHelper');
+const { incrementVendorTransactions, incrementAgentTransactions } = require('../utils/transactionHelper');
 
 // This helper is no longer needed as we're using the new notification system
 
@@ -96,14 +97,15 @@ const createOrder = async (req, res) => {
       const saved = await order.save();
       savedOrders.push(saved);
 
-      await sendNotification(io, {
-        recipientId: partyId,
-        recipientType: partyType,
-        notificationType: 'ORDER_CREATED',
-        args: [saved._id, totalAmount],
-        orderId: saved._id,
-        meta: { itemCount: items.length }
-      });
+      // Note: io will be available from req.app.get('io') when this is called
+      // await sendNotification(io, {
+      //   recipientId: partyId,
+      //   recipientType: partyType,
+      //   notificationType: 'ORDER_CREATED',
+      //   args: [saved._id, totalAmount],
+      //   orderId: saved._id,
+      //   meta: { itemCount: items.length }
+      // });
     }
 
     res.status(201).json({ message: 'Order(s) placed successfully', orders: savedOrders });
@@ -134,9 +136,20 @@ const updateOrderStatus = async (req, res) => {
     applyOrderStatus(order, status, role);
     await order.save();
 
-    if (status === 'fulfilled' && isVendor) await queuePayout(order);
+    if (status === 'fulfilled' && isVendor) {
+      await queuePayout(order);
+      
+      // ✅ Increment vendor's total transactions count
+      await incrementVendorTransactions(order.vendor);
+    }
+
+    // ✅ Increment agent's transaction count when order is fulfilled
+    if (status === 'fulfilled' && isAgent) {
+      await incrementAgentTransactions(order.agent);
+    }
 
     // Send status update notification
+    const io = req.app.get('io');
     await sendOrderStatusNotification(io, order, status);
 
     res.json({ message: 'Order status updated', order });

@@ -79,6 +79,11 @@ const sendVerificationEmail = async (email, token) => {
     
     const verificationLink = `${baseUrl}/verify-email.html?token=${token}`;
     
+    console.log('🔍 Email verification debug:');
+    console.log('  - baseUrl:', baseUrl);
+    console.log('  - token:', token);
+    console.log('  - full verification link:', verificationLink);
+    
     const mailOptions = {
       from: `"Vendplug" <${process.env.EMAIL_USER}>`, // Use authenticated email
       to: email,

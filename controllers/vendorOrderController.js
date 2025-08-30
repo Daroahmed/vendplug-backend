@@ -16,6 +16,7 @@ const {
   sendPayoutNotification,
   sendWalletNotification
 } = require('../utils/notificationHelper');
+const { incrementVendorTransactions } = require('../utils/transactionHelper');
 
 // This helper is replaced by the new notification system
 
@@ -286,6 +287,11 @@ const updateOrderStatus = async (req, res) => {
     applyVendorOrderStatus(order, status, "vendor");
     if (status === "delivered") order.deliveredAt = new Date();
     await order.save();
+
+    // ✅ Increment vendor's total transactions count when order is delivered
+    if (status === "delivered") {
+      await incrementVendorTransactions(req.vendor._id);
+    }
 
     const io = req.app.get('io');
     await sendOrderStatusNotification(io, order, status);
