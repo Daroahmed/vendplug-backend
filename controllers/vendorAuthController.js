@@ -62,7 +62,18 @@ const registerVendor = asyncHandler(async (req, res) => {
     savedVendor.virtualAccount = wallet.virtualAccount;
     await savedVendor.save();
 
+    // ✅ Send verification email
+    const { sendVerificationEmail } = require('../utils/emailService');
+    const verificationToken = require('jsonwebtoken').sign(
+      { id: savedVendor._id, type: 'verification' },
+      process.env.JWT_SECRET || 'vendplugSecret',
+      { expiresIn: '24h' }
+    );
+    
+    await sendVerificationEmail(email, verificationToken);
+
     res.status(201).json({
+      message: "Vendor registered successfully. Please check your email to verify your account.",
       token: generateToken(savedVendor._id),
       vendor: {
         _id: savedVendor._id,
@@ -130,11 +141,15 @@ const getVendorStats = async (req, res) => {
   try {
     const vendorId = req.vendor._id;
 
+    // Import required models
+    const VendorOrder = require('../models/vendorOrderModel');
+    const Payout = require('../models/payoutModel');
+
     const [fulfilledOrders, pendingOrders, successfulPayouts, queuedPayouts] = await Promise.all([
-      Order.countDocuments({ vendor: vendorId, status: 'fulfilled' }),
-      Order.countDocuments({ vendor: vendorId, status: { $in: ['pending', 'in-progress'] } }),
-      PayoutQueue.find({ vendor: vendorId, status: 'success' }),
-      PayoutQueue.find({ vendor: vendorId, status: 'pending' }),
+      VendorOrder.countDocuments({ vendor: vendorId, status: 'fulfilled' }),
+      VendorOrder.countDocuments({ vendor: vendorId, status: { $in: ['pending', 'accepted', 'preparing', 'out_for_delivery'] } }),
+      Payout.find({ vendor: vendorId, status: 'paid' }),
+      Payout.find({ vendor: vendorId, status: { $in: ['ready_for_payout', 'requested'] } }),
     ]);
 
     const totalEarnings = successfulPayouts.reduce((sum, p) => sum + p.amount, 0);

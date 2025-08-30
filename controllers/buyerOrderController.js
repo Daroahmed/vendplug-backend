@@ -8,6 +8,7 @@ const Wallet = require('../models/walletModel');
 const Transaction = require('../models/Transaction');
 const { handleError } = require('../utils/orderHelpers');
 const { sendOrderStatusNotification, sendPayoutNotification } = require('../utils/notificationHelper');
+const { incrementVendorTransactions } = require('../utils/transactionHelper');
 
 // Fetch all orders for the logged-in buyer
 const getBuyerVendorOrders = async (req, res) => {
@@ -164,9 +165,12 @@ const confirmReceipt = async (req, res) => {
 
   try {
     // ✅ Update order status
-    order.status = "delivered";
+    order.status = "fulfilled"; // Changed from "delivered" to "fulfilled" for consistency
     order.deliveredAt = Date.now();
     await order.save({ session });
+
+    // ✅ Increment vendor's total transactions count
+    await incrementVendorTransactions(order.vendor._id, session);
 
     // ✅ Credit vendor's wallet
     console.log('🔍 Finding vendor wallet:', order.vendor._id);

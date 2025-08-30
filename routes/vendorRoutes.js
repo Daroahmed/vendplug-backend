@@ -58,6 +58,23 @@ router.post("/resolve-account", protectAgent, async (req, res) => {
   });
 });
 
+// ✅ Get vendor transaction count
+router.get('/:vendorId/transactions', asyncHandler(async (req, res) => {
+  const { vendorId } = req.params;
+  
+  const vendor = await Vendor.findById(vendorId).select('totalTransactions shopName fullName');
+  if (!vendor) {
+    return res.status(404).json({ message: 'Vendor not found' });
+  }
+  
+  res.json({
+    vendorId: vendor._id,
+    shopName: vendor.shopName,
+    fullName: vendor.fullName,
+    totalTransactions: vendor.totalTransactions || 0
+  });
+}));
+
 // ✅ NOW THE DYNAMIC ONES
 
 router.post('/register', registerVendor);

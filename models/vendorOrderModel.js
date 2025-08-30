@@ -15,7 +15,7 @@ const vendorOrderSchema = new mongoose.Schema({
   totalAmount: { type: Number, required: true },
   status: { 
     type: String, 
-    enum: ["pending", "accepted", "rejected", "preparing", "out_for_delivery", "delivered"], 
+    enum: ["pending", "accepted", "rejected", "preparing", "out_for_delivery", "delivered", "fulfilled"], 
     default: "pending" 
   },
   escrow: { type: Boolean, default: false },
