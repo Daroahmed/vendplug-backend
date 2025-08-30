@@ -8,7 +8,7 @@ const transactionSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['fund', 'transfer', 'withdrawal', 'refund'],
+    enum: ['fund', 'transfer', 'withdrawal', 'refund', 'credit'],
     required: true,
   },
   status: {
@@ -42,6 +42,10 @@ const transactionSchema = new mongoose.Schema({
   initiatorType: {
     type: String,
     enum: ['Buyer', 'Agent', 'Vendor'],
+  },
+  metadata: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
   }
 }, { timestamps: true });
 
