@@ -1,169 +1,329 @@
-const Payout = require("../models/payoutModel");
-const Order = require("../models/vendorOrderModel");
-const Vendor = require("../models/vendorModel");
-const { sendPayoutNotification } = require('../utils/notificationHelper');
+const PayoutRequest = require('../models/PayoutRequest');
+const BankAccount = require('../models/BankAccount');
+const Wallet = require('../models/walletModel');
+const Transaction = require('../models/Transaction');
+const PaystackService = require('../services/paystackService');
+const mongoose = require('mongoose');
 
-// Helper: standard population for orders
-const orderPopulate = [
-  { path: "buyer", select: "name email phoneNumber" },
-  { path: "items.product", select: "name image price" }
-];
+const paystackService = new PaystackService();
 
-
-// 📌 Get Payout Queue (pending receipts)
-const getPayoutQueue = async (req, res) => {
-  try {
-    const payouts = await Payout.find({
-      vendor: req.vendor._id,
-      status: "pending_receipt"
-    })
-      .populate({
-        path: "order",
-        populate: [
-          { path: "buyer", select: "fullName email phoneNumber" },
-          { path: "items.product", select: "name image price" }
-        ]
-      })
-      .sort({ createdAt: -1 });
-
-    res.json(payouts);
-  } catch (error) {
-    console.error("Error fetching payout queue:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-
-
-// 📌 Get payouts ready for request (buyer confirmed receipt)
-const getReadyForPayout = async (req, res) => {
-  try {
-    const payouts = await Payout.find({
-      vendor: req.vendor._id,
-      status: "ready_for_payout"
-    }).populate({
-      path: "order",
-      populate: orderPopulate
-    });
-
-    res.json(payouts);
-  } catch (error) {
-    console.error("Error fetching ready payouts:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// 📌 Vendor requests payout
+// Request a payout
 const requestPayout = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-    const { payoutId } = req.params;
-
-    const payout = await Payout.findOne({
-      _id: payoutId,
-      vendor: req.vendor._id,
-      status: "ready_for_payout"
+    const { amount, bankAccountId } = req.body;
+    const userId = req.user.id;
+    
+    // More robust role detection
+    let userType;
+    if (req.user.role && req.user.role.toLowerCase() === 'vendor') {
+      userType = 'Vendor';
+    } else if (req.user.role && req.user.role.toLowerCase() === 'agent') {
+      userType = 'Agent';
+    } else {
+      // Fallback - try to determine from the user model
+      userType = 'Vendor'; // Default fallback
+    }
+    
+    console.log('🔍 Payout request details:', {
+      userId,
+      userType,
+      userRole: req.user.role,
+      amount,
+      bankAccountId
     });
+    
+    console.log('🔍 Full req.user object:', JSON.stringify(req.user, null, 2));
 
-    if (!payout) {
-      return res.status(404).json({ message: "Payout not found or not ready" });
+    // Validate amount
+    if (!amount || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid amount'
+      });
     }
 
-    payout.status = "requested";
-    payout.requestedAt = new Date();
-    await payout.save();
-
-    // Send payout request notification
-    const io = req.app.get('io');
-    await sendPayoutNotification(io, {
-      vendorId: req.vendor._id,
-      amount: payout.amount,
-      status: 'requested',
-      orderId: payout.order
+    // Check if bank account exists and belongs to user
+    const bankAccount = await BankAccount.findOne({
+      _id: bankAccountId,
+      userId,
+      userType
     });
 
-    res.json({ message: "Payout requested successfully", payout });
+    if (!bankAccount) {
+      return res.status(404).json({
+        success: false,
+        message: 'Bank account not found'
+      });
+    }
+
+    if (!bankAccount.isVerified) {
+      return res.status(400).json({
+        success: false,
+        message: 'Bank account not verified'
+      });
+    }
+
+    // Check wallet balance
+    console.log('🔍 Looking for wallet with:', { user: userId, role: userType.toLowerCase() });
+    
+    // Let's also check what wallets exist for this user
+    const allUserWallets = await Wallet.find({ user: userId });
+    console.log('🔍 All wallets for this user:', allUserWallets.map(w => ({ role: w.role, balance: w.balance })));
+    
+    const wallet = await Wallet.findOne({ user: userId, role: userType.toLowerCase() });
+    console.log('🔍 Found wallet:', wallet ? { balance: wallet.balance, amount: amount } : 'Not found');
+    
+    if (!wallet) {
+      return res.status(400).json({
+        success: false,
+        message: 'Wallet not found'
+      });
+    }
+    
+    if (wallet.balance < amount) {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient wallet balance. Available: ₦${wallet.balance}, Requested: ₦${amount}`
+      });
+    }
+
+    // Create payout request
+    const payoutRequest = new PayoutRequest({
+      userId,
+      userType,
+      bankAccountId,
+      amount,
+      status: 'pending'
+    });
+
+    await payoutRequest.save({ session });
+
+    // Deduct from wallet
+    wallet.balance -= amount;
+    await wallet.save({ session });
+
+    // Create transaction record
+    const transaction = new Transaction({
+      ref: `PAYOUT_${Date.now()}_${userId}`,
+      type: 'withdrawal',
+      status: 'pending',
+      amount: amount,
+      from: wallet.virtualAccount,
+      to: bankAccount.accountNumber,
+      description: `Payout to ${bankAccount.bankName} - ${bankAccount.accountName}`,
+      initiatedBy: userId,
+      initiatorType: userType,
+      metadata: {
+        payoutRequestId: payoutRequest._id,
+        bankAccountId: bankAccount._id
+      }
+    });
+
+    await transaction.save({ session });
+
+    await session.commitTransaction();
+
+    res.status(201).json({
+      success: true,
+      message: 'Payout request submitted successfully',
+      data: {
+        payoutRequest,
+        newBalance: wallet.balance
+      }
+    });
+
   } catch (error) {
-    console.error("Error requesting payout:", error);
-    res.status(500).json({ message: "Server error" });
+    await session.abortTransaction();
+    console.error('Error requesting payout:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to submit payout request',
+      error: error.message
+    });
+  } finally {
+    session.endSession();
   }
 };
 
-
-const getPayoutHistory = async (req, res) => {
+// Process pending payouts (Admin/System function)
+const processPayouts = async (req, res) => {
   try {
-    const payouts = await Payout.find({
-      vendor: req.vendor._id,
-      status: "paid",
-    })
-      .populate({
-        path: "order",
-        select: "totalAmount createdAt status buyer",
-        populate: { path: "buyer", select: "fullName email phoneNumber" },
-      })
-      .sort({ paidAt: -1, updatedAt: -1 });
+    const pendingPayouts = await PayoutRequest.find({ status: 'pending' })
+      .populate('bankAccountId');
 
-    // Flatten for the frontend
-    const result = payouts.map((p) => ({
-      _id: p._id,
-      amount: p.amount,
-      status: p.status,
-      paidAt: p.paidAt || p.updatedAt || p.createdAt,
-      orderId: p.order?._id || null,
-      orderTotal: p.order?.totalAmount ?? null,
-      buyer: p.order?.buyer
-        ? {
-            fullName: p.order.buyer.fullName || "N/A",
-            email: p.order.buyer.email || "N/A",
-            phoneNumber: p.order.buyer.phoneNumber || "N/A",
+    const results = [];
+
+    for (const payout of pendingPayouts) {
+      try {
+        // Update status to processing
+        payout.status = 'processing';
+        await payout.save();
+
+        // Create transfer recipient
+        const recipientResult = await paystackService.createTransferRecipient(
+          payout.bankAccountId.accountNumber,
+          payout.bankAccountId.bankCode,
+          payout.bankAccountId.accountName
+        );
+
+        if (!recipientResult.success) {
+          payout.status = 'failed';
+          payout.failureReason = recipientResult.message;
+          await payout.save();
+          results.push({ payoutId: payout._id, status: 'failed', reason: recipientResult.message });
+          continue;
+        }
+
+        // Initiate transfer
+        const transferResult = await paystackService.initiateTransfer(
+          recipientResult.data.recipient_code,
+          payout.amount * 100, // Convert to kobo
+          `Payout for ${payout.userType} - ${payout._id}`
+        );
+
+        if (!transferResult.success) {
+          payout.status = 'failed';
+          payout.failureReason = transferResult.message;
+          await payout.save();
+          results.push({ payoutId: payout._id, status: 'failed', reason: transferResult.message });
+          continue;
+        }
+
+        // Update payout request
+        payout.status = 'completed';
+        payout.paystackReference = transferResult.data.reference;
+        payout.paystackTransferCode = transferResult.data.transfer_code;
+        payout.processedAt = new Date();
+        await payout.save();
+
+        // Update transaction status
+        await Transaction.findOneAndUpdate(
+          { 'metadata.payoutRequestId': payout._id },
+          { 
+            status: 'successful',
+            metadata: { 
+              ...payout.metadata,
+              paystackReference: transferResult.data.reference,
+              paystackTransferCode: transferResult.data.transfer_code
+            }
           }
-        : null,
-    }));
+        );
 
-    res.json(result);
-  } catch (error) {
-    console.error("Error fetching payout history:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+        results.push({ payoutId: payout._id, status: 'completed' });
 
-
-// 📌 Get payout summary (totals per status)
-const getPayoutSummary = async (req, res) => {
-  try {
-    const vendorId = req.vendor._id;
-
-    const [pending, ready, paid] = await Promise.all([
-      Payout.aggregate([
-        { $match: { vendor: vendorId, status: "pending_receipt" } },
-        { $group: { _id: null, total: { $sum: "$amount" } } }
-      ]),
-      Payout.aggregate([
-        { $match: { vendor: vendorId, status: "ready_for_payout" } },
-        { $group: { _id: null, total: { $sum: "$amount" } } }
-      ]),
-      Payout.aggregate([
-        { $match: { vendor: vendorId, status: "paid" } },
-        { $group: { _id: null, total: { $sum: "$amount" } } }
-      ])
-    ]);
+      } catch (error) {
+        console.error(`Error processing payout ${payout._id}:`, error);
+        payout.status = 'failed';
+        payout.failureReason = error.message;
+        await payout.save();
+        results.push({ payoutId: payout._id, status: 'failed', reason: error.message });
+      }
+    }
 
     res.json({
-      pending: pending[0]?.total || 0,
-      ready: ready[0]?.total || 0,
-      paid: paid[0]?.total || 0
+      success: true,
+      message: 'Payout processing completed',
+      data: results
     });
-  } catch (err) {
-    console.error("Error fetching payout summary:", err);
-    res.status(500).json({ message: "Error fetching payout summary" });
+
+  } catch (error) {
+    console.error('Error processing payouts:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to process payouts',
+      error: error.message
+    });
+  }
+};
+
+// Get user's payout history
+const getPayoutHistory = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // More robust role detection
+    let userType;
+    if (req.user.role && req.user.role.toLowerCase() === 'vendor') {
+      userType = 'Vendor';
+    } else if (req.user.role && req.user.role.toLowerCase() === 'agent') {
+      userType = 'Agent';
+    } else {
+      // Fallback - try to determine from the user model
+      userType = 'Vendor'; // Default fallback
+    }
+
+    const payouts = await PayoutRequest.find({ userId, userType })
+      .populate('bankAccountId')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      data: payouts
+    });
+
+  } catch (error) {
+    console.error('Error fetching payout history:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch payout history',
+      error: error.message
+    });
+  }
+};
+
+// Get payout details
+const getPayoutDetails = async (req, res) => {
+  try {
+    const { payoutId } = req.params;
+    const userId = req.user.id;
+    
+    // More robust role detection
+    let userType;
+    if (req.user.role && req.user.role.toLowerCase() === 'vendor') {
+      userType = 'Vendor';
+    } else if (req.user.role && req.user.role.toLowerCase() === 'agent') {
+      userType = 'Agent';
+    } else {
+      // Fallback - try to determine from the user model
+      userType = 'Vendor'; // Default fallback
+    }
+
+    const payout = await PayoutRequest.findOne({
+      _id: payoutId,
+      userId,
+      userType
+    }).populate('bankAccountId');
+
+    if (!payout) {
+      return res.status(404).json({
+        success: false,
+        message: 'Payout not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: payout
+    });
+
+  } catch (error) {
+    console.error('Error fetching payout details:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch payout details',
+      error: error.message
+    });
   }
 };
 
 module.exports = {
-  getPayoutQueue,
-  getReadyForPayout,
   requestPayout,
+  processPayouts,
   getPayoutHistory,
-  getPayoutSummary
+  getPayoutDetails
 };
 
 

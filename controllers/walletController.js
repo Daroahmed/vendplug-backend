@@ -9,9 +9,9 @@ const { sendWalletNotification } = require('../utils/notificationHelper');
 // Unified wallet controller for agent, buyer, and vendor
 const getWallet = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id || req.user._id;
 
-    const wallet = await Wallet.findOne({ user:userId });
+    const wallet = await Wallet.findOne({ user: userId });
     if (!wallet) {
       return res.status(404).json({ message: 'Wallet not found' });
     }

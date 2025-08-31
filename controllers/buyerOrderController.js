@@ -207,21 +207,8 @@ const confirmReceipt = async (req, res) => {
       initiatorType: "Vendor"
     }], { session });
 
-    // ✅ Create or update payout record
-    let payout = await Payout.findOne({ order: order._id }).session(session);
-    if (!payout) {
-      payout = await Payout.create([{
-        vendor: order.vendor._id,
-        order: order._id,
-        buyer: order.buyer,
-        amount: order.totalAmount,
-        status: "ready_for_payout"
-      }], { session });
-      payout = payout[0]; // Create returns an array
-    } else {
-      payout.status = "ready_for_payout";
-      await payout.save({ session });
-    }
+    // ✅ Order completed - vendor can now request payout from their wallet
+    console.log('✅ Order fulfilled - vendor wallet credited. They can request payout anytime.');
 
     await session.commitTransaction();
 
