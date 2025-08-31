@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const {
-  requestPayout,
-  processPayouts,
-  getPayoutHistory,
-  getPayoutDetails
-} = require('../controllers/payoutController');
+  addBankAccount,
+  getBankAccounts,
+  setDefaultBankAccount,
+  deleteBankAccount
+} = require('../controllers/bankAccountController');
 
 // Authentication middleware (inline for now)
 const authenticateUser = (req, res, next) => {
@@ -30,12 +30,10 @@ const authenticateUser = (req, res, next) => {
   }
 };
 
-// Payout routes
-router.post('/request', authenticateUser, requestPayout);
-router.get('/history', authenticateUser, getPayoutHistory);
-router.get('/:payoutId', authenticateUser, getPayoutDetails);
-
-// Admin/System routes (for processing payouts)
-router.post('/process', processPayouts); // This could be protected with admin middleware later
+// Bank account routes
+router.post('/add', authenticateUser, addBankAccount);
+router.get('/list', authenticateUser, getBankAccounts);
+router.put('/:accountId/set-default', authenticateUser, setDefaultBankAccount);
+router.delete('/:accountId', authenticateUser, deleteBankAccount);
 
 module.exports = router;

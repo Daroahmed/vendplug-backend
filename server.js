@@ -59,6 +59,7 @@ const vendorRoutes = require('./routes/vendorRoutes');
 const vendorCartRoutes = require('./routes/vendorCartRoutes');
 const vendorCheckoutRoutes = require('./routes/vendorCheckoutRoutes');
 const payoutRoutes = require('./routes/payoutRoutes');
+const bankAccountRoutes = require('./routes/bankAccountRoutes');
 const authRoutes = require('./routes/authRoutes');
 const paystackRoutes = require('./routes/paystackRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
@@ -78,6 +79,7 @@ app.use('/api/vendor-products', vendorProductRoutes);
 app.use('/api/vendor-cart', vendorCartRoutes);
 app.use('/api/vendor-checkout', vendorCheckoutRoutes)
 app.use('/api/vendor-payout', payoutRoutes);
+app.use('/api/bank-accounts', bankAccountRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/paystack', paystackRoutes);
 app.use('/api/analytics', analyticsRoutes);
