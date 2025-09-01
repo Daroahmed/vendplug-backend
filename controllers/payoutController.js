@@ -2,10 +2,8 @@ const PayoutRequest = require('../models/PayoutRequest');
 const BankAccount = require('../models/BankAccount');
 const Wallet = require('../models/walletModel');
 const Transaction = require('../models/Transaction');
-const PaystackService = require('../services/paystackService');
+const { paystackService } = require('../controllers/paystackController');
 const mongoose = require('mongoose');
-
-const paystackService = new PaystackService();
 
 // Request a payout
 const requestPayout = async (req, res) => {
@@ -90,12 +88,18 @@ const requestPayout = async (req, res) => {
       });
     }
 
+    // Calculate transfer fee
+    const transferFee = 50; // ₦50 flat fee
+    const netAmount = amount - transferFee;
+    
     // Create payout request
     const payoutRequest = new PayoutRequest({
       userId,
       userType,
       bankAccountId,
       amount,
+      netAmount,
+      transferFee,
       status: 'pending'
     });
 
@@ -123,6 +127,67 @@ const requestPayout = async (req, res) => {
     });
 
     await transaction.save({ session });
+
+    // Initiate Paystack transfer
+    try {
+      const transferResult = await initiatePaystackTransfer(payoutRequest, bankAccount, netAmount);
+      
+      if (transferResult.success) {
+        // Update payout request with Paystack reference
+        payoutRequest.status = 'processing';
+        payoutRequest.paystackReference = transferResult.reference;
+        await payoutRequest.save({ session });
+        
+        // Update transaction
+        transaction.status = 'processing';
+        transaction.metadata.paystackReference = transferResult.reference;
+        await transaction.save({ session });
+        
+        console.log(`🔄 Paystack transfer initiated: ${transferResult.reference}`);
+      } else {
+        // Transfer failed, refund wallet
+        wallet.balance += amount;
+        await wallet.save({ session });
+        
+        // Update payout status
+        payoutRequest.status = 'failed';
+        payoutRequest.failureReason = transferResult.error;
+        await payoutRequest.save({ session });
+        
+        // Update transaction
+        transaction.status = 'failed';
+        transaction.metadata.failureReason = transferResult.error;
+        await transaction.save({ session });
+        
+        console.log(`❌ Paystack transfer failed: ${transferResult.error}`);
+        
+        return res.status(400).json({
+          success: false,
+          message: `Transfer failed: ${transferResult.error}`
+        });
+      }
+    } catch (error) {
+      // Transfer error, refund wallet
+      wallet.balance += amount;
+      await wallet.save({ session });
+      
+      // Update payout status
+      payoutRequest.status = 'failed';
+      payoutRequest.failureReason = error.message;
+      await payoutRequest.save({ session });
+      
+      // Update transaction
+      transaction.status = 'failed';
+      transaction.metadata.failureReason = error.message;
+      await transaction.save({ session });
+      
+      console.log(`❌ Paystack transfer error: ${error.message}`);
+      
+      return res.status(500).json({
+        success: false,
+        message: `Transfer error: ${error.message}`
+      });
+    }
 
     await session.commitTransaction();
 
@@ -180,7 +245,7 @@ const processPayouts = async (req, res) => {
         // Initiate transfer
         const transferResult = await paystackService.initiateTransfer(
           recipientResult.data.recipient_code,
-          payout.amount * 100, // Convert to kobo
+          payout.amount, // Amount in naira (Paystack service will convert to kobo)
           `Payout for ${payout.userType} - ${payout._id}`
         );
 
@@ -316,6 +381,55 @@ const getPayoutDetails = async (req, res) => {
       message: 'Failed to fetch payout details',
       error: error.message
     });
+  }
+};
+
+// Initiate Paystack transfer
+const initiatePaystackTransfer = async (payoutRequest, bankAccount, amount) => {
+  try {
+    console.log(`🔄 Initiating Paystack transfer for payout: ${payoutRequest._id}`);
+    
+    // First, create transfer recipient
+    const recipientResult = await paystackService.createTransferRecipient(
+      bankAccount.accountNumber,
+      bankAccount.bankCode,
+      bankAccount.accountName
+    );
+
+    if (!recipientResult.success) {
+      return {
+        success: false,
+        error: `Failed to create recipient: ${recipientResult.message}`
+      };
+    }
+
+    // Then, initiate the transfer
+    const transferResult = await paystackService.initiateTransfer(
+      recipientResult.data.recipient_code,
+      amount, // Amount in naira (Paystack service will convert to kobo)
+      `Payout for ${payoutRequest.userType} - ${payoutRequest._id}`
+    );
+
+    if (!transferResult.success) {
+      return {
+        success: false,
+        error: `Failed to initiate transfer: ${transferResult.message}`
+      };
+    }
+
+    return {
+      success: true,
+      reference: transferResult.data.reference,
+      transferCode: transferResult.data.transfer_code,
+      message: 'Transfer initiated successfully'
+    };
+
+  } catch (error) {
+    console.error('❌ Error initiating Paystack transfer:', error);
+    return {
+      success: false,
+      error: error.message
+    };
   }
 };
 

@@ -17,11 +17,22 @@ const payoutRequestSchema = new mongoose.Schema({
   },
   amount: { 
     type: Number, 
-    required: true 
+    required: true,
+    min: 0
+  },
+  netAmount: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  transferFee: {
+    type: Number,
+    required: true,
+    default: 50
   },
   status: { 
     type: String, 
-    enum: ['pending', 'processing', 'completed', 'failed'],
+    enum: ['pending', 'processing', 'completed', 'failed', 'reversed'],
     default: 'pending'
   },
   paystackReference: { 

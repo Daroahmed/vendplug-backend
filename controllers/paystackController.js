@@ -1,10 +1,7 @@
-const PaystackService = require('../services/paystackService');
+const axios = require('axios');
 const Wallet = require('../models/walletModel');
 const Transaction = require('../models/Transaction');
 const mongoose = require('mongoose');
-
-// Create a single instance of PaystackService
-const paystackService = new PaystackService();
 
 /**
  * Initialize wallet funding payment
@@ -509,6 +506,236 @@ const handleWebhook = async (req, res) => {
   }
 };
 
+// Service functions for internal use (without Express req/res)
+const paystackService = {
+  async initializePayment(paymentData) {
+    try {
+      console.log('💳 Initializing payment:', paymentData);
+
+      const response = await axios.post(
+        'https://api.paystack.co/transaction/initialize',
+        paymentData,
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data.status) {
+        console.log('✅ Payment initialized successfully');
+        return {
+          success: true,
+          data: response.data.data
+        };
+      } else {
+        console.log('❌ Payment initialization failed:', response.data.message);
+        return {
+          success: false,
+          message: response.data.message
+        };
+      }
+    } catch (error) {
+      console.error('❌ Error initializing payment:', error.response?.data || error.message);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to initialize payment'
+      };
+    }
+  },
+
+  async verifyPayment(reference) {
+    try {
+      console.log('🔍 Verifying payment:', reference);
+
+      const response = await axios.get(
+        `https://api.paystack.co/transaction/verify/${reference}`,
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`
+          }
+        }
+      );
+
+      if (response.data.status) {
+        console.log('✅ Payment verified successfully');
+        return {
+          success: true,
+          data: response.data.data
+        };
+      } else {
+        console.log('❌ Payment verification failed:', response.data.message);
+        return {
+          success: false,
+          message: response.data.message
+        };
+      }
+    } catch (error) {
+      console.error('❌ Error verifying payment:', error.response?.data || error.message);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to verify payment'
+      };
+    }
+  },
+
+  async getBanks() {
+    try {
+      console.log('🏦 Fetching banks list');
+
+      const response = await axios.get(
+        'https://api.paystack.co/bank?country=nigeria',
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`
+          }
+        }
+      );
+
+      if (response.data.status) {
+        console.log('✅ Banks fetched successfully');
+        return {
+          success: true,
+          data: response.data.data
+        };
+      } else {
+        console.log('❌ Failed to fetch banks:', response.data.message);
+        return {
+          success: false,
+          message: response.data.message
+        };
+      }
+    } catch (error) {
+      console.error('❌ Error fetching banks:', error.response?.data || error.message);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to fetch banks'
+      };
+    }
+  },
+
+  async createTransferRecipient(accountNumber, bankCode, accountName) {
+    try {
+      console.log('🏦 Creating transfer recipient:', { accountNumber, bankCode, accountName });
+
+      const response = await axios.post(
+        'https://api.paystack.co/transferrecipient',
+        {
+          type: 'nuban',
+          name: accountName,
+          account_number: accountNumber,
+          bank_code: bankCode,
+          currency: 'NGN'
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data.status) {
+        console.log('✅ Transfer recipient created successfully');
+        return {
+          success: true,
+          data: response.data.data
+        };
+      } else {
+        console.log('❌ Transfer recipient creation failed:', response.data.message);
+        return {
+          success: false,
+          message: response.data.message
+        };
+      }
+    } catch (error) {
+      console.error('❌ Error creating transfer recipient:', error.response?.data || error.message);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to create transfer recipient'
+      };
+    }
+  },
+
+  async initiateTransfer(recipientCode, amount, description) {
+    try {
+      console.log('💸 Initiating transfer:', { recipientCode, amount, description });
+
+      const response = await axios.post(
+        'https://api.paystack.co/transfer',
+        {
+          source: 'balance',
+          amount: amount * 100, // Convert naira to kobo
+          recipient: recipientCode,
+          reason: description
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data.status) {
+        console.log('✅ Transfer initiated successfully');
+        return {
+          success: true,
+          data: response.data.data
+        };
+      } else {
+        console.log('❌ Transfer initiation failed:', response.data.message);
+        return {
+          success: false,
+          message: response.data.message
+        };
+      }
+    } catch (error) {
+      console.error('❌ Error initiating transfer:', error.response?.data || error.message);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to initiate transfer'
+      };
+    }
+  },
+
+  async verifyBankAccount(accountNumber, bankCode) {
+    try {
+      console.log('🔍 Verifying bank account:', { accountNumber, bankCode });
+
+      const response = await axios.get(
+        `https://api.paystack.co/bank/resolve?account_number=${accountNumber}&bank_code=${bankCode}`,
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`
+          }
+        }
+      );
+
+      if (response.data.status) {
+        console.log('✅ Bank account verified successfully');
+        return {
+          success: true,
+          data: response.data.data
+        };
+      } else {
+        console.log('❌ Bank account verification failed:', response.data.message);
+        return {
+          success: false,
+          message: response.data.message
+        };
+      }
+    } catch (error) {
+      console.error('❌ Error verifying bank account:', error.response?.data || error.message);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to verify bank account'
+      };
+    }
+  }
+};
+
 module.exports = {
   initializeWalletFunding,
   verifyPayment,
@@ -516,5 +743,6 @@ module.exports = {
   verifyBankAccount,
   createTransferRecipient,
   initiatePayout,
-  handleWebhook
+  handleWebhook,
+  paystackService
 };

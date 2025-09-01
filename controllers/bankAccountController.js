@@ -1,7 +1,5 @@
 const BankAccount = require('../models/BankAccount');
-const PaystackService = require('../services/paystackService');
-
-const paystackService = new PaystackService();
+const { paystackService } = require('../controllers/paystackController');
 
 // Add new bank account
 const addBankAccount = async (req, res) => {
