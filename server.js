@@ -63,6 +63,7 @@ const bankAccountRoutes = require('./routes/bankAccountRoutes');
 const authRoutes = require('./routes/authRoutes');
 const paystackRoutes = require('./routes/paystackRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
+const webhookRoutes = require('./routes/webhookRoutes');
 
 
 // ✅ Mount API routes
@@ -83,6 +84,7 @@ app.use('/api/bank-accounts', bankAccountRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/paystack', paystackRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/webhooks', webhookRoutes);
 // ✅ Test route
 app.get('/', (req, res) => res.send('Backend is running 🚀'));
 
