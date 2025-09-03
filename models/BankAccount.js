@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const bankAccountSchema = new mongoose.Schema({
   userId: { 
     type: mongoose.Schema.Types.ObjectId, 
+    refPath: 'userType',
     required: true 
   },
   userType: { 
