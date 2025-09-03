@@ -64,6 +64,10 @@ const authRoutes = require('./routes/authRoutes');
 const paystackRoutes = require('./routes/paystackRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
 const webhookRoutes = require('./routes/webhookRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+const disputeRoutes = require('./routes/disputeRoutes');
+const staffDisputeRoutes = require('./routes/staffDisputeRoutes');
+const autoAssignmentService = require('./services/autoAssignmentService');
 
 
 // ✅ Mount API routes
@@ -85,6 +89,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/paystack', paystackRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/webhooks', webhookRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/disputes', disputeRoutes);
+app.use('/api/staff', staffDisputeRoutes);
 // ✅ Test route
 app.get('/', (req, res) => res.send('Backend is running 🚀'));
 
@@ -165,4 +172,7 @@ app.use((req, res) => {
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
+  
+  // Start auto-assignment service
+  autoAssignmentService.start();
 });
