@@ -14,6 +14,31 @@ const fs = require('fs');
 const path = require('path');
 
 // Admin Authentication
+const getAdminProfile = async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.admin.id).select('-password');
+    
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: 'Admin not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: admin
+    });
+  } catch (error) {
+    console.error('Error getting admin profile:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error getting admin profile',
+      error: error.message
+    });
+  }
+};
+
 const adminLogin = async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -123,6 +148,7 @@ const getDashboardOverview = async (req, res) => {
     const pendingPayouts = await PayoutRequest.countDocuments({ status: 'pending' });
     const processingPayouts = await PayoutRequest.countDocuments({ status: 'processing' });
     const openDisputes = await Dispute.countDocuments({ status: 'open' });
+    const assignedDisputes = await Dispute.countDocuments({ status: 'assigned' });
     const underReviewDisputes = await Dispute.countDocuments({ status: 'under_review' });
     
     console.log('📊 Counts loaded:', { totalBuyers, totalVendors, totalAgents, totalOrders, totalVendorOrders, pendingPayouts, processingPayouts });
@@ -141,6 +167,12 @@ const getDashboardOverview = async (req, res) => {
       .populate('buyer', 'fullName email')
       .populate('vendor', 'shopName fullName email')
       .select('status totalAmount createdAt buyer vendor');
+
+    // Combine both order types and add orderId field
+    const allRecentOrders = [
+      ...recentOrders.map(order => ({ ...order.toObject(), orderId: order._id, orderType: 'Order' })),
+      ...recentVendorOrders.map(order => ({ ...order.toObject(), orderId: order._id, orderType: 'VendorOrder' }))
+    ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
 
     // Get recent transactions with proper populate
     const recentTransactions = await Transaction.find()
@@ -175,9 +207,10 @@ const getDashboardOverview = async (req, res) => {
           pendingPayouts,
           processingPayouts,
           openDisputes,
+          assignedDisputes,
           underReviewDisputes
         },
-        recentOrders: [...recentOrders, ...recentVendorOrders].slice(0, 5),
+        recentOrders: allRecentOrders,
         recentTransactions,
         pendingPayouts: pendingPayoutList
       }
@@ -556,19 +589,30 @@ const getDisputeManagement = async (req, res) => {
     const filter = {};
     if (status) filter.status = status;
     if (priority) filter.priority = priority;
-    if (assignedTo) filter.assignedTo = assignedTo;
+    if (assignedTo) filter['assignment.assignedTo'] = assignedTo;
 
     const disputes = await Dispute.find(filter)
-      .populate('orderId', 'totalAmount status createdAt')
-      .populate('complainant.userId', 'fullName email shopName')
-      .populate('respondent.userId', 'fullName email shopName')
-      .populate('assignedTo', 'fullName email')
+      .populate({
+        path: 'order',
+        select: 'totalAmount status createdAt',
+        populate: [
+          { path: 'buyer', select: 'fullName email' },
+          { path: 'vendor', select: 'shopName email' }
+        ]
+      })
+      .populate('raisedBy', 'fullName email shopName')
+      .populate('assignment.assignedTo', 'fullName email role')
       .populate('resolution.resolvedBy', 'fullName email')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
 
     const total = await Dispute.countDocuments(filter);
+
+    // Debug: Log the first dispute to see the data structure
+    if (disputes.length > 0) {
+      console.log('🔍 First dispute in getDisputeManagement:', JSON.stringify(disputes[0], null, 2));
+    }
 
     // Get dispute statistics
     const stats = await Dispute.aggregate([
@@ -1160,6 +1204,7 @@ const getDefaultPermissionsForRole = (role) => {
 };
 
 module.exports = {
+  getAdminProfile,
   adminLogin,
   getDashboardOverview,
   getAllUsers,

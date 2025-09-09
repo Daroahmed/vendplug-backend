@@ -174,6 +174,9 @@ const createDispute = async (req, res) => {
       disputeId,
       orderId,
       orderType,
+      order: orderId, // Add the direct order reference
+      raisedBy: complainantUserId, // Add the new required field
+      raisedByType: complainantUserType, // Add the new required field
       complainant: {
         userId: complainantUserId,
         userType: complainantUserType
@@ -244,11 +247,13 @@ const getUserDisputes = async (req, res) => {
 
     const disputes = await Dispute.find({
       $or: [
+        { raisedBy: userId, raisedByType: userType },
         { 'complainant.userId': userId, 'complainant.userType': userType },
         { 'respondent.userId': userId, 'respondent.userType': userType }
       ]
     })
-    .populate('orderId', 'totalAmount status createdAt')
+    .populate('order', 'totalAmount status createdAt')
+    .populate('raisedBy', 'fullName email shopName')
     .populate('complainant.userId', 'fullName email shopName')
     .populate('respondent.userId', 'fullName email shopName')
     .sort({ createdAt: -1 });
@@ -285,34 +290,45 @@ const getDisputeDetails = async (req, res) => {
     console.log('🔍 Looking for dispute with ID:', disputeId);
     
     const dispute = await Dispute.findOne({ disputeId })
-      .populate('orderId', 'totalAmount status createdAt items')
+      .populate({
+        path: 'order',
+        select: 'totalAmount status createdAt items',
+        populate: [
+          { path: 'buyer', select: 'fullName email' },
+          { path: 'vendor', select: 'shopName email' }
+        ]
+      })
+      .populate('raisedBy', 'fullName email shopName')
       .populate('complainant.userId', 'fullName email shopName')
       .populate('respondent.userId', 'fullName email shopName')
-      .populate('assignedTo', 'fullName email')
+      .populate('assignment.assignedTo', 'fullName email role')
       .populate('resolution.resolvedBy', 'fullName email');
     
     console.log('🔍 Dispute found:', dispute ? 'YES' : 'NO');
     if (dispute) {
-      console.log('🔍 Dispute data:', {
-        disputeId: dispute.disputeId,
-        status: dispute.status,
-        priority: dispute.priority,
-        category: dispute.category,
-        title: dispute.title,
-        description: dispute.description,
-        complainant: dispute.complainant,
-        respondent: dispute.respondent
-      });
-    }
+          console.log('🔍 Dispute data:', {
+      disputeId: dispute.disputeId,
+      status: dispute.status,
+      priority: dispute.priority,
+      category: dispute.category,
+      title: dispute.title,
+      description: dispute.description,
+      raisedBy: dispute.raisedBy,
+      raisedByType: dispute.raisedByType
+    });
+  }
 
-    if (!dispute) {
-      return res.status(404).json({ error: 'Dispute not found' });
-    }
+  if (!dispute) {
+    return res.status(404).json({ error: 'Dispute not found' });
+  }
 
-    // Check if user has access to this dispute
-    const hasAccess = userType === 'Admin' ||
-                     (dispute.complainant.userId.toString() === userId && dispute.complainant.userType === userType) ||
-                     (dispute.respondent.userId.toString() === userId && dispute.respondent.userType === userType);
+  // Check if user has access to this dispute
+  const hasAccess = userType === 'Admin' ||
+                   (dispute.raisedBy.toString() === userId && dispute.raisedByType === userType) ||
+                   (dispute.order && (
+                     (dispute.order.buyer && dispute.order.buyer.toString() === userId) ||
+                     (dispute.order.vendor && dispute.order.vendor.toString() === userId)
+                   ));
 
     if (!hasAccess) {
       return res.status(403).json({ error: 'Access denied' });
