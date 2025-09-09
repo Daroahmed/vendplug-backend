@@ -67,6 +67,7 @@ const webhookRoutes = require('./routes/webhookRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const disputeRoutes = require('./routes/disputeRoutes');
 const staffDisputeRoutes = require('./routes/staffDisputeRoutes');
+const staffAuthRoutes = require('./routes/staffAuthRoutes');
 const autoAssignmentService = require('./services/autoAssignmentService');
 
 
@@ -91,6 +92,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/disputes', disputeRoutes);
+app.use('/api/staff', staffAuthRoutes);
 app.use('/api/staff', staffDisputeRoutes);
 // ✅ Test route
 app.get('/', (req, res) => res.send('Backend is running 🚀'));

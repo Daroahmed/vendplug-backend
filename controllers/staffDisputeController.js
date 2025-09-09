@@ -1,326 +1,103 @@
-// backend/controllers/staffDisputeController.js
 const Dispute = require('../models/Dispute');
 const Admin = require('../models/Admin');
+const Wallet = require('../models/walletModel');
 const Order = require('../models/Order');
-const Buyer = require('../models/Buyer');
-const Vendor = require('../models/vendorModel');
-const Agent = require('../models/Agent');
+const VendorOrder = require('../models/vendorOrderModel');
+const Transaction = require('../models/Transaction');
+const mongoose = require('mongoose');
 
-// Get staff's assigned disputes
-const getStaffDisputes = async (req, res) => {
+// Get Staff Dispute Statistics
+const getStaffDisputeStats = async (req, res) => {
   try {
-    const staffId = req.admin._id;
-    const { status, page = 1, limit = 10 } = req.query;
-
-    // Build query for staff's disputes
-    let query = {
-      'assignment.assignedTo': staffId
-    };
-
-    if (status) {
-      query.status = status;
-    }
-
-    const disputes = await Dispute.find(query)
-      .populate('order', 'orderId totalAmount status')
-      .populate('complainant.userId', 'fullName email')
-      .populate('respondent.userId', 'fullName email businessName')
-      .populate('raisedBy', 'fullName email')
-      .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
-
-    const total = await Dispute.countDocuments(query);
-
-    res.json({
-      success: true,
-      data: {
-        disputes,
-        pagination: {
-          current: page,
-          pages: Math.ceil(total / limit),
-          total
-        }
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching staff disputes:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching disputes',
-      error: error.message
-    });
-  }
-};
-
-// Get dispute details for staff
-const getDisputeDetails = async (req, res) => {
-  try {
-    const { disputeId } = req.params;
-    const staffId = req.admin._id;
-
-    const dispute = await Dispute.findOne({
-      disputeId,
-      'assignment.assignedTo': staffId
-    })
-      .populate('order', 'orderId totalAmount status items')
-      .populate('complainant.userId', 'fullName email phone')
-      .populate('respondent.userId', 'fullName email businessName phone')
-      .populate('raisedBy', 'fullName email')
-      .populate('messages.sender.userId', 'fullName email')
-      .populate('evidence.uploadedBy', 'fullName email');
-
-    if (!dispute) {
-      return res.status(404).json({
-        success: false,
-        message: 'Dispute not found or not assigned to you'
-      });
-    }
-
-    res.json({
-      success: true,
-      data: dispute
-    });
-  } catch (error) {
-    console.error('Error fetching dispute details:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching dispute details',
-      error: error.message
-    });
-  }
-};
-
-// Add message to dispute
-const addDisputeMessage = async (req, res) => {
-  try {
-    const { disputeId } = req.params;
-    const { message, isInternal = false, attachments = [] } = req.body;
-    const staffId = req.admin._id;
-
-    const dispute = await Dispute.findOne({
-      disputeId,
-      'assignment.assignedTo': staffId
-    });
-
-    if (!dispute) {
-      return res.status(404).json({
-        success: false,
-        message: 'Dispute not found or not assigned to you'
-      });
-    }
-
-    // Add message
-    dispute.messages.push({
-      sender: {
-        userId: staffId,
-        userType: 'Admin'
-      },
-      message,
-      isInternal,
-      attachments
-    });
-
-    dispute.lastActivity = new Date();
-    await dispute.save();
-
-    res.json({
-      success: true,
-      message: 'Message added successfully',
-      data: dispute.messages[dispute.messages.length - 1]
-    });
-  } catch (error) {
-    console.error('Error adding dispute message:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error adding message',
-      error: error.message
-    });
-  }
-};
-
-// Update dispute status
-const updateDisputeStatus = async (req, res) => {
-  try {
-    const { disputeId } = req.params;
-    const { status, notes } = req.body;
-    const staffId = req.admin._id;
-
-    const dispute = await Dispute.findOne({
-      disputeId,
-      'assignment.assignedTo': staffId
-    });
-
-    if (!dispute) {
-      return res.status(404).json({
-        success: false,
-        message: 'Dispute not found or not assigned to you'
-      });
-    }
-
-    // Update status
-    dispute.status = status;
-    dispute.lastActivity = new Date();
-
-    // Add status change message
-    dispute.messages.push({
-      sender: {
-        userId: staffId,
-        userType: 'Admin'
-      },
-      message: `Status changed to: ${status}${notes ? ` - ${notes}` : ''}`,
-      isInternal: true
-    });
-
-    await dispute.save();
-
-    res.json({
-      success: true,
-      message: 'Dispute status updated successfully',
-      data: { status: dispute.status, lastActivity: dispute.lastActivity }
-    });
-  } catch (error) {
-    console.error('Error updating dispute status:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error updating dispute status',
-      error: error.message
-    });
-  }
-};
-
-// Resolve dispute
-const resolveDispute = async (req, res) => {
-  try {
-    const { disputeId } = req.params;
-    const { decision, reason, refundAmount, notes } = req.body;
-    const staffId = req.admin._id;
-
-    const dispute = await Dispute.findOne({
-      disputeId,
-      'assignment.assignedTo': staffId
-    });
-
-    if (!dispute) {
-      return res.status(404).json({
-        success: false,
-        message: 'Dispute not found or not assigned to you'
-      });
-    }
-
-    // Resolve dispute
-    dispute.status = 'resolved';
-    dispute.resolution = {
-      decision,
-      reason,
-      refundAmount: refundAmount || 0,
-      resolvedBy: staffId,
-      resolvedAt: new Date(),
-      notes
-    };
-    dispute.lastActivity = new Date();
-
-    // Add resolution message
-    dispute.messages.push({
-      sender: {
-        userId: staffId,
-        userType: 'Admin'
-      },
-      message: `Dispute resolved: ${decision}${reason ? ` - ${reason}` : ''}${refundAmount ? ` (Refund: $${refundAmount})` : ''}`,
-      isInternal: false
-    });
-
-    await dispute.save();
-
-    // Update staff activity stats
-    const staff = await Admin.findById(staffId);
-    if (staff && staff.activityStats) {
-      staff.activityStats.disputesResolved += 1;
-      staff.activityStats.currentDisputes = staff.activityStats.currentDisputes.filter(
-        id => id.toString() !== dispute._id.toString()
-      );
-      staff.activityStats.lastActivity = new Date();
-      await staff.save();
-    }
-
-    res.json({
-      success: true,
-      message: 'Dispute resolved successfully',
-      data: dispute.resolution
-    });
-  } catch (error) {
-    console.error('Error resolving dispute:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error resolving dispute',
-      error: error.message
-    });
-  }
-};
-
-// Get staff performance analytics
-const getStaffAnalytics = async (req, res) => {
-  try {
-    const staffId = req.admin._id;
-    const { period = '30' } = req.query; // days
-
+    const staffId = req.staff.staffId;
+    const period = parseInt(req.query.period) || 30;
+    
+    // Calculate date range
+    const endDate = new Date();
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - parseInt(period));
+    startDate.setDate(startDate.getDate() - period);
+    
+    // Get assigned disputes count
+    const assignedDisputes = await Dispute.countDocuments({
+      'assignment.assignedTo': staffId,
+      status: 'assigned'
+    });
 
-    // Get staff info
-    const staff = await Admin.findById(staffId).select('fullName role activityStats');
+    // Get resolved today count
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Get dispute statistics
-    const disputeStats = await Dispute.aggregate([
-      {
-        $match: {
-          'assignment.assignedTo': staffId,
-          createdAt: { $gte: startDate }
-        }
-      },
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 }
-        }
+    const resolvedToday = await Dispute.countDocuments({
+      'assignment.assignedTo': staffId,
+      status: 'resolved',
+      'resolution.resolvedAt': {
+        $gte: today,
+        $lt: tomorrow
       }
-    ]);
+    });
 
-    // Get resolution time analytics
-    const resolutionStats = await Dispute.aggregate([
-      {
-        $match: {
-          'assignment.assignedTo': staffId,
-          status: 'resolved',
-          'resolution.resolvedAt': { $gte: startDate }
-        }
-      },
-      {
-        $project: {
-          resolutionTime: {
-            $divide: [
-              { $subtract: ['$resolution.resolvedAt', '$createdAt'] },
-              1000 * 60 * 60 * 24 // Convert to days
-            ]
-          }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          averageResolutionTime: { $avg: '$resolutionTime' },
-          minResolutionTime: { $min: '$resolutionTime' },
-          maxResolutionTime: { $max: '$resolutionTime' }
-        }
+    // Get pending review count
+    const pendingReview = await Dispute.countDocuments({
+      'assignment.assignedTo': staffId,
+      status: 'under_review'
+    });
+
+    // Get overdue disputes (assigned more than 24 hours ago)
+    const twentyFourHoursAgo = new Date();
+    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+
+    const overdueDisputes = await Dispute.countDocuments({
+      'assignment.assignedTo': staffId,
+      status: { $in: ['assigned', 'under_review'] },
+      'assignment.assignedAt': { $lt: twentyFourHoursAgo }
+    });
+
+    // Get analytics data for the period
+    const totalDisputes = await Dispute.countDocuments({
+      'assignment.assignedTo': staffId,
+      createdAt: { $gte: startDate, $lte: endDate }
+    });
+
+    const resolvedDisputes = await Dispute.countDocuments({
+      'assignment.assignedTo': staffId,
+      status: 'resolved',
+      'resolution.resolvedAt': { $gte: startDate, $lte: endDate }
+    });
+
+    const escalatedDisputes = await Dispute.countDocuments({
+      'assignment.assignedTo': staffId,
+      status: 'escalated',
+      'escalation.escalatedAt': { $gte: startDate, $lte: endDate }
+    });
+
+    // Calculate average resolution time
+    const resolvedDisputesWithTime = await Dispute.find({
+      'assignment.assignedTo': staffId,
+      status: 'resolved',
+      'resolution.resolvedAt': { $gte: startDate, $lte: endDate }
+    }).select('assignment.assignedAt resolution.resolvedAt');
+
+    let totalResolutionTime = 0;
+    let validResolutions = 0;
+
+    resolvedDisputesWithTime.forEach(dispute => {
+      if (dispute.assignment.assignedAt && dispute.resolution.resolvedAt) {
+        const resolutionTime = (dispute.resolution.resolvedAt - dispute.assignment.assignedAt) / (1000 * 60 * 60); // hours
+        totalResolutionTime += resolutionTime;
+        validResolutions++;
       }
-    ]);
+    });
+
+    const averageResolutionTime = validResolutions > 0 ? totalResolutionTime / validResolutions : 0;
 
     // Get category breakdown
     const categoryStats = await Dispute.aggregate([
       {
         $match: {
           'assignment.assignedTo': staffId,
-          createdAt: { $gte: startDate }
+          createdAt: { $gte: startDate, $lte: endDate }
         }
       },
       {
@@ -334,211 +111,767 @@ const getStaffAnalytics = async (req, res) => {
       }
     ]);
 
-    res.json({
+    // Get status breakdown
+    const statusStats = await Dispute.aggregate([
+      {
+        $match: {
+          'assignment.assignedTo': staffId,
+          createdAt: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { count: -1 }
+      }
+    ]);
+
+    res.status(200).json({
       success: true,
       data: {
-        staff: {
-          name: staff.fullName,
-          role: staff.role,
-          currentWorkload: staff.activityStats?.currentDisputes?.length || 0,
-          totalAssigned: staff.activityStats?.disputesAssigned || 0,
-          totalResolved: staff.activityStats?.disputesResolved || 0
-        },
-        period: `${period} days`,
-        disputeStats,
-        resolutionStats: resolutionStats[0] || {},
-        categoryStats
+        // Basic stats
+        assignedDisputes,
+        resolvedToday,
+        pendingReview,
+        overdueDisputes,
+        
+        // Analytics data
+        totalDisputes,
+        resolvedDisputes,
+        escalatedDisputes,
+        averageResolutionTime: Math.round(averageResolutionTime * 10) / 10,
+        
+        // Breakdowns
+        categoryStats: categoryStats.map(item => ({
+          category: item._id,
+          count: item.count
+        })),
+        statusStats: statusStats.map(item => ({
+          status: item._id,
+          count: item.count
+        })),
+        
+        // Resolution stats for charts
+        resolutionStats: {
+          total: totalDisputes,
+          resolved: resolvedDisputes,
+          escalated: escalatedDisputes,
+          averageResolutionTime: Math.round(averageResolutionTime * 10) / 10
+        }
       }
     });
+
   } catch (error) {
-    console.error('Error fetching staff analytics:', error);
+    console.error('❌ Get staff dispute stats error:', error);
     res.status(500).json({
       success: false,
-      message: 'Error fetching analytics',
+      message: 'Internal server error',
       error: error.message
     });
   }
 };
 
-// Get available disputes for assignment (for managers)
-const getAvailableDisputes = async (req, res) => {
+// Get Staff's Assigned Disputes
+const getMyDisputes = async (req, res) => {
   try {
-    const { category, priority, page = 1, limit = 10 } = req.query;
+    const staffId = req.staff.staffId;
+    const { status, priority, page = 1, limit = 10 } = req.query;
 
-    // Check if user has assignment permissions
-    if (!req.admin.permissions?.disputeAssignment) {
-      return res.status(403).json({
-        success: false,
-        message: 'You do not have permission to assign disputes'
-      });
-    }
+    const filter = { 'assignment.assignedTo': staffId };
+    if (status) filter.status = status;
+    if (priority) filter.priority = priority;
 
-    let query = {
-      status: 'open',
-      'assignment.assignedTo': { $exists: false }
-    };
-
-    if (category) query.category = category;
-    if (priority) query.priority = priority;
-
-    const disputes = await Dispute.find(query)
-      .populate('order', 'orderId totalAmount')
-      .populate('complainant.userId', 'fullName email')
-      .populate('respondent.userId', 'fullName email businessName')
-      .sort({ priority: -1, createdAt: 1 })
+    const disputes = await Dispute.find(filter)
+      .populate({
+        path: 'order',
+        select: 'totalAmount status createdAt',
+        populate: [
+          { path: 'buyer', select: 'fullName email' },
+          { path: 'vendor', select: 'shopName email' }
+        ]
+      })
+      .populate('raisedBy', 'fullName email shopName')
+      .populate('assignment.assignedTo', 'fullName email role')
+      .populate('resolution.resolvedBy', 'fullName email')
+      .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
 
-    const total = await Dispute.countDocuments(query);
+    const total = await Dispute.countDocuments(filter);
 
-    res.json({
+    res.status(200).json({
       success: true,
       data: {
         disputes,
         pagination: {
-          current: page,
+          current: parseInt(page),
           pages: Math.ceil(total / limit),
           total
         }
       }
     });
+
   } catch (error) {
-    console.error('Error fetching available disputes:', error);
+    console.error('❌ Get my disputes error:', error);
     res.status(500).json({
       success: false,
-      message: 'Error fetching available disputes',
+      message: 'Internal server error',
       error: error.message
     });
   }
 };
 
-// Assign dispute to staff (for managers)
-const assignDispute = async (req, res) => {
+// Get Dispute Details for Staff
+const getDisputeDetails = async (req, res) => {
   try {
     const { disputeId } = req.params;
-    const { assignedTo, notes } = req.body;
-    const assignedBy = req.admin._id;
+    const staffId = req.staff.staffId;
 
-    // Check if user has assignment permissions
-    if (!req.admin.permissions?.disputeAssignment) {
-      return res.status(403).json({
+    // Build query conditions
+    const queryConditions = [
+      { disputeId: disputeId }
+    ];
+    
+    // Only add _id condition if disputeId is a valid ObjectId
+    if (mongoose.Types.ObjectId.isValid(disputeId)) {
+      queryConditions.push({ _id: disputeId });
+    }
+    
+    const dispute = await Dispute.findOne({
+      $or: queryConditions,
+      'assignment.assignedTo': staffId
+    })
+      .populate({
+        path: 'order',
+        select: 'totalAmount status createdAt',
+        populate: [
+          { path: 'buyer', select: 'fullName email' },
+          { path: 'vendor', select: 'shopName email' }
+        ]
+      })
+      .populate('raisedBy', 'fullName email shopName')
+      .populate('assignment.assignedTo', 'fullName email role')
+      .populate('resolution.resolvedBy', 'fullName email');
+
+    if (!dispute) {
+      return res.status(404).json({
         success: false,
-        message: 'You do not have permission to assign disputes'
+        message: 'Dispute not found or not assigned to you'
       });
     }
 
-    // Find the dispute
+    res.status(200).json({
+      success: true,
+      data: { dispute }
+    });
+
+  } catch (error) {
+    console.error('❌ Get dispute details error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
+// Start Review
+const startReview = async (req, res) => {
+  try {
+    const { disputeId } = req.params;
+    const staffId = req.staff.staffId;
+
     const dispute = await Dispute.findOne({
-      disputeId,
-      status: 'open',
-      'assignment.assignedTo': { $exists: false }
+      disputeId: disputeId,
+      'assignment.assignedTo': staffId,
+      status: 'assigned'
     });
 
     if (!dispute) {
       return res.status(404).json({
         success: false,
-        message: 'Dispute not found or already assigned'
+        message: 'Dispute not found or not assigned to you'
       });
     }
 
-    // Find the assigned staff member
-    const staff = await Admin.findOne({
-      _id: assignedTo,
-      isActive: true,
-      'permissions.disputeResolution': true
-    });
-
-    if (!staff) {
-      return res.status(404).json({
-        success: false,
-        message: 'Staff member not found or not available for dispute resolution'
-      });
-    }
-
-    // Check if staff can handle this category
-    const canHandle = staff.disputeSpecialties.includes(dispute.category) || 
-                     staff.disputeSpecialties.includes('other');
-
-    if (!canHandle) {
-      return res.status(400).json({
-        success: false,
-        message: `${staff.fullName} cannot handle ${dispute.category} disputes`
-      });
-    }
-
-    // Check workload
-    const currentWorkload = staff.activityStats?.currentDisputes?.length || 0;
-    if (currentWorkload >= staff.maxConcurrentDisputes) {
-      return res.status(400).json({
-        success: false,
-        message: `${staff.fullName} is at maximum capacity (${currentWorkload}/${staff.maxConcurrentDisputes})`
-      });
-    }
-
-    // Assign dispute
-    dispute.assignment = {
-      assignedTo: staff._id,
-      assignedAt: new Date(),
-      assignedBy,
-      notes: notes || `Assigned to ${staff.fullName} by ${req.admin.fullName}`
-    };
-    dispute.status = 'assigned';
+    // Update status to under_review
+    dispute.status = 'under_review';
     dispute.lastActivity = new Date();
-
-    // Add assignment message
-    dispute.messages.push({
-      sender: {
-        userId: assignedBy,
-        userType: 'Admin'
-      },
-      message: `Dispute assigned to ${staff.fullName}${notes ? ` - ${notes}` : ''}`,
-      isInternal: true
+    
+    // Add activity log
+    if (!dispute.activityLog) dispute.activityLog = [];
+    dispute.activityLog.push({
+      action: 'review_started',
+      performedBy: staffId,
+      performedByType: 'Staff',
+      timestamp: new Date(),
+      details: 'Staff member started reviewing the dispute'
     });
 
     await dispute.save();
 
     // Update staff activity stats
-    if (!staff.activityStats) {
-      staff.activityStats = {
-        currentDisputes: [],
-        disputesAssigned: 0,
-        disputesResolved: 0,
-        averageResolutionTime: 0,
-        lastActivity: new Date()
-      };
-    }
-
-    staff.activityStats.currentDisputes.push(dispute._id);
-    staff.activityStats.disputesAssigned += 1;
-    staff.activityStats.lastActivity = new Date();
-    await staff.save();
-
-    res.json({
-      success: true,
-      message: 'Dispute assigned successfully',
-      data: {
-        disputeId: dispute.disputeId,
-        assignedTo: staff.fullName,
-        assignedAt: dispute.assignment.assignedAt
-      }
+    await Admin.findByIdAndUpdate(staffId, {
+      $inc: { 'activityStats.disputesUnderReview': 1 },
+      $set: { lastActivity: new Date() }
     });
+
+    res.status(200).json({
+      success: true,
+      message: 'Review started successfully',
+      data: { dispute }
+    });
+
   } catch (error) {
-    console.error('Error assigning dispute:', error);
+    console.error('❌ Start review error:', error);
     res.status(500).json({
       success: false,
-      message: 'Error assigning dispute',
+      message: 'Internal server error',
       error: error.message
     });
   }
 };
 
+// Resolve Dispute
+const resolveDispute = async (req, res) => {
+  try {
+    const { disputeId } = req.params;
+    const { resolution, notes, refundAmount } = req.body;
+    const staffId = req.staff.staffId;
+
+    if (!resolution || !['refund', 'no_refund', 'partial_refund'].includes(resolution)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid resolution type is required'
+      });
+    }
+
+    const dispute = await Dispute.findOne({
+      disputeId: disputeId,
+      'assignment.assignedTo': staffId,
+      status: { $in: ['assigned', 'under_review'] }
+    });
+
+    if (!dispute) {
+      return res.status(404).json({
+        success: false,
+        message: 'Dispute not found or not assigned to you'
+      });
+    }
+
+    // Update dispute status and resolution
+    dispute.status = 'resolved';
+    dispute.resolution = {
+      resolution,
+      notes: notes || '',
+      refundAmount: refundAmount || 0,
+      resolvedBy: staffId,
+      resolvedAt: new Date()
+    };
+    dispute.lastActivity = new Date();
+
+    // Add activity log
+    if (!dispute.activityLog) dispute.activityLog = [];
+    dispute.activityLog.push({
+      action: 'dispute_resolved',
+      performedBy: staffId,
+      performedByType: 'Staff',
+      timestamp: new Date(),
+      details: `Dispute resolved with ${resolution}`
+    });
+
+    await dispute.save();
+
+    // Process wallet credit if refund is applicable
+    if (refundAmount > 0 && (resolution === 'refund' || resolution === 'partial_refund')) {
+      try {
+        await processDisputeRefund(dispute, refundAmount);
+        console.log(`✅ Dispute refund processed: ${refundAmount} for dispute ${dispute.disputeId}`);
+      } catch (refundError) {
+        console.error('❌ Error processing dispute refund:', refundError);
+        // Continue with resolution even if refund fails
+      }
+    }
+
+    // Update staff activity stats
+    await Admin.findByIdAndUpdate(staffId, {
+      $inc: { 
+        'activityStats.resolvedDisputes': 1,
+        'activityStats.disputesUnderReview': -1
+      },
+      $set: { lastActivity: new Date() }
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Dispute resolved successfully',
+      data: { dispute }
+    });
+
+  } catch (error) {
+    console.error('❌ Resolve dispute error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
+// Add Message to Dispute
+const addMessage = async (req, res) => {
+  try {
+    const { disputeId } = req.params;
+    const { message } = req.body;
+    const staffId = req.staff.staffId;
+
+    if (!message || message.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Message content is required'
+      });
+    }
+
+    const dispute = await Dispute.findOne({
+      disputeId: disputeId,
+      'assignment.assignedTo': staffId
+    });
+
+    if (!dispute) {
+      return res.status(404).json({
+        success: false,
+        message: 'Dispute not found or not assigned to you'
+      });
+    }
+
+    // Add message
+    if (!dispute.messages) dispute.messages = [];
+    dispute.messages.push({
+      sender: staffId,
+      senderType: 'Staff',
+      message: message.trim(),
+      timestamp: new Date()
+    });
+
+    dispute.lastActivity = new Date();
+    await dispute.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Message added successfully',
+      data: { dispute }
+    });
+
+  } catch (error) {
+    console.error('❌ Add message error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
+
+// Request Additional Information
+const requestInfo = async (req, res) => {
+  try {
+    const { disputeId } = req.params;
+    const { requestType, message, dueDate } = req.body;
+    const staffId = req.staff.staffId;
+
+    const dispute = await Dispute.findOne({
+      disputeId: disputeId,
+      'assignment.assignedTo': staffId
+    });
+
+    if (!dispute) {
+      return res.status(404).json({
+        success: false,
+        message: 'Dispute not found or not assigned to you'
+      });
+    }
+
+    // Add request to activity log
+    if (!dispute.activityLog) dispute.activityLog = [];
+    dispute.activityLog.push({
+      action: 'info_requested',
+      performedBy: staffId,
+      performedByType: 'Staff',
+      timestamp: new Date(),
+      details: `Requested ${requestType}: ${message}`,
+      metadata: {
+        requestType,
+        dueDate: dueDate ? new Date(dueDate) : null
+      }
+    });
+
+    dispute.lastActivity = new Date();
+    await dispute.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Information request sent successfully',
+      data: { dispute }
+    });
+
+  } catch (error) {
+    console.error('❌ Request info error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
+// Update Priority
+const updatePriority = async (req, res) => {
+  try {
+    const { disputeId } = req.params;
+    const { priority, reason } = req.body;
+    const staffId = req.staff.staffId;
+
+    if (!['low', 'medium', 'high', 'urgent'].includes(priority)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid priority level'
+      });
+    }
+
+    const dispute = await Dispute.findOne({
+      disputeId: disputeId,
+      'assignment.assignedTo': staffId
+    });
+
+    if (!dispute) {
+      return res.status(404).json({
+        success: false,
+        message: 'Dispute not found or not assigned to you'
+      });
+    }
+
+    const oldPriority = dispute.priority;
+    dispute.priority = priority;
+    dispute.lastActivity = new Date();
+
+    // Add activity log
+    if (!dispute.activityLog) dispute.activityLog = [];
+    dispute.activityLog.push({
+      action: 'priority_updated',
+      performedBy: staffId,
+      performedByType: 'Staff',
+      timestamp: new Date(),
+      details: `Priority changed from ${oldPriority} to ${priority}`,
+      metadata: { reason: reason || '' }
+    });
+
+    await dispute.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Priority updated successfully',
+      data: { dispute }
+    });
+
+  } catch (error) {
+    console.error('❌ Update priority error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
+// Add Internal Note
+const addInternalNote = async (req, res) => {
+  try {
+    const { disputeId } = req.params;
+    const { note } = req.body;
+    const staffId = req.staff.staffId;
+
+    const dispute = await Dispute.findOne({
+      disputeId: disputeId,
+      'assignment.assignedTo': staffId
+    });
+
+    if (!dispute) {
+      return res.status(404).json({
+        success: false,
+        message: 'Dispute not found or not assigned to you'
+      });
+    }
+
+    // Add internal note
+    if (!dispute.internalNotes) dispute.internalNotes = [];
+    dispute.internalNotes.push({
+      note,
+      addedBy: staffId,
+      addedAt: new Date()
+    });
+
+    dispute.lastActivity = new Date();
+    await dispute.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Internal note added successfully',
+      data: { dispute }
+    });
+
+  } catch (error) {
+    console.error('❌ Add internal note error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
+// Get Internal Notes
+const getInternalNotes = async (req, res) => {
+  try {
+    const { disputeId } = req.params;
+    const staffId = req.staff.staffId;
+
+    const dispute = await Dispute.findOne({
+      disputeId: disputeId,
+      'assignment.assignedTo': staffId
+    }).populate('internalNotes.addedBy', 'fullName email');
+
+    if (!dispute) {
+      return res.status(404).json({
+        success: false,
+        message: 'Dispute not found or not assigned to you'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        notes: dispute.internalNotes || []
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Get internal notes error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
+// Contact Parties
+const contactParties = async (req, res) => {
+  try {
+    const { disputeId } = req.params;
+    const { contactType, message, isInternal } = req.body;
+    const staffId = req.staff.staffId;
+
+    const dispute = await Dispute.findOne({
+      disputeId: disputeId,
+      'assignment.assignedTo': staffId
+    });
+
+    if (!dispute) {
+      return res.status(404).json({
+        success: false,
+        message: 'Dispute not found or not assigned to you'
+      });
+    }
+
+    // Add message to dispute
+    await dispute.addMessage(staffId, 'Admin', message, isInternal);
+
+    // Add activity log
+    if (!dispute.activityLog) dispute.activityLog = [];
+    dispute.activityLog.push({
+      action: 'parties_contacted',
+      performedBy: staffId,
+      performedByType: 'Staff',
+      timestamp: new Date(),
+      details: `Contacted ${contactType}: ${message.substring(0, 50)}...`,
+      metadata: { contactType, isInternal }
+    });
+
+    dispute.lastActivity = new Date();
+    await dispute.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Message sent successfully',
+      data: { dispute }
+    });
+
+  } catch (error) {
+    console.error('❌ Contact parties error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
+// Escalate Dispute
+const escalateDispute = async (req, res) => {
+  try {
+    const { disputeId } = req.params;
+    const { reason, priority, notes } = req.body;
+    const staffId = req.staff.staffId;
+
+    if (!reason) {
+      return res.status(400).json({
+        success: false,
+        message: 'Escalation reason is required'
+      });
+    }
+
+    const dispute = await Dispute.findOne({
+      disputeId: disputeId,
+      'assignment.assignedTo': staffId,
+      status: { $in: ['assigned', 'under_review'] }
+    });
+
+    if (!dispute) {
+      return res.status(404).json({
+        success: false,
+        message: 'Dispute not found or not assigned to you'
+      });
+    }
+
+    // Update dispute status and escalation details
+    dispute.status = 'escalated';
+    dispute.escalation = {
+      reason,
+      priority: priority || 'high',
+      escalatedBy: staffId,
+      escalatedAt: new Date(),
+      notes: notes || ''
+    };
+    dispute.lastActivity = new Date();
+
+    // Add activity log
+    if (!dispute.activityLog) dispute.activityLog = [];
+    dispute.activityLog.push({
+      action: 'dispute_escalated',
+      performedBy: staffId,
+      performedByType: 'Staff',
+      timestamp: new Date(),
+      details: `Dispute escalated: ${reason}`
+    });
+
+    await dispute.save();
+
+    // Update staff activity stats
+    await Admin.findByIdAndUpdate(staffId, {
+      $inc: { 
+        'activityStats.escalatedDisputes': 1,
+        'activityStats.disputesUnderReview': -1
+      },
+      $set: { lastActivity: new Date() }
+    });
+
+    // Notify all admins about escalation
+    const admins = await Admin.find({ 
+      isActive: true, 
+      role: 'admin' 
+    });
+
+    // Send notifications to admins (you can implement notification system here)
+    console.log(`🚨 Dispute ${dispute.disputeId} escalated to admins: ${reason}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Dispute escalated successfully',
+      data: { dispute }
+    });
+
+  } catch (error) {
+    console.error('❌ Escalate dispute error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
+// Helper function to process dispute refunds
+const processDisputeRefund = async (dispute, refundAmount) => {
+  try {
+    // Get the order to find the buyer
+    let order;
+    if (dispute.orderType === 'Order') {
+      order = await Order.findById(dispute.orderId);
+    } else if (dispute.orderType === 'VendorOrder') {
+      order = await VendorOrder.findById(dispute.orderId);
+    }
+
+    if (!order) {
+      throw new Error('Order not found for refund');
+    }
+
+    // Find buyer's wallet
+    const buyerWallet = await Wallet.findOne({ 
+      user: order.buyer, 
+      role: 'buyer' 
+    });
+
+    if (!buyerWallet) {
+      throw new Error('Buyer wallet not found');
+    }
+
+    // Credit buyer's wallet
+    buyerWallet.balance += refundAmount;
+    await buyerWallet.save();
+
+    // Create transaction record
+    const transaction = new Transaction({
+      ref: `DISP_REFUND_${dispute.disputeId}_${Date.now()}`,
+      type: 'credit',
+      status: 'successful',
+      amount: refundAmount,
+      to: order.buyer.toString(),
+      description: `Dispute refund for ${dispute.disputeId}`,
+      initiatedBy: dispute.resolution.resolvedBy,
+      initiatorType: 'Staff',
+      metadata: {
+        disputeId: dispute.disputeId,
+        orderId: order._id,
+        orderType: dispute.orderType
+      }
+    });
+
+    await transaction.save();
+
+    console.log(`✅ Dispute refund processed: ${refundAmount} to buyer ${order.buyer}`);
+
+  } catch (error) {
+    console.error('❌ Error processing dispute refund:', error);
+    throw error;
+  }
+};
+
 module.exports = {
-  getStaffDisputes,
+  getStaffDisputeStats,
+  getMyDisputes,
   getDisputeDetails,
-  addDisputeMessage,
-  updateDisputeStatus,
+  startReview,
   resolveDispute,
-  getStaffAnalytics,
-  getAvailableDisputes,
-  assignDispute
+  addMessage,
+  escalateDispute,
+  requestInfo,
+  updatePriority,
+  addInternalNote,
+  getInternalNotes,
+  contactParties
 };

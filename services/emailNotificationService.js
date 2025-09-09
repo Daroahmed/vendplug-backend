@@ -145,7 +145,7 @@ class EmailNotificationService {
                             <p><strong>Created:</strong> ${new Date(dispute.createdAt).toLocaleDateString()}</p>
                         </div>
                         <p>Please log into the staff dashboard to review and resolve this dispute.</p>
-                        <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/staff-dispute-dashboard.html" class="btn">View Dispute</a>
+                        <a href="${process.env.FRONTEND_URL || 'http://localhost:5000'}/staff-dispute-dashboard.html" class="btn">View Dispute</a>
                     </div>
                     <div class="footer">
                         <p>This is an automated notification from Vendplug Escrow System.</p>

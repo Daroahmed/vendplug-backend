@@ -212,21 +212,10 @@ const confirmReceipt = async (req, res) => {
 
     await session.commitTransaction();
 
-    // ✅ Send notifications (after successful transaction)
-    const io = req.app.get('io');
-    await sendOrderStatusNotification(io, order, 'delivered');
-    await sendPayoutNotification(io, {
-      vendorId: order.vendor._id,
-      amount: order.totalAmount,
-      status: 'ready',
-      orderId: order._id
-    });
-
     res.json({
       success: true,
       message: "Delivery confirmed. Funds moved to vendor payout queue.",
-      order,
-      payout
+      order
     });
 
   } catch (error) {
@@ -238,6 +227,21 @@ const confirmReceipt = async (req, res) => {
     });
   } finally {
     session.endSession();
+  }
+
+  // ✅ Send notifications (after successful response and transaction)
+  try {
+    const io = req.app.get('io');
+    await sendOrderStatusNotification(io, order, 'delivered');
+    await sendPayoutNotification(io, {
+      vendorId: order.vendor._id,
+      amount: order.totalAmount,
+      status: 'ready',
+      orderId: order._id
+    });
+  } catch (notificationError) {
+    console.error('⚠️ Notification error (non-critical):', notificationError);
+    // Don't fail the request for notification errors
   }
 }
 

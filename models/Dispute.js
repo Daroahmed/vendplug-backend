@@ -200,6 +200,33 @@ const disputeSchema = new mongoose.Schema({
     notes: String
   },
   
+  // Escalation Details
+  escalation: {
+    reason: {
+      type: String,
+      enum: ['complex_case', 'high_value', 'repeat_offender', 'policy_violation', 'system_issue', 'customer_complaint', 'legal_issue', 'other']
+    },
+    notes: String,
+    escalatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Admin'
+    },
+    escalatedAt: Date
+  },
+  
+  // Internal Notes (staff only)
+  internalNotes: [{
+    note: String,
+    addedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Admin'
+    },
+    addedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  
   lastActivity: {
     type: Date,
     default: Date.now

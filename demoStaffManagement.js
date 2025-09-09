@@ -141,7 +141,7 @@ Mike Wilson,mike.wilson@vendplug.com,mike.wilson,Password123!,dispute_manager,15
         console.log('🌐 ACCESSING STAFF MANAGEMENT INTERFACE:');
         console.log('=' .repeat(50));
         
-        console.log('1. 🌍 Open your browser and go to: http://localhost:3000/staff-management.html');
+        console.log('1. 🌍 Open your browser and go to: http://localhost:5000/staff-management.html');
         console.log('2. 🔐 Login with admin credentials');
         console.log('3. 👥 View all staff members with their current status');
         console.log('4. ➕ Click "Add New Staff" to create individual accounts');
@@ -175,7 +175,7 @@ Mike Wilson,mike.wilson@vendplug.com,mike.wilson,Password123!,dispute_manager,15
         console.log('🎉 DEMONSTRATION COMPLETE!');
         console.log('=' .repeat(50));
         console.log('Your staff management system is ready for professional use!');
-        console.log('Access the interface at: http://localhost:3000/staff-management.html');
+        console.log('Access the interface at: http://localhost:5000/staff-management.html');
 
     } catch (error) {
         console.error('❌ Error in demonstration:', error);
