@@ -40,6 +40,13 @@ router.get('/staff/:staffId/activity', checkPermission('analytics'), adminContro
 router.get('/staff/available', checkPermission('disputeAssignment'), adminController.getAvailableStaff);
 router.post('/staff/bulk-import', checkPermission('userManagement'), upload.single('csvFile'), adminController.bulkImportStaff);
 
+// Staff dispute management
+router.get('/disputes/staff-stats', checkPermission('analytics'), adminController.getStaffDisputeStats);
+router.get('/disputes/staff/:staffId', checkPermission('disputeManagement'), adminController.getStaffDisputes);
+
+// Staff activity logs
+router.get('/staff-activity', checkPermission('analytics'), adminController.getStaffActivityLogs);
+
 // Auto assignment management
 router.get('/assignment/stats', checkPermission('analytics'), adminController.getAssignmentStats);
 router.post('/disputes/:disputeId/auto-assign', checkPermission('disputeAssignment'), adminController.autoAssignDispute);
