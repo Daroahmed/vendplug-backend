@@ -137,6 +137,23 @@ const getDashboardOverview = async (req, res) => {
   try {
     console.log('🔍 Loading dashboard data...');
     
+    // Get date filters from query
+    const { startDate, endDate } = req.query;
+    let dateFilter = {};
+    
+    if (startDate || endDate) {
+      dateFilter.createdAt = {};
+      if (startDate) {
+        dateFilter.createdAt.$gte = new Date(startDate);
+      }
+      if (endDate) {
+        // Add one day to endDate to include the entire day
+        const endDateObj = new Date(endDate);
+        endDateObj.setDate(endDateObj.getDate() + 1);
+        dateFilter.createdAt.$lt = endDateObj;
+      }
+    }
+    
     // Get counts
     const totalBuyers = await Buyer.countDocuments();
     const totalVendors = await Vendor.countDocuments();
@@ -147,21 +164,45 @@ const getDashboardOverview = async (req, res) => {
     
     const pendingPayouts = await PayoutRequest.countDocuments({ status: 'pending' });
     const processingPayouts = await PayoutRequest.countDocuments({ status: 'processing' });
+    
+    // Calculate total transaction amounts
+    const totalTransactionAmount = await Transaction.aggregate([
+      { $match: { status: 'successful' } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    
+    const totalOrderAmount = await Order.aggregate([
+      { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+    ]);
+    
+    const totalVendorOrderAmount = await VendorOrder.aggregate([
+      { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+    ]);
+    
+    const totalPayoutAmount = await PayoutRequest.aggregate([
+      { $match: { status: { $in: ['completed', 'processing'] } } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    
+    // Dispute counts
     const openDisputes = await Dispute.countDocuments({ status: 'open' });
     const assignedDisputes = await Dispute.countDocuments({ status: 'assigned' });
     const underReviewDisputes = await Dispute.countDocuments({ status: 'under_review' });
+    const resolvedDisputes = await Dispute.countDocuments({ status: 'resolved' });
+    const escalatedDisputes = await Dispute.countDocuments({ status: 'escalated' });
+    const totalDisputes = await Dispute.countDocuments();
     
     console.log('📊 Counts loaded:', { totalBuyers, totalVendors, totalAgents, totalOrders, totalVendorOrders, pendingPayouts, processingPayouts });
     
-    // Get recent orders with proper populate
-    const recentOrders = await Order.find()
+    // Get recent orders with proper populate and date filter
+    const recentOrders = await Order.find(dateFilter)
       .sort({ createdAt: -1 })
       .limit(5)
       .populate('buyer', 'fullName email')
       .populate('agent', 'fullName email')
       .select('status totalAmount createdAt buyer agent');
 
-    const recentVendorOrders = await VendorOrder.find()
+    const recentVendorOrders = await VendorOrder.find(dateFilter)
       .sort({ createdAt: -1 })
       .limit(5)
       .populate('buyer', 'fullName email')
@@ -174,8 +215,8 @@ const getDashboardOverview = async (req, res) => {
       ...recentVendorOrders.map(order => ({ ...order.toObject(), orderId: order._id, orderType: 'VendorOrder' }))
     ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
 
-    // Get recent transactions with proper populate
-    const recentTransactions = await Transaction.find()
+    // Get recent transactions with proper populate and date filter
+    const recentTransactions = await Transaction.find(dateFilter)
       .sort({ createdAt: -1 })
       .limit(10)
       .populate('initiatedBy', 'fullName email shopName')
@@ -206,9 +247,19 @@ const getDashboardOverview = async (req, res) => {
           totalOrders: totalOrders + totalVendorOrders,
           pendingPayouts,
           processingPayouts,
+          // Dispute counts
           openDisputes,
           assignedDisputes,
-          underReviewDisputes
+          underReviewDisputes,
+          resolvedDisputes,
+          escalatedDisputes,
+          totalDisputes
+        },
+        financial: {
+          totalTransactionAmount: totalTransactionAmount[0]?.total || 0,
+          totalOrderAmount: (totalOrderAmount[0]?.total || 0) + (totalVendorOrderAmount[0]?.total || 0),
+          totalPayoutAmount: totalPayoutAmount[0]?.total || 0,
+          netRevenue: (totalTransactionAmount[0]?.total || 0) - (totalPayoutAmount[0]?.total || 0)
         },
         recentOrders: allRecentOrders,
         recentTransactions,
@@ -256,9 +307,9 @@ const getAllUsers = async (req, res) => {
         
         // Combine all users into a single array
         const allUsers = [
-          ...buyers.map(user => ({ ...user.toObject(), userType: 'buyer' })),
-          ...vendors.map(user => ({ ...user.toObject(), userType: 'vendor' })),
-          ...agents.map(user => ({ ...user.toObject(), userType: 'agent' }))
+          ...buyers.map(user => ({ ...user.toObject(), userType: 'buyer', isActive: user.isActive !== false })),
+          ...vendors.map(user => ({ ...user.toObject(), userType: 'vendor', isActive: user.isActive !== false })),
+          ...agents.map(user => ({ ...user.toObject(), userType: 'agent', isActive: user.isActive !== false }))
         ];
         
         // Get total counts for pagination
@@ -877,7 +928,98 @@ const updateStaff = async (req, res) => {
   }
 };
 
-// Get staff activity stats
+// Get staff activity logs (all staff)
+const getStaffActivityLogs = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, staffId, action, startDate, endDate } = req.query;
+    const skip = (page - 1) * limit;
+    
+    // Build filter query
+    let filter = {};
+    
+    if (staffId) {
+      filter['resolution.resolvedBy'] = staffId;
+    }
+    
+    if (action) {
+      filter['resolution.decision'] = action;
+    }
+    
+    if (startDate || endDate) {
+      filter['resolution.resolvedAt'] = {};
+      if (startDate) {
+        filter['resolution.resolvedAt'].$gte = new Date(startDate);
+      }
+      if (endDate) {
+        filter['resolution.resolvedAt'].$lte = new Date(endDate);
+      }
+    }
+    
+    // Get resolved disputes (staff activity)
+    const disputes = await Dispute.find(filter)
+      .populate('resolution.resolvedBy', 'fullName email role')
+      .populate('complainant', 'fullName email')
+      .populate('respondent', 'fullName email')
+      .sort({ 'resolution.resolvedAt': -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+    
+    // Get total count for pagination
+    const total = await Dispute.countDocuments(filter);
+    
+    // Format activity logs
+    const activityLogs = disputes.map(dispute => ({
+      id: dispute._id,
+      disputeId: dispute.disputeId,
+      action: dispute.resolution?.decision || 'resolved',
+      staff: {
+        id: dispute.resolution?.resolvedBy?._id,
+        name: dispute.resolution?.resolvedBy?.fullName,
+        email: dispute.resolution?.resolvedBy?.email,
+        role: dispute.resolution?.resolvedBy?.role
+      },
+      dispute: {
+        title: dispute.title,
+        category: dispute.category,
+        status: dispute.status,
+        priority: dispute.priority
+      },
+      parties: {
+        complainant: {
+          name: dispute.complainant?.fullName,
+          email: dispute.complainant?.email
+        },
+        respondent: {
+          name: dispute.respondent?.fullName,
+          email: dispute.respondent?.email
+        }
+      },
+      timestamp: dispute.resolution?.resolvedAt,
+      details: dispute.resolution?.reason || 'Dispute resolved'
+    }));
+    
+    res.json({
+      success: true,
+      data: activityLogs,
+      pagination: {
+        current: parseInt(page),
+        total: Math.ceil(total / limit),
+        count: activityLogs.length,
+        totalRecords: total
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Get staff activity logs error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching staff activity logs',
+      error: error.message
+    });
+  }
+};
+
+// Get staff activity stats (specific staff)
 const getStaffActivity = async (req, res) => {
   try {
     const { staffId } = req.params;
@@ -1203,6 +1345,87 @@ const getDefaultPermissionsForRole = (role) => {
   }
 };
 
+// Get staff dispute statistics
+const getStaffDisputeStats = async (req, res) => {
+  try {
+    const staff = await Admin.find({ role: 'staff' }).select('_id fullName email');
+    
+    const staffStats = await Promise.all(staff.map(async (staffMember) => {
+      const disputes = await Dispute.find({ assignedTo: staffMember._id });
+      
+      return {
+        staffId: staffMember._id,
+        staffName: staffMember.fullName,
+        staffEmail: staffMember.email,
+        totalAssigned: disputes.length,
+        currentDisputes: disputes.filter(d => d.status === 'assigned' || d.status === 'under_review').length,
+        resolvedDisputes: disputes.filter(d => d.status === 'resolved').length,
+        underReviewDisputes: disputes.filter(d => d.status === 'under_review').length,
+        overdueDisputes: disputes.filter(d => {
+          if (d.status === 'resolved') return false;
+          const daysSinceAssigned = Math.floor((new Date() - new Date(d.assignedAt)) / (1000 * 60 * 60 * 24));
+          return daysSinceAssigned > 7; // Consider overdue after 7 days
+        }).length
+      };
+    }));
+
+    res.json({
+      success: true,
+      data: staffStats
+    });
+
+  } catch (error) {
+    console.error('Error getting staff dispute stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching staff dispute statistics',
+      error: error.message
+    });
+  }
+};
+
+// Get disputes assigned to a specific staff member
+const getStaffDisputes = async (req, res) => {
+  try {
+    const { staffId } = req.params;
+    
+    const staff = await Admin.findById(staffId);
+    if (!staff) {
+      return res.status(404).json({
+        success: false,
+        message: 'Staff member not found'
+      });
+    }
+
+    const disputes = await Dispute.find({ assignedTo: staffId })
+      .populate('complainant', 'fullName email')
+      .populate('respondent', 'fullName email')
+      .populate('orderId', 'orderNumber totalAmount status')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      data: {
+        staff: {
+          _id: staff._id,
+          fullName: staff.fullName,
+          email: staff.email,
+          role: staff.role
+        },
+        disputes: disputes
+      }
+    });
+
+  } catch (error) {
+    console.error('Error getting staff disputes:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching staff disputes',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getAdminProfile,
   adminLogin,
@@ -1220,7 +1443,10 @@ module.exports = {
   createStaff,
   updateStaff,
   getStaffActivity,
+  getStaffActivityLogs,
   getAvailableStaff,
+  getStaffDisputeStats,
+  getStaffDisputes,
   // Auto Assignment
   getAssignmentStats,
   autoAssignDispute,
