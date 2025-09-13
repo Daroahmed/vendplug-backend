@@ -9,6 +9,7 @@ const Transaction = require('../models/Transaction');
 const Dispute = require('../models/Dispute');
 const generateToken = require('../utils/generateToken');
 const autoAssignmentService = require('../services/autoAssignmentService');
+const { processDisputeRefund } = require('./disputeController');
 const csv = require('csv-parser');
 const fs = require('fs');
 const path = require('path');
@@ -644,7 +645,7 @@ const getDisputeManagement = async (req, res) => {
 
     const disputes = await Dispute.find(filter)
       .populate({
-        path: 'order',
+        path: 'orderId',
         select: 'totalAmount status createdAt',
         populate: [
           { path: 'buyer', select: 'fullName email' },
@@ -652,6 +653,8 @@ const getDisputeManagement = async (req, res) => {
         ]
       })
       .populate('raisedBy', 'fullName email shopName')
+      .populate('complainant.userId', 'fullName email shopName')
+      .populate('respondent.userId', 'fullName email shopName')
       .populate('assignment.assignedTo', 'fullName email role')
       .populate('resolution.resolvedBy', 'fullName email')
       .sort({ createdAt: -1 })
@@ -706,7 +709,7 @@ const assignDispute = async (req, res) => {
   try {
     const { disputeId } = req.params;
     const { assignedTo } = req.body;
-    const adminId = req.user.id;
+    const adminId = req.admin._id;
 
     const dispute = await Dispute.findOne({ disputeId });
     if (!dispute) {
@@ -730,7 +733,7 @@ const resolveDispute = async (req, res) => {
   try {
     const { disputeId } = req.params;
     const { decision, reason, refundAmount, notes } = req.body;
-    const adminId = req.user.id;
+    const adminId = req.admin._id;
 
     const dispute = await Dispute.findOne({ disputeId });
     if (!dispute) {
@@ -745,6 +748,102 @@ const resolveDispute = async (req, res) => {
   } catch (error) {
     console.error('❌ Resolve dispute error:', error);
     res.status(500).json({ error: 'Failed to resolve dispute' });
+  }
+};
+
+// Admin: Reassign escalated dispute
+const reassignEscalatedDispute = async (req, res) => {
+  try {
+    const { disputeId } = req.params;
+    const { assignedTo } = req.body;
+    const adminId = req.admin._id;
+
+    const dispute = await Dispute.findOne({ 
+      disputeId, 
+      status: 'escalated' 
+    });
+    
+    if (!dispute) {
+      return res.status(404).json({ error: 'Escalated dispute not found' });
+    }
+
+    // Update assignment
+    dispute.assignment = {
+      assignedTo,
+      assignedBy: adminId,
+      assignedAt: new Date(),
+      notes: 'Reassigned by admin after escalation'
+    };
+    dispute.status = 'under_review';
+    dispute.lastActivity = new Date();
+
+    // Add activity log
+    if (!dispute.activityLog) dispute.activityLog = [];
+    dispute.activityLog.push({
+      action: 'dispute_reassigned',
+      performedBy: adminId,
+      performedByType: 'Admin',
+      timestamp: new Date(),
+      details: `Dispute reassigned to staff after escalation`
+    });
+
+    await dispute.save();
+
+    res.json({ message: 'Escalated dispute reassigned successfully' });
+
+  } catch (error) {
+    console.error('❌ Reassign escalated dispute error:', error);
+    res.status(500).json({ error: 'Failed to reassign escalated dispute' });
+  }
+};
+
+// Admin: Resolve escalated dispute directly
+const resolveEscalatedDispute = async (req, res) => {
+  try {
+    const { disputeId } = req.params;
+    const { decision, reason, refundAmount, notes } = req.body;
+    const adminId = req.admin._id;
+
+    const dispute = await Dispute.findOne({ 
+      disputeId, 
+      status: 'escalated' 
+    });
+    
+    if (!dispute) {
+      return res.status(404).json({ error: 'Escalated dispute not found' });
+    }
+
+    // Resolve the dispute using the model method
+    await dispute.resolve(decision, reason, refundAmount, adminId, notes);
+
+    // Process refund if applicable
+    if (decision === 'no_refund' || decision === 'favor_respondent' || (refundAmount > 0 && (decision === 'favor_complainant' || decision === 'partial_refund' || decision === 'full_refund'))) {
+      try {
+        await processDisputeRefund(dispute, refundAmount || 0, decision);
+        console.log(`✅ Escalated dispute refund processed: ${decision} for dispute ${dispute.disputeId}`);
+      } catch (refundError) {
+        console.error('❌ Error processing escalated dispute refund:', refundError);
+        // Continue with resolution even if wallet processing fails
+      }
+    }
+
+    // Add activity log
+    if (!dispute.activityLog) dispute.activityLog = [];
+    dispute.activityLog.push({
+      action: 'dispute_resolved_by_admin',
+      performedBy: adminId,
+      performedByType: 'Admin',
+      timestamp: new Date(),
+      details: `Escalated dispute resolved directly by admin: ${decision}`
+    });
+
+    await dispute.save();
+
+    res.json({ message: 'Escalated dispute resolved successfully' });
+
+  } catch (error) {
+    console.error('❌ Resolve escalated dispute error:', error);
+    res.status(500).json({ error: 'Failed to resolve escalated dispute' });
   }
 };
 
@@ -958,8 +1057,8 @@ const getStaffActivityLogs = async (req, res) => {
     // Get resolved disputes (staff activity)
     const disputes = await Dispute.find(filter)
       .populate('resolution.resolvedBy', 'fullName email role')
-      .populate('complainant', 'fullName email')
-      .populate('respondent', 'fullName email')
+      .populate('complainant.userId', 'fullName email')
+      .populate('respondent.userId', 'fullName email')
       .sort({ 'resolution.resolvedAt': -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -1348,10 +1447,13 @@ const getDefaultPermissionsForRole = (role) => {
 // Get staff dispute statistics
 const getStaffDisputeStats = async (req, res) => {
   try {
-    const staff = await Admin.find({ role: 'staff' }).select('_id fullName email');
+    const staff = await Admin.find({ 
+      role: { $in: ['dispute_manager', 'dispute_specialist', 'dispute_analyst'] },
+      isActive: true 
+    }).select('_id fullName email');
     
     const staffStats = await Promise.all(staff.map(async (staffMember) => {
-      const disputes = await Dispute.find({ assignedTo: staffMember._id });
+      const disputes = await Dispute.find({ 'assignment.assignedTo': staffMember._id });
       
       return {
         staffId: staffMember._id,
@@ -1397,10 +1499,8 @@ const getStaffDisputes = async (req, res) => {
       });
     }
 
-    const disputes = await Dispute.find({ assignedTo: staffId })
-      .populate('complainant', 'fullName email')
-      .populate('respondent', 'fullName email')
-      .populate('orderId', 'orderNumber totalAmount status')
+    const disputes = await Dispute.find({ 'assignment.assignedTo': staffId })
+      .populate('order', 'orderNumber totalAmount status')
       .sort({ createdAt: -1 });
 
     res.json({
@@ -1438,6 +1538,9 @@ module.exports = {
   getDisputeManagement,
   assignDispute,
   resolveDispute,
+  // Escalated Dispute Management
+  reassignEscalatedDispute,
+  resolveEscalatedDispute,
   // Staff Management
   getAllStaff,
   createStaff,

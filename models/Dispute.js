@@ -169,7 +169,7 @@ const disputeSchema = new mongoose.Schema({
   resolution: {
     decision: {
       type: String,
-      enum: ['favor_complainant', 'favor_respondent', 'partial_refund', 'full_refund', 'no_action', 'escalated']
+      enum: ['favor_complainant', 'favor_respondent', 'partial_refund', 'full_refund', 'no_action', 'no_refund', 'escalated']
     },
     reason: String,
     refundAmount: {

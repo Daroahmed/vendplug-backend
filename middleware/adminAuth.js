@@ -20,6 +20,7 @@ const protectAdmin = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'vendplugSecret');
     
+    // Check if it's an admin token (role should be 'admin' in JWT)
     if (decoded.role !== 'admin') {
       return res.status(403).json({
         success: false,
@@ -82,19 +83,28 @@ const checkPermission = (permission) => {
       });
     }
 
+    console.log(`🔍 Checking permission: ${permission} for admin:`, {
+      id: req.admin._id,
+      role: req.admin.role,
+      permissions: req.admin.permissions
+    });
+
     // Super admin has all permissions
     if (req.admin.role === 'super_admin') {
+      console.log('✅ Super admin - access granted');
       return next();
     }
 
     // Check specific permission
     if (!req.admin.permissions[permission]) {
+      console.log(`❌ Permission denied: ${permission} not found in permissions`);
       return res.status(403).json({
         success: false,
         message: `Access denied. ${permission} permission required.`
       });
     }
 
+    console.log(`✅ Permission granted: ${permission}`);
     next();
   };
 };

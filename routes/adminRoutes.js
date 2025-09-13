@@ -32,6 +32,10 @@ router.get('/disputes', checkPermission('disputeManagement'), adminController.ge
 router.put('/disputes/:disputeId/assign', checkPermission('disputeManagement'), adminController.assignDispute);
 router.put('/disputes/:disputeId/resolve', checkPermission('disputeManagement'), adminController.resolveDispute);
 
+// Escalated dispute management routes
+router.put('/disputes/:disputeId/reassign', checkPermission('disputeManagement'), adminController.reassignEscalatedDispute);
+router.put('/disputes/:disputeId/resolve-escalated', checkPermission('disputeManagement'), adminController.resolveEscalatedDispute);
+
 // Staff management
 router.get('/staff', checkPermission('userManagement'), adminController.getAllStaff);
 router.post('/staff', checkPermission('userManagement'), adminController.createStaff);
