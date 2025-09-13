@@ -12,8 +12,8 @@ const fs = require('fs');
 
 
 // ✅ Generate JWT token
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || "vendplugSecret", {
+const generateToken = (id, role = "vendor") => {
+  return jwt.sign({ id, role }, process.env.JWT_SECRET || "vendplugSecret", {
     expiresIn: "30d",
   });
 };
@@ -74,7 +74,7 @@ const registerVendor = asyncHandler(async (req, res) => {
 
     res.status(201).json({
       message: "Vendor registered successfully. Please check your email to verify your account.",
-      token: generateToken(savedVendor._id),
+      token: generateToken(savedVendor._id, "vendor"),
       vendor: {
         _id: savedVendor._id,
         fullName: savedVendor.fullName,
@@ -107,7 +107,7 @@ const loginVendor = asyncHandler(async (req, res) => {
   const wallet = await Wallet.findOne({ user: vendor._id });
 
   res.status(200).json({
-    token: generateToken(vendor._id),
+    token: generateToken(vendor._id, "vendor"),
     vendor: {
       _id: vendor._id,
       fullName: vendor.fullName,
