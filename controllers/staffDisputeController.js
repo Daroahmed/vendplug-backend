@@ -187,7 +187,7 @@ const getMyDisputes = async (req, res) => {
 
     const disputes = await Dispute.find(filter)
       .populate({
-        path: 'order',
+        path: 'orderId',
         select: 'totalAmount status createdAt',
         populate: [
           { path: 'buyer', select: 'fullName email' },
@@ -195,6 +195,8 @@ const getMyDisputes = async (req, res) => {
         ]
       })
       .populate('raisedBy', 'fullName email shopName')
+      .populate('complainant.userId', 'fullName email shopName')
+      .populate('respondent.userId', 'fullName email shopName')
       .populate('assignment.assignedTo', 'fullName email role')
       .populate('resolution.resolvedBy', 'fullName email')
       .sort({ createdAt: -1 })
@@ -246,7 +248,7 @@ const getDisputeDetails = async (req, res) => {
       'assignment.assignedTo': staffId
     })
       .populate({
-        path: 'order',
+        path: 'orderId',
         select: 'totalAmount status createdAt',
         populate: [
           { path: 'buyer', select: 'fullName email' },
@@ -254,6 +256,8 @@ const getDisputeDetails = async (req, res) => {
         ]
       })
       .populate('raisedBy', 'fullName email shopName')
+      .populate('complainant.userId', 'fullName email shopName')
+      .populate('respondent.userId', 'fullName email shopName')
       .populate('assignment.assignedTo', 'fullName email role')
       .populate('resolution.resolvedBy', 'fullName email');
 
@@ -819,7 +823,7 @@ const processDisputeRefund = async (dispute, refundAmount, resolution) => {
     }
 
     // Determine who gets the money based on resolution
-    if (resolution === 'no_refund') {
+    if (resolution === 'no_refund' || resolution === 'favor_respondent') {
       // Vendor/Agent wins - credit their wallet
       const vendorAgentId = dispute.orderType === 'Order' ? order.agent : order.vendor;
       const vendorAgentRole = dispute.orderType === 'Order' ? 'agent' : 'vendor';
@@ -847,7 +851,7 @@ const processDisputeRefund = async (dispute, refundAmount, resolution) => {
         to: vendorAgentId.toString(),
         description: `Dispute resolved in favor of ${vendorAgentRole} - ${dispute.disputeId}`,
         initiatedBy: dispute.resolution.resolvedBy,
-        initiatorType: 'Staff',
+        initiatorType: 'Admin',
         metadata: {
           disputeId: dispute.disputeId,
           orderId: order._id,
@@ -865,7 +869,7 @@ const processDisputeRefund = async (dispute, refundAmount, resolution) => {
 
       console.log(`✅ Dispute resolved in favor of ${vendorAgentRole}: ${orderAmount} credited to ${vendorAgentId}`);
 
-    } else if (refundAmount > 0 && (resolution === 'refund' || resolution === 'partial_refund')) {
+    } else if (refundAmount > 0 && (resolution === 'favor_complainant' || resolution === 'partial_refund' || resolution === 'full_refund')) {
       // Buyer gets refund - credit their wallet
       const buyerWallet = await Wallet.findOne({ 
         user: order.buyer, 
@@ -889,7 +893,7 @@ const processDisputeRefund = async (dispute, refundAmount, resolution) => {
         to: order.buyer.toString(),
         description: `Dispute refund for ${dispute.disputeId}`,
         initiatedBy: dispute.resolution.resolvedBy,
-        initiatorType: 'Staff',
+        initiatorType: 'Admin',
         metadata: {
           disputeId: dispute.disputeId,
           orderId: order._id,
@@ -926,7 +930,7 @@ const processDisputeRefund = async (dispute, refundAmount, resolution) => {
               to: vendorAgentId.toString(),
               description: `Partial dispute resolution - ${dispute.disputeId}`,
               initiatedBy: dispute.resolution.resolvedBy,
-              initiatorType: 'Staff',
+              initiatorType: 'Admin',
               metadata: {
                 disputeId: dispute.disputeId,
                 orderId: order._id,
