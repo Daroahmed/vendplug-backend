@@ -1,166 +1,325 @@
 // controllers/agentOrderController.js
-const Order = require('../models/Order');
-const Product = require('../models/Product');
+const mongoose = require("mongoose");
+const Agent = require("../models/Agent");
+const AgentOrder = require("../models/AgentOrder");
+const AgentPayout = require("../models/AgentPayout");
+const Wallet = require("../models/walletModel");
+const Transaction = require("../models/Transaction");
 const {
-  applyOrderStatus,
-  queuePayout,
-  handleError
-} = require('../utils/orderHelpers');
+  handleError,
+  processRefund,
+  applyVendorOrderStatus
+} = require("../utils/orderHelpers");
 const {
   sendNotification,
   sendOrderStatusNotification,
-  sendPayoutNotification
+  sendPayoutNotification,
+  sendWalletNotification
 } = require('../utils/notificationHelper');
-const { incrementVendorTransactions, incrementAgentTransactions } = require('../utils/transactionHelper');
+const { incrementAgentTransactions } = require('../utils/transactionHelper');
 
-// This helper is no longer needed as we're using the new notification system
-
+// ===============================
+// Get all agent orders
+// ===============================
 const getAgentOrders = async (req, res) => {
   try {
-    const orders = await Order.find({
-      agent: req.user._id,
-      status: { $nin: ['completed', 'cancelled'] }
-    })
-      .populate('buyer', 'fullName email')
-      .populate('agent', 'fullName');
+    const { status, startDate, endDate } = req.query;
+    const query = { agent: req.agent._id };
 
-    res.json(orders);
-  } catch (error) {
-    handleError(res, error, "Error fetching orders");
-  }
-};
+    if (status) {
+      if (status === "delivered") {
+        // For delivered orders, include both delivered and fulfilled
+        query.status = { $in: ["delivered", "fulfilled"] };
+      } else {
+        query.status = status;
+      }
+    } else {
+      // Default filter for incoming orders
+      query.status = { $in: ["pending", "accepted", "preparing", "out_for_delivery"] };
+    }
+    
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        query.createdAt.$lte = end;
+      }
+    }
 
-const getAgentOrderHistory = async (req, res) => {
-  try {
-    const orders = await Order.find({
-      agent: req.user._id,
-      status: { $in: ['completed', 'cancelled'] }
-    })
-      .populate('buyer', 'fullName')
+    const orders = await AgentOrder.find(query)
+      .populate("buyer", "_id fullName phoneNumber email")
+      .populate("items.product", "name image price")
       .sort({ createdAt: -1 });
 
-    res.json(orders);
+    const formatted = orders.map(order => ({
+      _id: order._id,
+      status: order.status,
+      totalAmount: order.totalAmount,
+      createdAt: order.createdAt,
+      buyer: order.buyer
+        ? {
+            _id: order.buyer._id,
+            fullName: order.buyer.fullName,
+            phoneNumber: order.buyer.phoneNumber,
+            email: order.buyer.email,
+          }
+        : null,
+      deliveryAddress: order.deliveryLocation || "No address provided",
+      items: order.items.map(i => ({
+        name: i.product?.name || "Unknown",
+        image: i.product?.image || null,
+        price: i.product?.price || 0,
+        quantity: i.quantity,
+      })),
+    }));
+
+    res.json(formatted);
   } catch (error) {
-    handleError(res, error, "Error fetching order history");
+    handleError(res, error, "Error fetching agent orders");
   }
 };
 
-const createOrder = async (req, res) => {
+// ===============================
+// Accept Order
+// ===============================
+const acceptOrder = async (req, res) => {
   try {
-    const { cartItems, pickupLocation, deliveryOption, note } = req.body;
-    const buyerId = req.user.id;
-
-    if (!Array.isArray(cartItems) || !cartItems.length) {
-      return res.status(400).json({ message: 'Cart is empty' });
+    const { orderId } = req.params;
+    const order = await AgentOrder.findOne({ _id: orderId, agent: req.agent._id });
+    if (!order) return res.status(404).json({ message: "Order not found" });
+    if (order.status !== "pending") {
+      return res.status(400).json({ message: "Only pending orders can be accepted" });
     }
 
-    // Group items by party (agent/vendor)
-    const ordersByParty = {};
-    for (const item of cartItems) {
-      const product = await Product.findById(item.id).populate('agent vendor');
-      if (!product) continue;
+    applyVendorOrderStatus(order, "accepted", "agent");
+    await order.save();
 
-      const partyId = product.agent?._id?.toString() || product.vendor?._id?.toString();
-      const partyType = product.agent ? 'Agent' : 'Vendor';
+    // Don't credit agent wallet yet - wait for delivery confirmation
 
-      if (!ordersByParty[partyId]) {
-        ordersByParty[partyId] = { items: [], totalAmount: 0, partyType };
+    // ✅ Create payout record
+    await AgentPayout.create({
+      agent: order.agent,
+      order: order._id,
+      amount: order.totalAmount,
+      status: "pending_receipt"
+    });
+
+    const io = req.app.get('io');
+    await sendOrderStatusNotification(io, order, 'accepted');
+    
+    // Send payout notification
+    await sendPayoutNotification(io, {
+      agentId: order.agent,
+      amount: order.totalAmount,
+      status: 'pending',
+      orderId: order._id
+    });
+
+    res.json({ message: "Order accepted", order });
+  } catch (error) {
+    handleError(res, error, "Error accepting order");
+  }
+};
+
+// ===============================
+// Reject Order
+// ===============================
+const rejectOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { rejectionReason } = req.body;
+    
+    if (!rejectionReason || rejectionReason.trim().length < 10) {
+      return res.status(400).json({ 
+        message: "Rejection reason is required and must be at least 10 characters long" 
+      });
+    }
+
+    const order = await AgentOrder.findOne({ _id: orderId, agent: req.agent._id });
+    if (!order) return res.status(404).json({ message: "Order not found" });
+    if (order.status !== "pending") {
+      return res.status(400).json({ message: "Only pending orders can be rejected" });
+    }
+
+    // Start MongoDB session for transaction
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      // Refund buyer's wallet
+      const buyerWallet = await Wallet.findOne({ user: order.buyer, role: 'buyer' }).session(session);
+      if (!buyerWallet) {
+        throw new Error("Buyer wallet not found");
       }
 
-      const subtotal = product.price * item.qty;
-      ordersByParty[partyId].items.push({
-        productId: product._id,
-        name: product.name,
-        price: product.price,
-        qty: item.qty
+      // Credit buyer's wallet
+      buyerWallet.balance = Number(buyerWallet.balance || 0) + Number(order.totalAmount);
+      await buyerWallet.save({ session });
+
+      // Log refund transaction
+      await Transaction.create([{
+        ref: new mongoose.Types.ObjectId().toString(),
+        type: "refund",
+        status: "successful",
+        amount: order.totalAmount,
+        description: `Order rejected: ${rejectionReason}`,
+        from: "escrow",
+        to: buyerWallet.virtualAccount,
+        initiatedBy: req.agent._id,
+        initiatorType: "Agent"
+      }], { session });
+
+      // Update order status with rejection reason
+      order.status = "rejected";
+      order.rejectionReason = rejectionReason;
+      order.rejectedAt = new Date();
+      order.statusHistory = [
+        ...(order.statusHistory || []),
+        { 
+          status: "rejected", 
+          at: new Date(), 
+          by: "agent",
+          reason: rejectionReason
+        }
+      ];
+      await order.save({ session });
+
+      // Commit transaction
+      await session.commitTransaction();
+
+      // Send notifications
+      const io = req.app.get('io');
+      
+      // Send order rejection notification with reason
+      await sendOrderStatusNotification(io, order, 'rejected', { rejectionReason });
+      
+      // Send refund notification to buyer
+      await sendWalletNotification(io, {
+        userId: order.buyer,
+        userType: 'Buyer',
+        type: 'credit',
+        amount: order.totalAmount,
+        source: 'Order Refund',
+        balance: buyerWallet.balance,
+        meta: { 
+          orderId: order._id,
+          rejectionReason 
+        }
       });
-      ordersByParty[partyId].totalAmount += subtotal;
+
+      res.json({ 
+        success: true,
+        message: "Order rejected and refunded successfully", 
+        order: {
+          _id: order._id,
+          status: order.status,
+          rejectionReason: order.rejectionReason,
+          rejectedAt: order.rejectedAt
+        }
+      });
+
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
     }
-
-    const savedOrders = [];
-
-    for (const partyId in ordersByParty) {
-      const { items, totalAmount, partyType } = ordersByParty[partyId];
-
-      const orderData = {
-        buyer: buyerId,
-        items,
-        pickupLocation,
-        totalAmount,
-        deliveryOption,
-        note
-      };
-      if (partyType === 'Agent') orderData.agent = partyId;
-      if (partyType === 'Vendor') orderData.vendor = partyId;
-
-      const order = new Order(orderData);
-      const saved = await order.save();
-      savedOrders.push(saved);
-
-      // Note: io will be available from req.app.get('io') when this is called
-      // await sendNotification(io, {
-      //   recipientId: partyId,
-      //   recipientType: partyType,
-      //   notificationType: 'ORDER_CREATED',
-      //   args: [saved._id, totalAmount],
-      //   orderId: saved._id,
-      //   meta: { itemCount: items.length }
-      // });
-    }
-
-    res.status(201).json({ message: 'Order(s) placed successfully', orders: savedOrders });
 
   } catch (error) {
-    handleError(res, error, "Error placing order");
+    console.error('❌ Error rejecting order:', error);
+    res.status(500).json({ 
+      message: "Error rejecting order", 
+      error: error.message 
+    });
   }
 };
 
+// ===============================
+// Generic Update Order Status
+// ===============================
 const updateOrderStatus = async (req, res) => {
   try {
     const { orderId } = req.params;
     const { status } = req.body;
-    const { _id: userId, role } = req.user;
-
-    const validStatuses = ['pending', 'accepted', 'rejected', 'cancelled', 'completed', 'in-progress', 'fulfilled'];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({ message: 'Invalid status' });
+    const allowed = ["accepted", "rejected", "preparing", "out_for_delivery", "delivered"];
+    if (!allowed.includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
     }
 
-    const order = await Order.findById(orderId);
-    if (!order) return res.status(404).json({ message: 'Order not found' });
+    const order = await AgentOrder.findOne({ _id: orderId, agent: req.agent._id });
+    if (!order) return res.status(404).json({ message: "Order not found" });
 
-    const isAgent = role === 'agent' && order.agent?.toString() === userId.toString();
-    const isVendor = role === 'vendor' && order.vendor?.toString() === userId.toString();
-    if (!isAgent && !isVendor) return res.status(403).json({ message: 'Not authorized to update this order' });
+    // Validate transitions
+    const validFrom = {
+      accepted: ["pending"],
+      rejected: ["pending"],
+      preparing: ["accepted", "preparing"],
+      out_for_delivery: ["preparing", "out_for_delivery"],
+      delivered: ["out_for_delivery", "delivered"]
+    };
+    if (!validFrom[status].includes(order.status)) {
+      return res.status(400).json({ message: `Cannot move from ${order.status} to ${status}` });
+    }
 
-    applyOrderStatus(order, status, role);
+    // Special handling
+    if (status === "accepted") {
+
+      try {
+        const agent = await Agent.findById(req.agent._id);
+        if (agent) {
+          agent.walletBalance += order.totalAmount;
+          await agent.save();
+        }
+      } catch (walletError) {
+        console.error("Error updating agent wallet:", walletError);
+      }
+      // Existing payout creation code
+  
+      await AgentPayout.create({
+        agent: order.agent,
+        order: order._id,
+        amount: order.totalAmount,
+        status: "pending_receipt"
+      });
+    }
+    if (status === "rejected") {
+      await processRefund(order.buyer, order.totalAmount, order._id);
+    }
+
+    applyVendorOrderStatus(order, status, "agent");
+    if (status === "delivered") order.deliveredAt = new Date();
     await order.save();
 
-    if (status === 'fulfilled' && isVendor) {
-      await queuePayout(order);
-      
-      // ✅ Increment vendor's total transactions count
-      await incrementVendorTransactions(order.vendor);
+    // ✅ Increment agent's total transactions count when order is delivered
+    if (status === "delivered") {
+      await incrementAgentTransactions(req.agent._id);
     }
 
-    // ✅ Increment agent's transaction count when order is fulfilled
-    if (status === 'fulfilled' && isAgent) {
-      await incrementAgentTransactions(order.agent);
-    }
-
-    // Send status update notification
     const io = req.app.get('io');
     await sendOrderStatusNotification(io, order, status);
+    
+    // Send additional notifications based on status
+    if (status === 'delivered') {
+      await sendNotification(io, {
+        recipientId: order.buyer,
+        recipientType: 'Buyer',
+        notificationType: 'ORDER_DELIVERED',
+        args: [order._id],
+        orderId: order._id
+      });
+    }
 
-    res.json({ message: 'Order status updated', order });
+    res.json({ message: "Order status updated", order });
   } catch (error) {
-    handleError(res, error, "Failed to update order status");
+    handleError(res, error, "Error updating order status");
   }
 };
 
 module.exports = {
   getAgentOrders,
-  getAgentOrderHistory,
-  createOrder,
+  acceptOrder,
+  rejectOrder,
   updateOrderStatus
 };

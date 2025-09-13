@@ -16,13 +16,17 @@ const requestPayout = async (req, res) => {
     
     // More robust role detection
     let userType;
+    let userRole;
     if (req.user.role && req.user.role.toLowerCase() === 'vendor') {
       userType = 'Vendor';
+      userRole = 'vendor';
     } else if (req.user.role && req.user.role.toLowerCase() === 'agent') {
       userType = 'Agent';
+      userRole = 'agent';
     } else {
       // Fallback - try to determine from the user model
       userType = 'Vendor'; // Default fallback
+      userRole = 'vendor';
     }
     
     console.log('🔍 Payout request details:', {
@@ -65,13 +69,13 @@ const requestPayout = async (req, res) => {
     }
 
     // Check wallet balance
-    console.log('🔍 Looking for wallet with:', { user: userId, role: userType.toLowerCase() });
+    console.log('🔍 Looking for wallet with:', { user: userId, role: userRole });
     
     // Let's also check what wallets exist for this user
     const allUserWallets = await Wallet.find({ user: userId });
     console.log('🔍 All wallets for this user:', allUserWallets.map(w => ({ role: w.role, balance: w.balance })));
     
-    const wallet = await Wallet.findOne({ user: userId, role: userType.toLowerCase() });
+    const wallet = await Wallet.findOne({ user: userId, role: userRole });
     console.log('🔍 Found wallet:', wallet ? { balance: wallet.balance, amount: amount } : 'Not found');
     
     if (!wallet) {
@@ -311,13 +315,17 @@ const getPayoutHistory = async (req, res) => {
     
     // More robust role detection
     let userType;
+    let userRole;
     if (req.user.role && req.user.role.toLowerCase() === 'vendor') {
       userType = 'Vendor';
+      userRole = 'vendor';
     } else if (req.user.role && req.user.role.toLowerCase() === 'agent') {
       userType = 'Agent';
+      userRole = 'agent';
     } else {
       // Fallback - try to determine from the user model
       userType = 'Vendor'; // Default fallback
+      userRole = 'vendor';
     }
 
     const payouts = await PayoutRequest.find({ userId, userType })
@@ -347,13 +355,17 @@ const getPayoutDetails = async (req, res) => {
     
     // More robust role detection
     let userType;
+    let userRole;
     if (req.user.role && req.user.role.toLowerCase() === 'vendor') {
       userType = 'Vendor';
+      userRole = 'vendor';
     } else if (req.user.role && req.user.role.toLowerCase() === 'agent') {
       userType = 'Agent';
+      userRole = 'agent';
     } else {
       // Fallback - try to determine from the user model
       userType = 'Vendor'; // Default fallback
+      userRole = 'vendor';
     }
 
     const payout = await PayoutRequest.findOne({

@@ -6,9 +6,10 @@ const {
   getPayoutHistory,
   getPayoutDetails
 } = require('../controllers/payoutController');
+const { protectAgent, protectVendor } = require('../middleware/authMiddleware');
 
-// Authentication middleware (inline for now)
-const authenticateUser = (req, res, next) => {
+// Combined middleware for both agents and vendors
+const protectAnyUser = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) {
@@ -19,10 +20,24 @@ const authenticateUser = (req, res, next) => {
     const jwtSecret = process.env.JWT_SECRET || "vendplugSecret";
     
     const decoded = jwt.verify(token, jwtSecret);
-    req.user = {
-      id: decoded.id,
-      role: decoded.role
-    };
+    
+    // Try to find the user in both Agent and Vendor collections
+    const Agent = require('../models/Agent');
+    const Vendor = require('../models/vendorModel');
+    
+    const [agent, vendor] = await Promise.all([
+      Agent.findById(decoded.id).select('-password'),
+      Vendor.findById(decoded.id).select('-password')
+    ]);
+    
+    if (agent) {
+      req.user = { ...agent.toObject(), role: 'agent' };
+    } else if (vendor) {
+      req.user = { ...vendor.toObject(), role: 'vendor' };
+    } else {
+      return res.status(401).json({ message: 'User not found' });
+    }
+    
     next();
   } catch (error) {
     console.error('Token verification error:', error);
@@ -30,10 +45,10 @@ const authenticateUser = (req, res, next) => {
   }
 };
 
-// Payout routes
-router.post('/request', authenticateUser, requestPayout);
-router.get('/history', authenticateUser, getPayoutHistory);
-router.get('/:payoutId', authenticateUser, getPayoutDetails);
+// Payout routes - both agents and vendors can request payouts
+router.post('/request', protectAnyUser, requestPayout);
+router.get('/history', protectAnyUser, getPayoutHistory);
+router.get('/:payoutId', protectAnyUser, getPayoutDetails);
 
 // Admin/System routes (for processing payouts)
 router.post('/process', processPayouts); // This could be protected with admin middleware later

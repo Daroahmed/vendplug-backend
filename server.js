@@ -48,7 +48,6 @@ mongoose.connect(process.env.MONGO_URI)
 
 // ✅ Import routes
 const buyerRoutes = require('./routes/buyerRoutes');
-const orderRoutes = require('./routes/orderRoutes');
 const agentRoutes = require('./routes/agentRoutes');
 const buyerOrderRoutes = require('./routes/buyerOrderRoutes');
 const vendorOrderRoutes = require('./routes/vendorOrderRoutes');
@@ -59,6 +58,10 @@ const walletRoutes = require('./routes/walletRoutes');
 const vendorRoutes = require('./routes/vendorRoutes');
 const vendorCartRoutes = require('./routes/vendorCartRoutes');
 const vendorCheckoutRoutes = require('./routes/vendorCheckoutRoutes');
+const agentProductRoutes = require('./routes/agentProductRoutes');
+const agentCartRoutes = require('./routes/agentCartRoutes');
+const agentOrderRoutes = require('./routes/agentOrderRoutes');
+const agentCheckoutRoutes = require('./routes/agentCheckoutRoutes');
 const payoutRoutes = require('./routes/payoutRoutes');
 const bankAccountRoutes = require('./routes/bankAccountRoutes');
 const authRoutes = require('./routes/authRoutes');
@@ -75,7 +78,6 @@ const autoAssignmentService = require('./services/autoAssignmentService');
 // ✅ Mount API routes
 app.use('/api/buyers', buyerRoutes);
 app.use('/api/agents', agentRoutes);
-app.use('/api/orders', orderRoutes);
 app.use('/api/buyer-orders', buyerOrderRoutes);
 app.use('/api/vendor-orders', vendorOrderRoutes);
 app.use('/api/products', productRoutes);
@@ -84,7 +86,11 @@ app.use('/api/vendors', vendorRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/vendor-products', vendorProductRoutes);
 app.use('/api/vendor-cart', vendorCartRoutes);
-app.use('/api/vendor-checkout', vendorCheckoutRoutes)
+app.use('/api/vendor-checkout', vendorCheckoutRoutes);
+app.use('/api/agent-products', agentProductRoutes);
+app.use('/api/agent-cart', agentCartRoutes);
+app.use('/api/agent-orders', agentOrderRoutes);
+app.use('/api/agent-checkout', agentCheckoutRoutes);
 app.use('/api/vendor-payout', payoutRoutes);
 app.use('/api/bank-accounts', bankAccountRoutes);
 app.use('/api/auth', authRoutes);
