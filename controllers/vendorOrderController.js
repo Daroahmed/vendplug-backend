@@ -29,7 +29,12 @@ const getVendorOrders = async (req, res) => {
     const query = { vendor: req.vendor._id };
 
     if (status) {
-      query.status = status;
+      if (status === "delivered") {
+        // For delivered orders, include both delivered and fulfilled
+        query.status = { $in: ["delivered", "fulfilled"] };
+      } else {
+        query.status = status;
+      }
     } else {
       // Default filter for incoming orders
       query.status = { $in: ["pending", "accepted", "preparing", "out_for_delivery"] };
@@ -46,7 +51,7 @@ const getVendorOrders = async (req, res) => {
     }
 
     const orders = await Order.find(query)
-      .populate("buyer", "fullName phoneNumber email")
+      .populate("buyer", "_id fullName phoneNumber email")
       .populate("items.product", "name image price")
       .sort({ createdAt: -1 });
 
@@ -57,12 +62,13 @@ const getVendorOrders = async (req, res) => {
       createdAt: order.createdAt,
       buyer: order.buyer
         ? {
+            _id: order.buyer._id,
             fullName: order.buyer.fullName,
             phoneNumber: order.buyer.phoneNumber,
             email: order.buyer.email,
           }
         : null,
-      deliveryAddress: order.deliveryAddress || "No address provided",
+      deliveryAddress: order.deliveryLocation || "No address provided",
       items: order.items.map(i => ({
         name: i.product?.name || "Unknown",
         image: i.product?.image || null,

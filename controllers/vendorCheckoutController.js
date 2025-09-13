@@ -112,7 +112,7 @@ const checkoutCart = async (req, res) => {
         [
           {
             buyer: req.buyer._id,
-            vendor: vendorId,
+            vendor: new mongoose.Types.ObjectId(vendorId),
             items: vendorItems.map((item) => ({
               product: item.product._id,
               quantity: item.quantity,

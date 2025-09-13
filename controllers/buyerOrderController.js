@@ -55,16 +55,24 @@ const getBuyerOrderDetails = async (req, res) => {
       _id: orderId,
       buyer: buyerId
     })
-      .populate("vendor", "shopName")
+      .populate("vendor", "shopName _id")
       .populate("items.product", "name price description image");
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
 
+    // Debug logging
+    console.log("🔍 Order vendor data:", {
+      vendor: order.vendor,
+      vendorId: order.vendor?._id,
+      vendorName: order.vendor?.shopName
+    });
+
     const formatted = {
       _id: order._id,
       vendor: order.vendor?.shopName || "Unknown Vendor",
+      vendorId: order.vendor?._id || null,
       status: order.status,
       createdAt: order.createdAt,
       deliveryLocation: order.deliveryLocation,
