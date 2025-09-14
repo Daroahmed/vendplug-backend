@@ -98,6 +98,23 @@ const handleTransferSuccess = async (transferData) => {
     // Send success notification to vendor
     await sendPayoutNotification(payoutRequest, 'success');
 
+    // Send real-time notification
+    try {
+      const { sendNotification } = require('../utils/notificationHelper');
+      const io = require('../server').io; // Get io instance
+      
+      if (io) {
+        await sendNotification(io, {
+          recipientId: payoutRequest.userId,
+          recipientType: payoutRequest.userType,
+          notificationType: 'PAYOUT_PROCESSED',
+          args: [amount / 100] // Convert from kobo to naira
+        });
+      }
+    } catch (notificationError) {
+      console.error('⚠️ Payout success notification error:', notificationError);
+    }
+
     console.log(`✅ Payout ${payoutRequest._id} marked as completed`);
 
   } catch (error) {
@@ -160,6 +177,23 @@ const handleTransferFailed = async (transferData) => {
 
     // Send failure notification to vendor
     await sendPayoutNotification(payoutRequest, 'failed');
+
+    // Send real-time notification
+    try {
+      const { sendNotification } = require('../utils/notificationHelper');
+      const io = require('../server').io; // Get io instance
+      
+      if (io) {
+        await sendNotification(io, {
+          recipientId: payoutRequest.userId,
+          recipientType: payoutRequest.userType,
+          notificationType: 'PAYOUT_FAILED',
+          args: [amount / 100, transferData.failure_reason || 'Unknown error']
+        });
+      }
+    } catch (notificationError) {
+      console.error('⚠️ Payout failure notification error:', notificationError);
+    }
 
     console.log(`❌ Payout ${payoutRequest._id} marked as failed`);
 

@@ -47,7 +47,7 @@ const initializeWalletFunding = async (req, res) => {
     // Initialize payment with Paystack
     const paymentResult = await paystackService.initializePayment({
       email,
-      amount,
+      amount: amount * 100, // Convert naira to kobo for Paystack
       reference,
       callback_url: callbackUrl,
       metadata: {
@@ -181,13 +181,12 @@ const verifyPayment = async (req, res) => {
           role: pendingTransaction.initiatorType.toLowerCase()
         });
         
-        wallet = await Wallet.create([{
+        wallet = await Wallet.create({
           user: pendingTransaction.to,
           role: pendingTransaction.initiatorType.toLowerCase(),
           balance: 0,
           virtualAccount: `VA_${pendingTransaction.to}_${Date.now()}`
-        }], { session });
-        wallet = wallet[0];
+        }, { session });
         
         console.log('✅ New wallet created:', wallet._id);
       }
@@ -225,6 +224,25 @@ const verifyPayment = async (req, res) => {
 
       await session.commitTransaction();
 
+      // Sync balance with user model (after transaction is committed)
+      const { syncWalletBalance } = require('./walletHelper');
+      await syncWalletBalance(pendingTransaction.to, pendingTransaction.initiatorType, newBalance);
+
+      // Send payment verified notification
+      try {
+        const io = req.app.get('io');
+        const { sendNotification } = require('../utils/notificationHelper');
+        
+        await sendNotification(io, {
+          recipientId: pendingTransaction.to,
+          recipientType: pendingTransaction.initiatorType,
+          notificationType: 'PAYMENT_VERIFIED',
+          args: [pendingTransaction.amount]
+        });
+      } catch (notificationError) {
+        console.error('⚠️ Payment verification notification error:', notificationError);
+      }
+
       console.log('✅ Wallet credited successfully:', {
         userId: pendingTransaction.to,
         amount: pendingTransaction.amount,
@@ -243,10 +261,19 @@ const verifyPayment = async (req, res) => {
       });
 
     } catch (sessionError) {
-      await session.abortTransaction();
+      console.error('❌ Payment verification failed:', sessionError);
+      try {
+        await session.abortTransaction();
+      } catch (abortError) {
+        console.error('⚠️ Error aborting transaction:', abortError);
+      }
       throw sessionError;
     } finally {
-      session.endSession();
+      try {
+        session.endSession();
+      } catch (endError) {
+        console.error('⚠️ Error ending session:', endError);
+      }
     }
 
   } catch (error) {

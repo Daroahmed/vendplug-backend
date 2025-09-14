@@ -14,6 +14,10 @@ const buyerSchema = new mongoose.Schema(
       unique: true,
       sparse: true
     },
+    walletBalance: {
+      type: Number,
+      default: 0
+    },
     isEmailVerified: {
       type: Boolean,
       default: false

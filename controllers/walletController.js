@@ -9,9 +9,25 @@ const { sendWalletNotification } = require('../utils/notificationHelper');
 // Unified wallet controller for agent, buyer, and vendor
 const getWallet = async (req, res) => {
   try {
-    const userId = req.user.id || req.user._id;
+    const userId = req.user._id || req.user.id;
+    const userRole = req.user.role;
 
-    const wallet = await Wallet.findOne({ user: userId });
+    console.log('🔍 getWallet - userId:', userId);
+    console.log('🔍 getWallet - userRole:', userRole);
+
+    if (!userId) {
+      return res.status(401).json({ message: 'User ID not found in request' });
+    }
+
+    // Look for wallet with both user ID and role
+    const wallet = await Wallet.findOne({ 
+      user: userId,
+      role: userRole?.toLowerCase() || 'buyer' // Default to buyer if role not set
+    });
+    
+    console.log('🔍 getWallet - wallet found:', !!wallet);
+    console.log('🔍 getWallet - wallet balance:', wallet?.balance);
+    
     if (!wallet) {
       return res.status(404).json({ message: 'Wallet not found' });
     }
