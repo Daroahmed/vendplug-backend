@@ -21,7 +21,7 @@ const disputeSchema = new mongoose.Schema({
   },
   orderType: {
     type: String,
-    enum: ['Order', 'VendorOrder'],
+    enum: ['Order', 'VendorOrder', 'AgentOrder'],
     required: true
   },
   

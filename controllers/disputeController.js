@@ -1,6 +1,7 @@
 const Dispute = require('../models/Dispute');
 const Order = require('../models/Order');
 const VendorOrder = require('../models/vendorOrderModel');
+const AgentOrder = require('../models/AgentOrder');
 const Buyer = require('../models/Buyer');
 const Vendor = require('../models/vendorModel');
 const Agent = require('../models/Agent');
@@ -86,6 +87,9 @@ const createDispute = async (req, res) => {
     } else if (orderType === 'VendorOrder') {
       console.log('🔍 Looking in VendorOrder model...');
       order = await VendorOrder.findById(orderId);
+    } else if (orderType === 'AgentOrder') {
+      console.log('🔍 Looking in AgentOrder model...');
+      order = await AgentOrder.findById(orderId);
     } else {
       console.log('❌ Invalid order type:', orderType);
     }
@@ -305,7 +309,8 @@ const getDisputeDetails = async (req, res) => {
         select: 'totalAmount status createdAt items',
         populate: [
           { path: 'buyer', select: 'fullName email' },
-          { path: 'vendor', select: 'shopName email' }
+          { path: 'vendor', select: 'shopName email' },
+          { path: 'agent', select: 'businessName email' }
         ]
       })
       .populate('raisedBy', 'fullName email shopName')
@@ -590,6 +595,8 @@ const processDisputeRefund = async (dispute, refundAmount, resolution) => {
       order = await Order.findById(dispute.orderId);
     } else if (dispute.orderType === 'VendorOrder') {
       order = await VendorOrder.findById(dispute.orderId);
+    } else if (dispute.orderType === 'AgentOrder') {
+      order = await AgentOrder.findById(dispute.orderId);
     }
 
     if (!order) {
@@ -599,8 +606,10 @@ const processDisputeRefund = async (dispute, refundAmount, resolution) => {
     // Determine who gets the money based on resolution
     if (resolution === 'no_refund' || resolution === 'favor_respondent') {
       // Vendor/Agent wins - credit their wallet
-      const vendorAgentId = dispute.orderType === 'Order' ? order.agent : order.vendor;
-      const vendorAgentRole = dispute.orderType === 'Order' ? 'agent' : 'vendor';
+      const vendorAgentId = dispute.orderType === 'Order' ? order.agent : 
+                           dispute.orderType === 'VendorOrder' ? order.vendor : order.agent;
+      const vendorAgentRole = dispute.orderType === 'Order' ? 'agent' : 
+                             dispute.orderType === 'VendorOrder' ? 'vendor' : 'agent';
       
       const vendorAgentWallet = await Wallet.findOne({ 
         user: vendorAgentId, 
@@ -680,8 +689,10 @@ const processDisputeRefund = async (dispute, refundAmount, resolution) => {
 
       // If partial refund, also credit vendor/agent with remaining amount
       if (resolution === 'partial_refund') {
-        const vendorAgentId = dispute.orderType === 'Order' ? order.agent : order.vendor;
-        const vendorAgentRole = dispute.orderType === 'Order' ? 'agent' : 'vendor';
+        const vendorAgentId = dispute.orderType === 'Order' ? order.agent : 
+                             dispute.orderType === 'VendorOrder' ? order.vendor : order.agent;
+        const vendorAgentRole = dispute.orderType === 'Order' ? 'agent' : 
+                               dispute.orderType === 'VendorOrder' ? 'vendor' : 'agent';
         const orderAmount = order.totalAmount || order.amount;
         const remainingAmount = orderAmount - refundAmount;
         
