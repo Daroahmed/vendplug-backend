@@ -644,17 +644,10 @@ const getDisputeManagement = async (req, res) => {
     if (assignedTo) filter['assignment.assignedTo'] = assignedTo;
 
     const disputes = await Dispute.find(filter)
-      .populate({
-        path: 'orderId',
-        select: 'totalAmount status createdAt',
-        populate: [
-          { path: 'buyer', select: 'fullName email' },
-          { path: 'vendor', select: 'shopName email' }
-        ]
-      })
-      .populate('raisedBy', 'fullName email shopName')
-      .populate('complainant.userId', 'fullName email shopName')
-      .populate('respondent.userId', 'fullName email shopName')
+      .populate('orderId', 'totalAmount status createdAt buyer vendor agent')
+      .populate('raisedBy', 'fullName email shopName businessName')
+      .populate('complainant.userId', 'fullName email shopName businessName')
+      .populate('respondent.userId', 'fullName email shopName businessName')
       .populate('assignment.assignedTo', 'fullName email role')
       .populate('resolution.resolvedBy', 'fullName email')
       .sort({ createdAt: -1 })

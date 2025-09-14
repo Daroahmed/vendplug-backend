@@ -209,6 +209,23 @@ class AutoAssignmentService {
             // Create notification
             await this.createAssignmentNotification(dispute, staff);
 
+            // Send real-time notification to assigned staff
+            try {
+                const { sendNotification } = require('../utils/notificationHelper');
+                const io = require('../server').io; // Get io instance
+                
+                if (io) {
+                    await sendNotification(io, {
+                        recipientId: staff._id,
+                        recipientType: 'Admin',
+                        notificationType: 'DISPUTE_ASSIGNED',
+                        args: [dispute.disputeId, staff.fullName]
+                    });
+                }
+            } catch (notificationError) {
+                console.error('⚠️ Dispute assignment notification error:', notificationError);
+            }
+
             // Send email notification
             await emailNotificationService.sendDisputeAssignmentNotification(
                 staff.email, 
@@ -230,15 +247,9 @@ class AutoAssignmentService {
             const notification = new Notification({
                 recipientId: staff._id,
                 recipientType: 'Admin',
-                type: 'dispute_assigned',
                 title: 'New Dispute Assignment',
                 message: `You have been assigned dispute ${dispute.disputeId}: ${dispute.title}`,
-                data: {
-                    disputeId: dispute.disputeId,
-                    disputeTitle: dispute.title,
-                    category: dispute.category,
-                    priority: dispute.priority
-                },
+                orderId: dispute.orderId,
                 read: false
             });
 

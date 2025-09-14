@@ -14,8 +14,8 @@ const Transaction = require('../models/Transaction');
 const sendNotification = async (io, userId, userType, title, message, type = 'info') => {
   try {
     const notification = new Notification({
-      userId,
-      userType,
+      recipientId: userId,
+      recipientType: userType,
       title,
       message,
       type
@@ -266,10 +266,10 @@ const getUserDisputes = async (req, res) => {
         { 'respondent.userId': userId, 'respondent.userType': userType }
       ]
     })
-    .populate('orderId', 'totalAmount status createdAt')
-    .populate('raisedBy', 'fullName email shopName')
-    .populate('complainant.userId', 'fullName email shopName')
-    .populate('respondent.userId', 'fullName email shopName')
+    .populate('orderId', 'totalAmount status createdAt buyer vendor agent')
+    .populate('raisedBy', 'fullName email shopName businessName')
+    .populate('complainant.userId', 'fullName email shopName businessName')
+    .populate('respondent.userId', 'fullName email shopName businessName')
     .sort({ createdAt: -1 });
 
     res.json({ disputes });
@@ -304,18 +304,10 @@ const getDisputeDetails = async (req, res) => {
     console.log('🔍 Looking for dispute with ID:', disputeId);
     
     const dispute = await Dispute.findOne({ disputeId })
-      .populate({
-        path: 'orderId',
-        select: 'totalAmount status createdAt items',
-        populate: [
-          { path: 'buyer', select: 'fullName email' },
-          { path: 'vendor', select: 'shopName email' },
-          { path: 'agent', select: 'businessName email' }
-        ]
-      })
-      .populate('raisedBy', 'fullName email shopName')
-      .populate('complainant.userId', 'fullName email shopName')
-      .populate('respondent.userId', 'fullName email shopName')
+      .populate('orderId', 'totalAmount status createdAt items buyer vendor agent')
+      .populate('raisedBy', 'fullName email shopName businessName')
+      .populate('complainant.userId', 'fullName email shopName businessName')
+      .populate('respondent.userId', 'fullName email shopName businessName')
       .populate('assignment.assignedTo', 'fullName email role')
       .populate('resolution.resolvedBy', 'fullName email');
     
@@ -474,9 +466,9 @@ const getAllDisputes = async (req, res) => {
     if (assignedTo) filter.assignedTo = assignedTo;
 
     const disputes = await Dispute.find(filter)
-      .populate('orderId', 'totalAmount status createdAt')
-      .populate('complainant.userId', 'fullName email shopName')
-      .populate('respondent.userId', 'fullName email shopName')
+      .populate('orderId', 'totalAmount status createdAt buyer vendor agent')
+      .populate('complainant.userId', 'fullName email shopName businessName')
+      .populate('respondent.userId', 'fullName email shopName businessName')
       .populate('assignedTo', 'fullName email')
       .sort({ createdAt: -1 })
       .limit(limit * 1)

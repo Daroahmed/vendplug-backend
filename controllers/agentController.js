@@ -61,6 +61,25 @@ const registerAgent = async (req, res) => {
     
     await sendVerificationEmail(email, verificationToken);
 
+    // Send new user registration notification to admins
+    try {
+      const io = req.app.get('io');
+      const { sendNotification } = require('../utils/notificationHelper');
+      const Admin = require('../models/Admin');
+      
+      const admins = await Admin.find({ isActive: true });
+      for (const admin of admins) {
+        await sendNotification(io, {
+          recipientId: admin._id,
+          recipientType: 'Admin',
+          notificationType: 'NEW_USER_REGISTERED',
+          args: ['Agent', savedAgent.fullName]
+        });
+      }
+    } catch (notificationError) {
+      console.error('⚠️ New user registration notification error:', notificationError);
+    }
+
     res.status(201).json({
       message: "Agent registered successfully. Please check your email to verify your account.",
       token: generateToken(savedAgent._id, "agent"),

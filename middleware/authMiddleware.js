@@ -20,7 +20,7 @@ const protectBuyer = asyncHandler(async (req, res, next) => {
   if (!token) return res.status(401).json({ message: 'Not authorized, no token' });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'vendplugSecret');
     const buyer = await Buyer.findById(decoded.id).select('-password');
     if (!buyer) return res.status(401).json({ message: 'Buyer not found' });
 
@@ -41,7 +41,7 @@ const protectAgent = asyncHandler(async (req, res, next) => {
   if (!token) return res.status(401).json({ message: 'Not authorized, no token' });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'vendplugSecret');
     const agent = await Agent.findById(decoded.id).select('-password');
     if (!agent) return res.status(401).json({ message: 'Agent not found' });
 
@@ -65,7 +65,7 @@ const protectVendor = asyncHandler(async (req, res, next) => {
     try {
       token = req.headers.authorization.split(' ')[1];
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'vendplugSecret');
       const vendor = await Vendor.findById(decoded.id).select('-password');
 
       if (!vendor) {
@@ -115,7 +115,7 @@ const protectAnyUser = asyncHandler(async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'vendplugSecret');
     const userId = decoded.id;
 
     const buyer = await Buyer.findById(userId).select('-password');

@@ -19,7 +19,7 @@ const NOTIFICATION_TYPES = {
   },
   ORDER_SHIPPED: {
     title: '🚚 Order Shipped',
-    getMessage: (orderId) => `Order #${orderId} is on its way to you`,
+    getMessage: (orderId) => `Order #${orderId} is on its way to you (out for delivery)`,
   },
   ORDER_DELIVERED: {
     title: '📦 Order Delivered',
@@ -72,7 +72,71 @@ const NOTIFICATION_TYPES = {
     getMessage: (orderId) => `Delivery attempted for order #${orderId}`,
   },
 
-  // System Announcements
+  // Order Fulfillment
+  ORDER_FULFILLED: {
+    title: '🎉 Order Fulfilled',
+    getMessage: (orderId, amount) => `Order #${orderId} has been fulfilled! ₦${amount} has been credited to your wallet.`,
+  },
+  ORDER_CONFIRMED: {
+    title: '✅ Order Confirmed',
+    getMessage: (orderId) => `Order #${orderId} has been confirmed by the buyer.`,
+  },
+
+  // Payout Notifications
+  PAYOUT_REQUESTED: {
+    title: '💸 Payout Requested',
+    getMessage: (amount) => `Payout request of ₦${amount} has been submitted and is being processed.`,
+  },
+  PAYOUT_FAILED: {
+    title: '❌ Payout Failed',
+    getMessage: (amount, reason) => `Payout of ₦${amount} failed. ${reason ? `Reason: ${reason}` : 'Please check your bank details and try again.'}`,
+  },
+  PAYOUT_REVERSED: {
+    title: '🔄 Payout Reversed',
+    getMessage: (amount) => `Payout of ₦${amount} has been reversed and refunded to your wallet.`,
+  },
+
+  // Dispute Notifications
+  DISPUTE_ASSIGNED: {
+    title: '📋 Dispute Assigned',
+    getMessage: (disputeId, staffName) => `Dispute ${disputeId} has been assigned to ${staffName}.`,
+  },
+  DISPUTE_RESOLVED: {
+    title: '✅ Dispute Resolved',
+    getMessage: (disputeId, resolution) => `Dispute ${disputeId} has been resolved: ${resolution}`,
+  },
+  DISPUTE_ESCALATED: {
+    title: '🚨 Dispute Escalated',
+    getMessage: (disputeId, reason) => `Dispute ${disputeId} has been escalated: ${reason}`,
+  },
+  DISPUTE_MESSAGE: {
+    title: '💬 New Dispute Message',
+    getMessage: (disputeId) => `New message in dispute ${disputeId}`,
+  },
+
+  // Wallet & Transaction Notifications
+  ESCROW_RELEASED: {
+    title: '🔓 Escrow Released',
+    getMessage: (amount, orderId) => `₦${amount} has been released from escrow for order #${orderId}`,
+  },
+  REFUND_PROCESSED: {
+    title: '↩️ Refund Processed',
+    getMessage: (amount, orderId) => `₦${amount} has been refunded for order #${orderId}`,
+  },
+  PAYMENT_VERIFIED: {
+    title: '✅ Payment Verified',
+    getMessage: (amount) => `Payment of ₦${amount} has been verified and processed.`,
+  },
+
+  // Admin & System Notifications
+  NEW_USER_REGISTERED: {
+    title: '👤 New User Registration',
+    getMessage: (userType, userName) => `New ${userType} registered: ${userName}`,
+  },
+  HIGH_VALUE_ORDER: {
+    title: '💰 High Value Order',
+    getMessage: (orderId, amount) => `High value order #${orderId} placed for ₦${amount}`,
+  },
   SYSTEM_MAINTENANCE: {
     title: '🔧 System Maintenance',
     getMessage: (time) => `System maintenance scheduled for ${time}`,
@@ -84,6 +148,46 @@ const NOTIFICATION_TYPES = {
   SECURITY_ALERT: {
     title: '🔐 Security Alert',
     getMessage: (message) => message,
+  },
+
+  // Chat & Messaging Notifications
+  NEW_MESSAGE: {
+    title: '💬 New Message',
+    getMessage: (senderName, preview) => `New message from ${senderName}: ${preview}`,
+  },
+  MESSAGE_REACTION: {
+    title: '😊 Message Reaction',
+    getMessage: (senderName, emoji) => `${senderName} reacted with ${emoji}`,
+  },
+  TYPING_INDICATOR: {
+    title: '⌨️ Typing',
+    getMessage: (senderName) => `${senderName} is typing...`,
+  },
+
+  // Support Ticket Notifications
+  NEW_SUPPORT_TICKET: {
+    title: '🎫 New Support Ticket',
+    getMessage: (ticketNumber, category) => `New ${category} ticket: ${ticketNumber}`,
+  },
+  TICKET_ASSIGNED: {
+    title: '📋 Ticket Assigned',
+    getMessage: (ticketNumber, staffName) => `Ticket ${ticketNumber} assigned to ${staffName}`,
+  },
+  TICKET_UPDATED: {
+    title: '📝 Ticket Updated',
+    getMessage: (ticketNumber, status) => `Ticket ${ticketNumber} status updated to ${status}`,
+  },
+  TICKET_RESOLVED: {
+    title: '✅ Ticket Resolved',
+    getMessage: (ticketNumber) => `Ticket ${ticketNumber} has been resolved`,
+  },
+  TICKET_RATED: {
+    title: '⭐ Ticket Rated',
+    getMessage: (ticketNumber, rating) => `Ticket ${ticketNumber} rated ${rating}/5 stars`,
+  },
+  SUPPORT_MESSAGE: {
+    title: '💬 Support Message',
+    getMessage: (ticketNumber) => `New message in support ticket ${ticketNumber}`,
   }
 };
 

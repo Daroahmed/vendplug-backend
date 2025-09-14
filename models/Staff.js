@@ -58,6 +58,24 @@ const staffSchema = new mongoose.Schema({
     default: 10
   },
   
+  // Support ticket management
+  supportTickets: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'SupportTicket'
+  }],
+  isAvailable: { 
+    type: Boolean, 
+    default: true 
+  },
+  maxTickets: { 
+    type: Number, 
+    default: 10 
+  },
+  supportSpecialties: [{
+    type: String,
+    enum: ['technical', 'billing', 'order', 'dispute', 'account', 'payment', 'general']
+  }],
+  
   // Activity tracking
   activityStats: {
     currentDisputes: [{

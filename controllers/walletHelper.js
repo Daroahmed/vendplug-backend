@@ -23,7 +23,10 @@ const createWalletIfNotExists = async (userId, role) => {
   if (!userId || !role) throw new Error("Missing userId or role");
 
   const normalizedRole = role.toLowerCase(); // ✅ ensure it's lowercase
-  let wallet = await Wallet.findOne({ user: userId });
+  let wallet = await Wallet.findOne({ 
+    user: userId,
+    role: normalizedRole 
+  });
   if (wallet) return wallet;
 
   let userModel;
@@ -46,14 +49,9 @@ const createWalletIfNotExists = async (userId, role) => {
 
   const virtualAccount = generateVirtualAccount(normalizedRole);
 
-  // Update user wallet field
-  user.wallet = {
-    ...user.wallet,
-    virtualAccount,
-    balance: 0,
-    bankName: "VendPlug Microfinance Bank",
-    accountName: user.fullName,
-  };
+  // Update user wallet fields
+  user.virtualAccount = virtualAccount;
+  user.walletBalance = 0;
   await user.save();
 
   wallet = new Wallet({
@@ -67,4 +65,41 @@ const createWalletIfNotExists = async (userId, role) => {
   return wallet;
 };
 
-module.exports = { createWalletIfNotExists };
+// Sync wallet balance between user model and Wallet collection
+const syncWalletBalance = async (userId, role, newBalance) => {
+  try {
+    const normalizedRole = role.toLowerCase();
+    let userModel;
+    
+    switch (normalizedRole) {
+      case "buyer":
+        userModel = Buyer;
+        break;
+      case "agent":
+        userModel = Agent;
+        break;
+      case "vendor":
+        userModel = Vendor;
+        break;
+      default:
+        throw new Error("Invalid user type");
+    }
+
+    // Update user's walletBalance field
+    await userModel.findByIdAndUpdate(userId, {
+      walletBalance: newBalance
+    });
+
+    // Update Wallet collection balance
+    await Wallet.findOneAndUpdate(
+      { user: userId, role: normalizedRole },
+      { balance: newBalance }
+    );
+
+    console.log(`✅ Synced wallet balance for ${normalizedRole} ${userId}: ₦${newBalance}`);
+  } catch (error) {
+    console.error('❌ Error syncing wallet balance:', error);
+  }
+};
+
+module.exports = { createWalletIfNotExists, syncWalletBalance };

@@ -113,6 +113,10 @@ const requestPayout = async (req, res) => {
     wallet.balance -= amount;
     await wallet.save({ session });
 
+    // Sync balance with user model
+    const { syncWalletBalance } = require('./walletHelper');
+    await syncWalletBalance(userId, userRole, wallet.balance);
+
     // Create transaction record
     const transaction = new Transaction({
       ref: `PAYOUT_${Date.now()}_${userId}`,
@@ -194,6 +198,21 @@ const requestPayout = async (req, res) => {
     }
 
     await session.commitTransaction();
+
+    // Send payout requested notification
+    try {
+      const io = req.app.get('io');
+      const { sendNotification } = require('../utils/notificationHelper');
+      
+      await sendNotification(io, {
+        recipientId: userId,
+        recipientType: userType,
+        notificationType: 'PAYOUT_REQUESTED',
+        args: [amount]
+      });
+    } catch (notificationError) {
+      console.error('⚠️ Payout notification error (non-critical):', notificationError);
+    }
 
     res.status(201).json({
       success: true,

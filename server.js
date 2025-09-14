@@ -72,6 +72,8 @@ const adminRoutes = require('./routes/adminRoutes');
 const disputeRoutes = require('./routes/disputeRoutes');
 const staffDisputeRoutes = require('./routes/staffDisputeRoutes');
 const staffAuthRoutes = require('./routes/staffAuthRoutes');
+const chatRoutes = require('./routes/chatRoutes');
+const supportRoutes = require('./routes/supportRoutes');
 const autoAssignmentService = require('./services/autoAssignmentService');
 
 
@@ -101,6 +103,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/disputes', disputeRoutes);
 app.use('/api/staff', staffAuthRoutes);
 app.use('/api/staff', staffDisputeRoutes);
+app.use('/api/chats', chatRoutes);
+app.use('/api/support', supportRoutes);
 // ✅ Test route
 app.get('/', (req, res) => res.send('Backend is running 🚀'));
 
@@ -149,6 +153,83 @@ io.on('connection', (socket) => {
 
     // Send any pending notifications
     emitPendingNotifications(userId, socket);
+  });
+
+  // Chat events
+  socket.on('join_chat', async (data) => {
+    try {
+      const { chatId, userId } = data;
+      const room = `chat_${chatId}`;
+      socket.join(room);
+      console.log(`✅ User ${userId} joined chat ${chatId}`);
+    } catch (error) {
+      console.error('🔥 Join chat error:', error);
+    }
+  });
+
+  socket.on('leave_chat', (data) => {
+    const { chatId, userId } = data;
+    const room = `chat_${chatId}`;
+    socket.leave(room);
+    console.log(`❌ User ${userId} left chat ${chatId}`);
+  });
+
+  socket.on('typing_start', (data) => {
+    const { chatId, userId, userName } = data;
+    const room = `chat_${chatId}`;
+    socket.to(room).emit('user_typing', {
+      chatId,
+      userId,
+      userName,
+      isTyping: true
+    });
+  });
+
+  socket.on('typing_stop', (data) => {
+    const { chatId, userId, userName } = data;
+    const room = `chat_${chatId}`;
+    socket.to(room).emit('user_typing', {
+      chatId,
+      userId,
+      userName,
+      isTyping: false
+    });
+  });
+
+  socket.on('message_read', async (data) => {
+    try {
+      const { messageId, chatId, userId } = data;
+      const room = `chat_${chatId}`;
+      
+      // Emit to other participants
+      socket.to(room).emit('message_read_status', {
+        messageId,
+        chatId,
+        userId,
+        readAt: new Date()
+      });
+    } catch (error) {
+      console.error('🔥 Message read error:', error);
+    }
+  });
+
+  // Support ticket events
+  socket.on('join_support', async (data) => {
+    try {
+      const { ticketId, userId, userType } = data;
+      const room = `support_${ticketId}`;
+      socket.join(room);
+      console.log(`✅ User ${userId} (${userType}) joined support ticket ${ticketId}`);
+    } catch (error) {
+      console.error('🔥 Join support error:', error);
+    }
+  });
+
+  socket.on('leave_support', (data) => {
+    const { ticketId, userId } = data;
+    const room = `support_${ticketId}`;
+    socket.leave(room);
+    console.log(`❌ User ${userId} left support ticket ${ticketId}`);
   });
 
   // Handle disconnection

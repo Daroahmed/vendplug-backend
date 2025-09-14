@@ -274,6 +274,10 @@ const confirmReceipt = async (req, res) => {
     const savedWallet = await wallet.save({ session });
     console.log('✅ Saved wallet balance:', savedWallet.balance);
 
+    // Sync balance with user model
+    const { syncWalletBalance } = require('./walletHelper');
+    await syncWalletBalance(userId, userRole, newBalance);
+
     // ✅ Log transaction
     await Transaction.create([{
       ref: new mongoose.Types.ObjectId().toString(),
@@ -309,20 +313,66 @@ const confirmReceipt = async (req, res) => {
     session.endSession();
   }
 
-  // ✅ Send notifications (after successful response and transaction)
-  try {
-    const io = req.app.get('io');
-    await sendOrderStatusNotification(io, order, 'delivered');
-    await sendPayoutNotification(io, {
-      vendorId: order.vendor._id,
-      amount: order.totalAmount,
-      status: 'ready',
-      orderId: order._id
-    });
-  } catch (notificationError) {
-    console.error('⚠️ Notification error (non-critical):', notificationError);
-    // Don't fail the request for notification errors
-  }
+    // ✅ Send notifications (after successful response and transaction)
+    try {
+      const io = req.app.get('io');
+      const { sendNotification } = require('../utils/notificationHelper');
+      
+      // Notify buyer that order is confirmed
+      await sendNotification(io, {
+        recipientId: order.buyer,
+        recipientType: 'Buyer',
+        notificationType: 'ORDER_CONFIRMED',
+        args: [order._id],
+        orderId: order._id
+      });
+
+      // Notify vendor/agent that order is fulfilled and funds released
+      await sendNotification(io, {
+        recipientId: userId,
+        recipientType: userType,
+        notificationType: 'ORDER_FULFILLED',
+        args: [order._id, order.totalAmount],
+        orderId: order._id
+      });
+
+      // Notify about escrow release
+      await sendNotification(io, {
+        recipientId: userId,
+        recipientType: userType,
+        notificationType: 'ESCROW_RELEASED',
+        args: [order.totalAmount, order._id],
+        orderId: order._id
+      });
+
+      // Send payout ready notification
+      await sendNotification(io, {
+        recipientId: userId,
+        recipientType: userType,
+        notificationType: 'PAYOUT_READY',
+        args: [order.totalAmount],
+        orderId: order._id
+      });
+
+      // Notify admins about high-value orders (₦50,000+)
+      if (order.totalAmount >= 50000) {
+        const Admin = require('../models/Admin');
+        const admins = await Admin.find({ isActive: true });
+        for (const admin of admins) {
+          await sendNotification(io, {
+            recipientId: admin._id,
+            recipientType: 'Admin',
+            notificationType: 'HIGH_VALUE_ORDER',
+            args: [order._id, order.totalAmount],
+            orderId: order._id
+          });
+        }
+      }
+
+    } catch (notificationError) {
+      console.error('⚠️ Notification error (non-critical):', notificationError);
+      // Don't fail the request for notification errors
+    }
 }
 
 const getBuyerOrderHistory = async (req, res) => {

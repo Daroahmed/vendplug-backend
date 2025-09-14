@@ -186,17 +186,10 @@ const getMyDisputes = async (req, res) => {
     if (priority) filter.priority = priority;
 
     const disputes = await Dispute.find(filter)
-      .populate({
-        path: 'orderId',
-        select: 'totalAmount status createdAt',
-        populate: [
-          { path: 'buyer', select: 'fullName email' },
-          { path: 'vendor', select: 'shopName email' }
-        ]
-      })
-      .populate('raisedBy', 'fullName email shopName')
-      .populate('complainant.userId', 'fullName email shopName')
-      .populate('respondent.userId', 'fullName email shopName')
+      .populate('orderId', 'totalAmount status createdAt buyer vendor agent')
+      .populate('raisedBy', 'fullName email shopName businessName')
+      .populate('complainant.userId', 'fullName email shopName businessName')
+      .populate('respondent.userId', 'fullName email shopName businessName')
       .populate('assignment.assignedTo', 'fullName email role')
       .populate('resolution.resolvedBy', 'fullName email')
       .sort({ createdAt: -1 })
@@ -247,17 +240,10 @@ const getDisputeDetails = async (req, res) => {
       $or: queryConditions,
       'assignment.assignedTo': staffId
     })
-      .populate({
-        path: 'orderId',
-        select: 'totalAmount status createdAt',
-        populate: [
-          { path: 'buyer', select: 'fullName email' },
-          { path: 'vendor', select: 'shopName email' }
-        ]
-      })
-      .populate('raisedBy', 'fullName email shopName')
-      .populate('complainant.userId', 'fullName email shopName')
-      .populate('respondent.userId', 'fullName email shopName')
+      .populate('orderId', 'totalAmount status createdAt buyer vendor agent')
+      .populate('raisedBy', 'fullName email shopName businessName')
+      .populate('complainant.userId', 'fullName email shopName businessName')
+      .populate('respondent.userId', 'fullName email shopName businessName')
       .populate('assignment.assignedTo', 'fullName email role')
       .populate('resolution.resolvedBy', 'fullName email');
 
@@ -816,6 +802,9 @@ const processDisputeRefund = async (dispute, refundAmount, resolution) => {
       order = await Order.findById(dispute.orderId);
     } else if (dispute.orderType === 'VendorOrder') {
       order = await VendorOrder.findById(dispute.orderId);
+    } else if (dispute.orderType === 'AgentOrder') {
+      const AgentOrder = require('../models/agentOrderModel');
+      order = await AgentOrder.findById(dispute.orderId);
     }
 
     if (!order) {
@@ -825,8 +814,17 @@ const processDisputeRefund = async (dispute, refundAmount, resolution) => {
     // Determine who gets the money based on resolution
     if (resolution === 'no_refund' || resolution === 'favor_respondent') {
       // Vendor/Agent wins - credit their wallet
-      const vendorAgentId = dispute.orderType === 'Order' ? order.agent : order.vendor;
-      const vendorAgentRole = dispute.orderType === 'Order' ? 'agent' : 'vendor';
+      let vendorAgentId, vendorAgentRole;
+      if (dispute.orderType === 'Order') {
+        vendorAgentId = order.agent;
+        vendorAgentRole = 'agent';
+      } else if (dispute.orderType === 'VendorOrder') {
+        vendorAgentId = order.vendor;
+        vendorAgentRole = 'vendor';
+      } else if (dispute.orderType === 'AgentOrder') {
+        vendorAgentId = order.agent;
+        vendorAgentRole = 'agent';
+      }
       
       const vendorAgentWallet = await Wallet.findOne({ 
         user: vendorAgentId, 
@@ -906,8 +904,17 @@ const processDisputeRefund = async (dispute, refundAmount, resolution) => {
 
       // If partial refund, also credit vendor/agent with remaining amount
       if (resolution === 'partial_refund') {
-        const vendorAgentId = dispute.orderType === 'Order' ? order.agent : order.vendor;
-        const vendorAgentRole = dispute.orderType === 'Order' ? 'agent' : 'vendor';
+        let vendorAgentId, vendorAgentRole;
+        if (dispute.orderType === 'Order') {
+          vendorAgentId = order.agent;
+          vendorAgentRole = 'agent';
+        } else if (dispute.orderType === 'VendorOrder') {
+          vendorAgentId = order.vendor;
+          vendorAgentRole = 'vendor';
+        } else if (dispute.orderType === 'AgentOrder') {
+          vendorAgentId = order.agent;
+          vendorAgentRole = 'agent';
+        }
         const orderAmount = order.totalAmount || order.amount;
         const remainingAmount = orderAmount - refundAmount;
         
