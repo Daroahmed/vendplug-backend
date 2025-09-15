@@ -3,6 +3,7 @@ const Message = require('../models/Message');
 const Chat = require('../models/Chat');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
+const { sendNotification } = require('../utils/notificationHelper');
 
 // Configure multer for file uploads
 const storage = multer.memoryStorage();
@@ -34,10 +35,20 @@ const sendMessage = asyncHandler(async (req, res) => {
   const currentUser = req.user;
 
   // Validate chat exists and user is participant
+  const userId = currentUser._id || currentUser.id;
+  const userType = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
+  
+  console.log('=== MESSAGE SENDING DEBUG ===');
+  console.log('Current user sending message:', currentUser);
+  console.log('User ID:', userId);
+  console.log('User type:', userType);
+  console.log('Message content:', content);
+  console.log('Chat ID:', chatId);
+  
   const chat = await Chat.findOne({
     _id: chatId,
-    'participants.user': currentUser.id,
-    'participants.userType': currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1),
+    'participants.user': userId,
+    'participants.userType': userType,
     isActive: true
   });
 
@@ -93,8 +104,8 @@ const sendMessage = asyncHandler(async (req, res) => {
           size: file.size,
           url: result.secure_url,
           cloudinaryId: result.public_id,
-          uploadedBy: currentUser.id,
-          uploadedByType: currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1),
+          uploadedBy: userId,
+          uploadedByType: userType,
           uploadedAt: new Date()
         });
       }
@@ -108,30 +119,52 @@ const sendMessage = asyncHandler(async (req, res) => {
   }
 
   // Create message
+  console.log('Creating message with:', {
+    chat: chatId,
+    sender: userId,
+    senderType: userType,
+    content: content.trim()
+  });
+  
   const message = await Message.create({
     chat: chatId,
-    sender: currentUser.id,
-    senderType: currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1),
+    sender: userId,
+    senderType: userType,
     content: content.trim(),
     messageType: attachments.length > 0 ? 'file' : messageType,
     attachments: attachments,
     replyTo: replyTo || undefined
   });
+  
+  console.log('Message created with ID:', message._id);
 
   // Populate the message
   const populatedMessage = await Message.findById(message._id)
     .populate('sender', 'fullName email profilePicture')
     .populate('replyTo', 'content sender');
 
-  // Emit real-time event
+  // Send notifications to other participants
   const io = req.app.get('io');
   if (io) {
     // Emit to all participants in the chat
     chat.participants.forEach(participant => {
-      io.to(`user_${participant.user}`).emit('new_message', {
-        chatId: chatId,
-        message: populatedMessage
-      });
+      // Skip the sender
+      if (participant.user.toString() !== userId.toString()) {
+        // Emit real-time message
+        io.to(`user:${participant.user}`).emit('new_message', {
+          chatId: chatId,
+          message: populatedMessage
+        });
+        
+        // Send notification
+        sendNotification(io, {
+          recipientId: participant.user,
+          recipientType: participant.userType,
+          notificationType: 'NEW_MESSAGE',
+          args: [currentUser.fullName, content.substring(0, 50) + (content.length > 50 ? '...' : '')],
+          chatId: chatId
+        });
+      }
     });
   }
 

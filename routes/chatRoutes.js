@@ -4,14 +4,15 @@ const {
   createOrGetChat,
   getUserChats,
   getChat,
+  getChatMessages,
   markChatAsRead,
   getChatParticipants,
   archiveChat,
-  unarchiveChat
+  unarchiveChat,
+  getUnreadCount
 } = require('../controllers/chatController');
 const {
   sendMessage,
-  getChatMessages,
   markMessageAsRead,
   addReaction,
   removeReaction,
@@ -24,6 +25,7 @@ const { protectAnyUser } = require('../middleware/authMiddleware');
 // Chat routes
 router.post('/', protectAnyUser, createOrGetChat);
 router.get('/', protectAnyUser, getUserChats);
+router.get('/unread-count', protectAnyUser, getUnreadCount);
 router.get('/:chatId', protectAnyUser, getChat);
 router.put('/:chatId/read', protectAnyUser, markChatAsRead);
 router.get('/:chatId/participants', protectAnyUser, getChatParticipants);

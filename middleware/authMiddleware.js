@@ -109,6 +109,9 @@ const deleteProduct = async (req, res) => {
 
 const protectAnyUser = asyncHandler(async (req, res, next) => {
   const token = extractToken(req);
+  
+  console.log('protectAnyUser - Token received:', token ? 'present' : 'missing');
+  console.log('protectAnyUser - Authorization header:', req.headers.authorization);
 
   if (!token) {
     return res.status(401).json({ message: 'Not authorized, no token' });
@@ -121,6 +124,13 @@ const protectAnyUser = asyncHandler(async (req, res, next) => {
     const buyer = await Buyer.findById(userId).select('-password');
     const agent = await Agent.findById(userId).select('-password');
     const vendor = await Vendor.findById(userId).select('-password');
+
+    console.log('protectAnyUser - User lookup results:', {
+      userId,
+      buyer: buyer ? 'found' : 'not found',
+      agent: agent ? 'found' : 'not found', 
+      vendor: vendor ? 'found' : 'not found'
+    });
 
     let user = null;
     let role = null;
@@ -135,6 +145,7 @@ const protectAnyUser = asyncHandler(async (req, res, next) => {
       user = buyer;
       role = 'buyer';
     } else {
+      console.log('protectAnyUser - No user found for userId:', userId);
       return res.status(401).json({ message: 'User not found' });
     }
 

@@ -12,6 +12,9 @@ const createOrGetChat = asyncHandler(async (req, res) => {
   const { participantId, participantType } = req.body;
   const currentUser = req.user;
   
+  console.log('createOrGetChat called with:', { participantId, participantType });
+  console.log('Current user:', currentUser);
+  
   // Validate participant type
   const validTypes = ['Buyer', 'Vendor', 'Agent'];
   if (!validTypes.includes(participantType)) {
@@ -22,7 +25,7 @@ const createOrGetChat = asyncHandler(async (req, res) => {
   }
 
   // Don't allow users to chat with themselves
-  if (participantId === currentUser.id) {
+  if (participantId === currentUser._id || participantId === currentUser.id) {
     return res.status(400).json({
       success: false,
       message: 'Cannot create chat with yourself'
@@ -32,6 +35,8 @@ const createOrGetChat = asyncHandler(async (req, res) => {
   // Check if participant exists
   let participant;
   const participantRole = participantType.toLowerCase();
+  
+  console.log('Looking up participant:', { participantId, participantType });
   
   switch (participantType) {
     case 'Buyer':
@@ -45,7 +50,10 @@ const createOrGetChat = asyncHandler(async (req, res) => {
       break;
   }
 
+  console.log('Participant lookup result:', participant ? 'found' : 'not found');
+
   if (!participant) {
+    console.log('Participant not found, returning 404');
     return res.status(404).json({
       success: false,
       message: 'Participant not found'
@@ -53,16 +61,23 @@ const createOrGetChat = asyncHandler(async (req, res) => {
   }
 
   // Check if chat already exists
-  let chat = await Chat.findOne({
+  const currentUserType = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
+  const chatQuery = {
     chatType: 'direct',
     participants: {
       $all: [
-        { user: currentUser.id, userType: currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1) },
+        { user: currentUser._id || currentUser.id, userType: currentUserType },
         { user: participantId, userType: participantType }
       ]
     }
-  }).populate('participants.user', 'fullName email profilePicture')
+  };
+  
+  console.log('Looking for existing chat with query:', JSON.stringify(chatQuery, null, 2));
+  
+  let chat = await Chat.findOne(chatQuery).populate('participants.user', 'fullName email profilePicture')
     .populate('lastMessage');
+    
+  console.log('Existing chat found:', chat ? 'yes' : 'no');
 
   if (chat) {
     return res.json({
@@ -73,11 +88,12 @@ const createOrGetChat = asyncHandler(async (req, res) => {
   }
 
   // Create new chat
-  chat = await Chat.create({
+  console.log('Creating new chat...');
+  const chatData = {
     participants: [
       {
-        user: currentUser.id,
-        userType: currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1),
+        user: currentUser._id || currentUser.id,
+        userType: currentUserType,
         role: currentUser.role
       },
       {
@@ -87,12 +103,19 @@ const createOrGetChat = asyncHandler(async (req, res) => {
       }
     ],
     chatType: 'direct'
-  });
+  };
+  
+  console.log('Chat data to create:', JSON.stringify(chatData, null, 2));
+  
+  chat = await Chat.create(chatData);
+  console.log('Chat created with ID:', chat._id);
 
   // Populate the created chat
   chat = await Chat.findById(chat._id)
     .populate('participants.user', 'fullName email profilePicture')
     .populate('lastMessage');
+    
+  console.log('Chat populated successfully, sending response...');
 
   res.status(201).json({
     success: true,
@@ -109,10 +132,14 @@ const getUserChats = asyncHandler(async (req, res) => {
   const { page = 1, limit = 20 } = req.query;
   
   const skip = (page - 1) * limit;
+  const userId = currentUser._id || currentUser.id;
+  const userType = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
+  
+  console.log('Getting chats for user:', { userId, userType });
   
   const chats = await Chat.find({
-    'participants.user': currentUser.id,
-    'participants.userType': currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1),
+    'participants.user': userId,
+    'participants.userType': userType,
     isActive: true
   })
   .populate('participants.user', 'fullName email profilePicture')
@@ -126,13 +153,13 @@ const getUserChats = asyncHandler(async (req, res) => {
     chats.map(async (chat) => {
       const unreadCount = await Message.countDocuments({
         chat: chat._id,
-        sender: { $ne: currentUser.id },
+        sender: { $ne: userId },
         isDeleted: false,
         'readBy': {
           $not: {
             $elemMatch: {
-              user: currentUser.id,
-              userType: currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1)
+              user: userId,
+              userType: userType
             }
           }
         }
@@ -144,6 +171,10 @@ const getUserChats = asyncHandler(async (req, res) => {
       };
     })
   );
+
+  console.log('Found chats:', chatsWithUnreadCount.length);
+  console.log('First chat participants:', chatsWithUnreadCount[0]?.participants);
+  console.log('Chats data:', chatsWithUnreadCount);
 
   res.json({
     success: true,
@@ -195,11 +226,13 @@ const getChat = asyncHandler(async (req, res) => {
 const markChatAsRead = asyncHandler(async (req, res) => {
   const { chatId } = req.params;
   const currentUser = req.user;
+  const userId = currentUser._id || currentUser.id;
+  const userType = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
 
   const chat = await Chat.findOne({
     _id: chatId,
-    'participants.user': currentUser.id,
-    'participants.userType': currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1)
+    'participants.user': userId,
+    'participants.userType': userType
   });
 
   if (!chat) {
@@ -213,14 +246,14 @@ const markChatAsRead = asyncHandler(async (req, res) => {
   await Message.updateMany(
     {
       chat: chatId,
-      sender: { $ne: currentUser.id },
+      sender: { $ne: userId },
       isDeleted: false
     },
     {
       $addToSet: {
         readBy: {
-          user: currentUser.id,
-          userType: currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1),
+          user: userId,
+          userType: userType,
           readAt: new Date()
         }
       },
@@ -233,7 +266,7 @@ const markChatAsRead = asyncHandler(async (req, res) => {
   );
 
   // Update last seen
-  await chat.updateLastSeen(currentUser.id, currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1));
+  await chat.updateLastSeen(userId, userType);
 
   res.json({
     success: true,
@@ -326,12 +359,116 @@ const unarchiveChat = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Get unread message count for user
+// @route   GET /api/chats/unread-count
+// @access  Private (Any authenticated user)
+const getUnreadCount = asyncHandler(async (req, res) => {
+  const currentUser = req.user;
+
+  try {
+    // Get all chats for the user
+    const chats = await Chat.find({
+      'participants.user': currentUser.id,
+      'participants.userType': currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1),
+      isActive: true
+    });
+
+    let totalUnread = 0;
+
+    // Count unread messages for each chat
+    for (const chat of chats) {
+      const unreadCount = await Message.countDocuments({
+        chat: chat._id,
+        sender: { $ne: currentUser.id },
+        isDeleted: false,
+        'readBy': {
+          $not: {
+            $elemMatch: {
+              user: currentUser.id,
+              userType: currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1)
+            }
+          }
+        }
+      });
+
+      totalUnread += unreadCount;
+    }
+
+    res.json({
+      success: true,
+      message: 'Unread count retrieved successfully',
+      data: {
+        count: totalUnread
+      }
+    });
+  } catch (error) {
+    console.error('Error getting unread count:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error retrieving unread count'
+    });
+  }
+});
+
+// @desc    Get chat messages
+// @route   GET /api/chats/:chatId/messages
+// @access  Private (Any authenticated user)
+const getChatMessages = async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const { page = 1, limit = 50 } = req.query;
+
+    // Verify user is participant in this chat
+    const chat = await Chat.findById(chatId);
+    if (!chat) {
+      return res.status(404).json({
+        success: false,
+        message: 'Chat not found'
+      });
+    }
+
+    const currentUserId = req.user._id || req.user.id;
+    const isParticipant = chat.participants.some(
+      p => (p.user.toString() === currentUserId.toString())
+    );
+
+    if (!isParticipant) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
+    // Get messages with pagination
+    const messages = await Message.find({ chat: chatId })
+      .populate('sender', 'fullName email profilePicture')
+      .populate('attachments')
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+
+    res.json({
+      success: true,
+      data: messages.reverse() // Reverse to show oldest first
+    });
+
+  } catch (error) {
+    console.error('Error getting chat messages:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+};
+
 module.exports = {
   createOrGetChat,
   getUserChats,
   getChat,
+  getChatMessages,
   markChatAsRead,
   getChatParticipants,
   archiveChat,
-  unarchiveChat
+  unarchiveChat,
+  getUnreadCount
 };
