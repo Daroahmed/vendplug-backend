@@ -166,6 +166,13 @@ const getDashboardOverview = async (req, res) => {
     const pendingPayouts = await PayoutRequest.countDocuments({ status: 'pending' });
     const processingPayouts = await PayoutRequest.countDocuments({ status: 'processing' });
     
+    // Support ticket counts
+    const SupportTicket = require('../models/SupportTicket');
+    const totalSupportTickets = await SupportTicket.countDocuments();
+    const openSupportTickets = await SupportTicket.countDocuments({ status: 'open' });
+    const inProgressSupportTickets = await SupportTicket.countDocuments({ status: 'in_progress' });
+    const resolvedSupportTickets = await SupportTicket.countDocuments({ status: 'resolved' });
+    
     // Calculate total transaction amounts
     const totalTransactionAmount = await Transaction.aggregate([
       { $match: { status: 'successful' } },
@@ -254,7 +261,12 @@ const getDashboardOverview = async (req, res) => {
           underReviewDisputes,
           resolvedDisputes,
           escalatedDisputes,
-          totalDisputes
+          totalDisputes,
+          // Support ticket counts
+          totalSupportTickets,
+          openSupportTickets,
+          inProgressSupportTickets,
+          resolvedSupportTickets
         },
         financial: {
           totalTransactionAmount: totalTransactionAmount[0]?.total || 0,

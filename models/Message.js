@@ -13,7 +13,7 @@ const messageSchema = new mongoose.Schema({
   },
   senderType: { 
     type: String, 
-    enum: ['Buyer', 'Vendor', 'Agent'],
+    enum: ['Buyer', 'Vendor', 'Agent', 'Staff'],
     required: true 
   },
   content: { 
@@ -50,7 +50,7 @@ const messageSchema = new mongoose.Schema({
     },
     userType: {
       type: String,
-      enum: ['Buyer', 'Vendor', 'Agent']
+      enum: ['Buyer', 'Vendor', 'Agent', 'Staff']
     },
     readAt: {
       type: Date,
@@ -84,7 +84,7 @@ const messageSchema = new mongoose.Schema({
     },
     userType: {
       type: String,
-      enum: ['Buyer', 'Vendor', 'Agent']
+      enum: ['Buyer', 'Vendor', 'Agent', 'Staff']
     },
     emoji: String,
     createdAt: {
