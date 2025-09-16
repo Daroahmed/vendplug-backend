@@ -45,12 +45,33 @@ const sendMessage = asyncHandler(async (req, res) => {
   console.log('Message content:', content);
   console.log('Chat ID:', chatId);
   
-  const chat = await Chat.findOne({
+  let chat = await Chat.findOne({
     _id: chatId,
     'participants.user': userId,
     'participants.userType': userType,
     isActive: true
   });
+
+  // For support ticket chats, allow staff members to send messages even if not participants
+  if (!chat && (currentUser.role === 'staff' || currentUser.staffId)) {
+    chat = await Chat.findById(chatId);
+    if (chat && chat.chatType === 'support' && chat.supportTicket) {
+      // Check if staff is assigned to this support ticket
+      const SupportTicket = require('../models/SupportTicket');
+      const ticket = await SupportTicket.findById(chat.supportTicket);
+      if (ticket) {
+        const staffId = currentUser.staffId || currentUser._id || currentUser.id;
+        const isAssigned = ticket.assignedTo && ticket.assignedTo.toString() === staffId.toString();
+        if (!isAssigned) {
+          chat = null; // Not assigned to this ticket
+        }
+      } else {
+        chat = null; // No support ticket found
+      }
+    } else {
+      chat = null; // Not a support chat or no support ticket
+    }
+  }
 
   if (!chat) {
     return res.status(404).json({

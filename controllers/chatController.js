@@ -432,7 +432,25 @@ const getChatMessages = async (req, res) => {
       p => (p.user.toString() === currentUserId.toString())
     );
 
-    if (!isParticipant) {
+    // For support ticket chats, allow staff members to access even if not participants
+    let hasAccess = isParticipant;
+    
+    if (!hasAccess && chat.chatType === 'support' && chat.supportTicket) {
+      // Check if user is staff and has access to this support ticket
+      if (req.user.role === 'staff' || req.user.staffId) {
+        // Import SupportTicket model
+        const SupportTicket = require('../models/SupportTicket');
+        
+        // Check if staff is assigned to this support ticket
+        const ticket = await SupportTicket.findById(chat.supportTicket);
+        if (ticket) {
+          const staffId = req.user.staffId || req.user._id || req.user.id;
+          hasAccess = ticket.assignedTo && ticket.assignedTo.toString() === staffId.toString();
+        }
+      }
+    }
+
+    if (!hasAccess) {
       return res.status(403).json({
         success: false,
         message: 'Access denied'

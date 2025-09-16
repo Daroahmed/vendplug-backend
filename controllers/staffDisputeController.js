@@ -220,6 +220,43 @@ const getMyDisputes = async (req, res) => {
   }
 };
 
+// Get Available Disputes for Staff (unassigned disputes)
+const getAvailableDisputes = async (req, res) => {
+  try {
+    const { category, priority, status } = req.query;
+    
+    // Build query for unassigned disputes
+    let query = {
+      'assignment.assignedTo': { $exists: false },
+      status: { $in: ['open', 'pending_review'] }
+    };
+    
+    if (category) query.category = category;
+    if (priority) query.priority = priority;
+    if (status) query.status = status;
+
+    const disputes = await Dispute.find(query)
+      .populate('order', 'orderNumber totalAmount status')
+      .populate('complainant.userId', 'fullName email phoneNumber')
+      .populate('respondent.userId', 'fullName email phoneNumber')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      data: disputes,
+      count: disputes.length
+    });
+
+  } catch (error) {
+    console.error('Error getting available disputes:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching available disputes',
+      error: error.message
+    });
+  }
+};
+
 // Get Dispute Details for Staff
 const getDisputeDetails = async (req, res) => {
   try {
@@ -968,6 +1005,7 @@ const processDisputeRefund = async (dispute, refundAmount, resolution) => {
 module.exports = {
   getStaffDisputeStats,
   getMyDisputes,
+  getAvailableDisputes,
   getDisputeDetails,
   startReview,
   resolveDispute,

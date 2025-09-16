@@ -187,7 +187,11 @@ const NOTIFICATION_TYPES = {
   },
   SUPPORT_MESSAGE: {
     title: '💬 Support Message',
-    getMessage: (ticketNumber) => `New message in support ticket ${ticketNumber}`,
+    getMessage: (ticketNumber, senderName) => `New message from ${senderName} in ticket ${ticketNumber}`,
+  },
+  SUPPORT_MESSAGE_STAFF: {
+    title: '💬 Support Reply',
+    getMessage: (ticketNumber, staffName) => `${staffName} replied to ticket ${ticketNumber}`,
   }
 };
 

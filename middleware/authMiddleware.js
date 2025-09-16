@@ -4,6 +4,7 @@ const Buyer = require('../models/Buyer');
 const Agent = require('../models/Agent');
 const Product = require('../models/Product');
 const Vendor = require('../models/vendorModel');
+const Admin = require('../models/Admin');
 
 // 🔍 Helper: Extract token from Authorization header
 const extractToken = (req) => {
@@ -119,23 +120,28 @@ const protectAnyUser = asyncHandler(async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'vendplugSecret');
-    const userId = decoded.id;
+    const userId = decoded.id || decoded.staffId; // Handle both regular users and staff
 
     const buyer = await Buyer.findById(userId).select('-password');
     const agent = await Agent.findById(userId).select('-password');
     const vendor = await Vendor.findById(userId).select('-password');
+    const admin = await Admin.findById(userId).select('-password');
 
     console.log('protectAnyUser - User lookup results:', {
       userId,
       buyer: buyer ? 'found' : 'not found',
       agent: agent ? 'found' : 'not found', 
-      vendor: vendor ? 'found' : 'not found'
+      vendor: vendor ? 'found' : 'not found',
+      admin: admin ? 'found' : 'not found'
     });
 
     let user = null;
     let role = null;
 
-    if (vendor) {
+    if (admin) {
+      user = admin;
+      role = 'staff';
+    } else if (vendor) {
       user = vendor;
       role = 'vendor';
     } else if (agent) {
