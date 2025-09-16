@@ -87,29 +87,78 @@ const sendMessage = asyncHandler(async (req, res) => {
   if (req.files && req.files.length > 0) {
     try {
       for (const file of req.files) {
-        const result = await cloudinary.uploader.upload_stream(
-          {
-            resource_type: 'auto',
-            folder: 'vendplug/messages'
-          },
-          (error, result) => {
-            if (error) throw error;
-          }
-        ).end(file.buffer);
+        console.log('📤 Uploading file:', {
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size
+        });
 
-        attachments.push({
-          filename: result.public_id,
+        // Try Cloudinary upload first
+        let cloudinaryResult = null;
+        try {
+          cloudinaryResult = await new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_stream(
+              {
+                resource_type: 'auto',
+                folder: 'vendplug/messages'
+              },
+              (error, result) => {
+                if (error) {
+                  console.error('❌ Cloudinary upload error:', error);
+                  reject(error);
+                } else {
+                  console.log('✅ Cloudinary upload success:', {
+                    public_id: result.public_id,
+                    secure_url: result.secure_url
+                  });
+                  resolve(result);
+                }
+              }
+            ).end(file.buffer);
+          });
+        } catch (cloudinaryError) {
+          console.error('❌ Cloudinary upload failed, using local storage:', cloudinaryError.message);
+        }
+
+        // Create attachment object
+        const attachment = {
+          filename: cloudinaryResult ? cloudinaryResult.public_id : `local_${Date.now()}_${file.originalname}`,
           originalName: file.originalname,
           mimeType: file.mimetype,
           size: file.size,
-          url: result.secure_url,
-          cloudinaryId: result.public_id,
           uploadedBy: userId,
           uploadedByType: userType,
           uploadedAt: new Date()
-        });
+        };
+
+        // Add URL based on upload method
+        if (cloudinaryResult) {
+          attachment.url = cloudinaryResult.secure_url;
+          attachment.cloudinaryId = cloudinaryResult.public_id;
+        } else {
+          // Store file locally and create a local URL
+          const fs = require('fs');
+          const path = require('path');
+          const uploadDir = path.join(__dirname, '../uploads/messages');
+          
+          // Create directory if it doesn't exist
+          if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+          }
+          
+          const fileName = `local_${Date.now()}_${file.originalname}`;
+          const filePath = path.join(uploadDir, fileName);
+          
+          fs.writeFileSync(filePath, file.buffer);
+          attachment.url = `/uploads/messages/${fileName}`;
+          attachment.localPath = filePath;
+        }
+
+        attachments.push(attachment);
+        console.log('📎 Attachment created:', attachment);
       }
     } catch (error) {
+      console.error('❌ File upload error:', error);
       return res.status(500).json({
         success: false,
         message: 'File upload failed',
