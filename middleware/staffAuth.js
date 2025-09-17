@@ -21,13 +21,13 @@ const protectStaff = async (req, res, next) => {
     }
 
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'vendplugSecret');
     console.log('🔍 Staff auth - Decoded token:', decoded);
 
     // Check if staff still exists and is active
-    const staff = await Admin.findById(decoded.staffId);
+    const staff = await Admin.findById(decoded.id);
     console.log('🔍 Staff auth - Staff found:', !!staff);
-    console.log('🔍 Staff auth - Staff ID from token:', decoded.staffId);
+    console.log('🔍 Staff auth - Staff ID from token:', decoded.id);
     
     if (!staff) {
       return res.status(401).json({

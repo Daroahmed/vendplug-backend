@@ -98,13 +98,17 @@ const acceptOrder = async (req, res) => {
 
     // Don't credit agent wallet yet - wait for delivery confirmation
 
-    // ✅ Create payout record
-    await AgentPayout.create({
-      agent: order.agent,
-      order: order._id,
-      amount: order.totalAmount,
-      status: "pending_receipt"
-    });
+    // ✅ Update or create payout record (handle unique constraint)
+    await AgentPayout.findOneAndUpdate(
+      { agent: order.agent },
+      {
+        agent: order.agent,
+        order: order._id,
+        amount: order.totalAmount,
+        status: "pending_receipt"
+      },
+      { upsert: true, new: true }
+    );
 
     const io = req.app.get('io');
     await sendOrderStatusNotification(io, order, 'accepted');
@@ -275,14 +279,17 @@ const updateOrderStatus = async (req, res) => {
       } catch (walletError) {
         console.error("Error updating agent wallet:", walletError);
       }
-      // Existing payout creation code
-  
-      await AgentPayout.create({
-        agent: order.agent,
-        order: order._id,
-        amount: order.totalAmount,
-        status: "pending_receipt"
-      });
+      // ✅ Update or create payout record (handle unique constraint)
+      await AgentPayout.findOneAndUpdate(
+        { agent: order.agent },
+        {
+          agent: order.agent,
+          order: order._id,
+          amount: order.totalAmount,
+          status: "pending_receipt"
+        },
+        { upsert: true, new: true }
+      );
     }
     if (status === "rejected") {
       await processRefund(order.buyer, order.totalAmount, order._id);

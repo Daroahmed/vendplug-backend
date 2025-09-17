@@ -100,13 +100,17 @@ const acceptOrder = async (req, res) => {
 
     // Don't credit vendor wallet yet - wait for delivery confirmation
 
-    // ✅ Create payout record
-    await Payout.create({
-      vendor: order.vendor,
-      order: order._id,
-      amount: order.totalAmount,
-      status: "pending_receipt"
-    });
+    // ✅ Update or create payout record (handle unique constraint)
+    await Payout.findOneAndUpdate(
+      { vendor: order.vendor },
+      {
+        vendor: order.vendor,
+        order: order._id,
+        amount: order.totalAmount,
+        status: "pending_receipt"
+      },
+      { upsert: true, new: true }
+    );
 
     const io = req.app.get('io');
     await sendOrderStatusNotification(io, order, 'accepted');
@@ -277,14 +281,17 @@ const updateOrderStatus = async (req, res) => {
       } catch (walletError) {
         console.error("Error updating vendor wallet:", walletError);
       }
-      // Existing payout creation code
-  
-      await Payout.create({
-        vendor: order.vendor,
-        order: order._id,
-        amount: order.totalAmount,
-        status: "pending_receipt"
-      });
+      // ✅ Update or create payout record (handle unique constraint)
+      await Payout.findOneAndUpdate(
+        { vendor: order.vendor },
+        {
+          vendor: order.vendor,
+          order: order._id,
+          amount: order.totalAmount,
+          status: "pending_receipt"
+        },
+        { upsert: true, new: true }
+      );
     }
     if (status === "rejected") {
       await processRefund(order.buyer, order.totalAmount, order._id);
