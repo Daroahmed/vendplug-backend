@@ -3,6 +3,7 @@ const asyncHandler = require("express-async-handler");
 const mongoose = require('mongoose');
 const VendorOrder = require('../models/vendorOrderModel');
 const AgentOrder = require('../models/AgentOrder');
+// Order model will be determined dynamically based on order type
 const Payout = require('../models/payoutModel');
 const Notification = require('../models/Notification');
 const Wallet = require('../models/walletModel');
@@ -226,22 +227,47 @@ const confirmReceipt = async (req, res) => {
     throw new Error("Not authorized to confirm this order");
   }
 
-  // ✅ Ensure status is correct
+  // ✅ Ensure status is correct and not already fulfilled
+  if (order.status === "fulfilled") {
+    res.status(400);
+    throw new Error("Order has already been confirmed and funded");
+  }
+  
   if (order.status !== "delivered") {
     res.status(400);
     throw new Error("Order cannot be confirmed yet");
   }
 
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  // Retry logic for MongoDB write conflicts
+  const maxRetries = 3;
+  let retryCount = 0;
+  
+  while (retryCount < maxRetries) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-  try {
+    try {
+    // ✅ Double-check order status inside transaction to prevent race conditions
+    const OrderModel = isAgentOrder ? AgentOrder : VendorOrder;
+    const currentOrder = await OrderModel.findById(orderId).session(session);
+    if (!currentOrder) {
+      throw new Error("Order not found");
+    }
+    
+    if (currentOrder.status === "fulfilled") {
+      throw new Error("Order has already been confirmed and funded");
+    }
+    
+    if (currentOrder.status !== "delivered") {
+      throw new Error("Order cannot be confirmed yet");
+    }
+
     // ✅ Update order status
-    order.status = "fulfilled"; // Changed from "delivered" to "fulfilled" for consistency
-    order.deliveredAt = Date.now();
-    await order.save({ session });
+    currentOrder.status = "fulfilled"; // Changed from "delivered" to "fulfilled" for consistency
+    currentOrder.deliveredAt = Date.now();
+    await currentOrder.save({ session });
 
-    const userId = isAgentOrder ? order.agent._id : order.vendor._id;
+    const userId = isAgentOrder ? currentOrder.agent._id : currentOrder.vendor._id;
     const userRole = isAgentOrder ? 'agent' : 'vendor';
     const userType = isAgentOrder ? 'Agent' : 'Vendor';
 
@@ -283,7 +309,7 @@ const confirmReceipt = async (req, res) => {
       ref: new mongoose.Types.ObjectId().toString(),
       type: "transfer",
       status: "successful",
-      amount: order.totalAmount,
+      amount: currentOrder.totalAmount,
       description: "Order payment released from escrow",
       from: "escrow",
       to: wallet.virtualAccount,
@@ -296,35 +322,18 @@ const confirmReceipt = async (req, res) => {
 
     await session.commitTransaction();
 
-    res.json({
-      success: true,
-      message: "Delivery confirmed. Funds moved to vendor payout queue.",
-      order
-    });
-
-  } catch (error) {
-    await session.abortTransaction();
-    console.error('❌ Error in confirmReceipt:', error);
-    res.status(500).json({ 
-      message: "Error confirming receipt", 
-      error: error.message 
-    });
-  } finally {
-    session.endSession();
-  }
-
-    // ✅ Send notifications (after successful response and transaction)
+    // ✅ Send notifications (after successful transaction but before response)
     try {
       const io = req.app.get('io');
       const { sendNotification } = require('../utils/notificationHelper');
       
       // Notify buyer that order is confirmed
       await sendNotification(io, {
-        recipientId: order.buyer,
+        recipientId: currentOrder.buyer,
         recipientType: 'Buyer',
         notificationType: 'ORDER_CONFIRMED',
-        args: [order._id],
-        orderId: order._id
+        args: [currentOrder._id],
+        orderId: currentOrder._id
       });
 
       // Notify vendor/agent that order is fulfilled and funds released
@@ -332,30 +341,30 @@ const confirmReceipt = async (req, res) => {
         recipientId: userId,
         recipientType: userType,
         notificationType: 'ORDER_FULFILLED',
-        args: [order._id, order.totalAmount],
-        orderId: order._id
+        args: [currentOrder._id, currentOrder.totalAmount],
+        orderId: currentOrder._id
       });
 
       // Notify about escrow release
       await sendNotification(io, {
-        recipientId: userId,
-        recipientType: userType,
+        recipientId: currentOrder.buyer,
+        recipientType: 'Buyer',
         notificationType: 'ESCROW_RELEASED',
-        args: [order.totalAmount, order._id],
-        orderId: order._id
+        args: [currentOrder._id, currentOrder.totalAmount],
+        orderId: currentOrder._id
       });
 
-      // Send payout ready notification
+      // Send payout ready notification to vendor/agent
       await sendNotification(io, {
         recipientId: userId,
         recipientType: userType,
         notificationType: 'PAYOUT_READY',
-        args: [order.totalAmount],
-        orderId: order._id
+        args: [currentOrder.totalAmount],
+        orderId: currentOrder._id
       });
 
       // Notify admins about high-value orders (₦50,000+)
-      if (order.totalAmount >= 50000) {
+      if (currentOrder.totalAmount >= 50000) {
         const Admin = require('../models/Admin');
         const admins = await Admin.find({ isActive: true });
         for (const admin of admins) {
@@ -363,16 +372,46 @@ const confirmReceipt = async (req, res) => {
             recipientId: admin._id,
             recipientType: 'Admin',
             notificationType: 'HIGH_VALUE_ORDER',
-            args: [order._id, order.totalAmount],
-            orderId: order._id
+            args: [currentOrder._id, currentOrder.totalAmount],
+            orderId: currentOrder._id
           });
         }
       }
 
     } catch (notificationError) {
       console.error('⚠️ Notification error (non-critical):', notificationError);
-      // Don't fail the request for notification errors
     }
+
+    res.json({
+      success: true,
+      message: "Delivery confirmed. Funds moved to vendor payout queue.",
+      order: currentOrder
+    });
+
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      
+      // Check if it's a write conflict or transient error
+      if ((error.code === 112 || error.code === 251) && retryCount < maxRetries - 1) {
+        retryCount++;
+        console.log(`⚠️ Write conflict detected, retrying... (${retryCount}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, 100 * retryCount)); // Exponential backoff
+        continue;
+      }
+      
+      console.error('❌ Error in confirmReceipt:', error);
+      res.status(500).json({ 
+        message: "Error confirming receipt", 
+        error: error.message 
+      });
+      return;
+    }
+    
+    // If we get here, the transaction was successful
+    session.endSession();
+    break;
+  }
 }
 
 const getBuyerOrderHistory = async (req, res) => {
