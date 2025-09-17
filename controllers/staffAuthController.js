@@ -48,12 +48,12 @@ const staffLogin = async (req, res) => {
     // Generate JWT token
     const token = jwt.sign(
       { 
-        staffId: staff._id,
+        id: staff._id,
         email: staff.email,
         role: staff.role,
         permissions: staff.permissions
       },
-      process.env.JWT_SECRET || 'your-secret-key',
+      process.env.JWT_SECRET || 'vendplugSecret',
       { expiresIn: '24h' }
     );
 
