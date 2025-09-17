@@ -76,25 +76,34 @@ const createSupportTicket = asyncHandler(async (req, res) => {
   await ticket.save();
 
   // Auto-assign to available staff
-  await autoAssignTicket(ticket._id);
+  const io = req.app.get('io');
+  await autoAssignTicket(ticket._id, io);
 
-  // Send notification to staff
+  // Send notification to all available staff
   try {
-    const io = req.app.get('io');
     const { sendNotification } = require('../utils/notificationHelper');
     
-    await sendNotification(io, {
-      recipientType: 'Staff',
-      notificationType: 'NEW_SUPPORT_TICKET',
-      title: 'New Support Ticket',
-      message: `New ${priority} priority ticket: ${subject}`,
-      metadata: {
-        ticketId: ticket._id,
-        ticketNumber: ticket.ticketNumber,
-        category: category,
-        priority: priority
-      }
+    // Find all available staff and admins to notify them about the new ticket
+    const availableStaff = await Admin.find({
+      isActive: true,
+      role: { $in: ['dispute_manager', 'dispute_specialist', 'dispute_analyst', 'moderator', 'admin', 'super_admin'] }
     });
+
+    // Send notification to each staff member
+    for (const staff of availableStaff) {
+      await sendNotification(io, {
+        recipientId: staff._id,
+        recipientType: 'Staff',
+        notificationType: 'NEW_SUPPORT_TICKET',
+        args: [ticket.ticketNumber, category],
+        meta: {
+          ticketId: ticket._id,
+          ticketNumber: ticket.ticketNumber,
+          category: category,
+          priority: priority
+        }
+      });
+    }
   } catch (error) {
     console.error('Support ticket notification error:', error);
   }
@@ -155,14 +164,14 @@ const getUserTickets = asyncHandler(async (req, res) => {
 // @access  Private (Any authenticated user)
 const getSupportTicket = asyncHandler(async (req, res) => {
   const { ticketId } = req.params;
-  const currentUser = req.staff || req.user;
+  const currentUser = req.staff || req.admin || req.user;
   const userId = currentUser.staffId || currentUser.id || currentUser._id;
 
   // Build query based on user type
   let query = { _id: ticketId };
   
-  if (currentUser.staffId) {
-    // Staff can see tickets assigned to them or tickets they created
+  if (currentUser.staffId || req.admin) {
+    // Staff and admins can see tickets assigned to them or tickets they created
     query.$or = [
       { assignedTo: userId },
       { requester: userId }
@@ -276,13 +285,13 @@ const rateTicket = asyncHandler(async (req, res) => {
 // @route   GET /api/support/stats
 // @access  Private (Staff only)
 const getSupportStats = asyncHandler(async (req, res) => {
-  const currentUser = req.staff || req.user;
+  const currentUser = req.staff || req.admin || req.user;
 
-  // Check if user is staff
-  if (!currentUser.staffId && currentUser.role !== 'staff') {
+  // Check if user is staff or admin
+  if (!currentUser.staffId && currentUser.role !== 'staff' && !req.admin) {
     return res.status(403).json({
       success: false,
-      message: 'Access denied. Staff only.'
+      message: 'Access denied. Staff or admin only.'
     });
   }
 
@@ -303,13 +312,13 @@ const getSupportStats = asyncHandler(async (req, res) => {
 // @route   GET /api/staff/support/tickets
 // @access  Private (Staff only)
 const getStaffTickets = asyncHandler(async (req, res) => {
-  const currentUser = req.staff || req.user;
+  const currentUser = req.staff || req.admin || req.user;
 
-  // Check if user is staff
-  if (!currentUser.staffId && currentUser.role !== 'staff') {
+  // Check if user is staff or admin
+  if (!currentUser.staffId && currentUser.role !== 'staff' && !req.admin) {
     return res.status(403).json({
       success: false,
-      message: 'Access denied. Staff only.'
+      message: 'Access denied. Staff or admin only.'
     });
   }
 
@@ -346,13 +355,13 @@ const getStaffTickets = asyncHandler(async (req, res) => {
 const assignTicket = asyncHandler(async (req, res) => {
   const { ticketId } = req.params;
   const { staffId } = req.body;
-  const currentUser = req.staff || req.user;
+  const currentUser = req.staff || req.admin || req.user;
 
-  // Check if user is staff
-  if (!currentUser.staffId && currentUser.role !== 'staff') {
+  // Check if user is staff or admin
+  if (!currentUser.staffId && currentUser.role !== 'staff' && !req.admin) {
     return res.status(403).json({
       success: false,
-      message: 'Access denied. Staff only.'
+      message: 'Access denied. Staff or admin only.'
     });
   }
 
@@ -406,13 +415,13 @@ const assignTicket = asyncHandler(async (req, res) => {
 const updateTicketStatusStaff = asyncHandler(async (req, res) => {
   const { ticketId } = req.params;
   const { status, internalNote } = req.body;
-  const currentUser = req.staff || req.user;
+  const currentUser = req.staff || req.admin || req.user;
 
-  // Check if user is staff
-  if (!currentUser.staffId && currentUser.role !== 'staff') {
+  // Check if user is staff or admin
+  if (!currentUser.staffId && currentUser.role !== 'staff' && !req.admin) {
     return res.status(403).json({
       success: false,
-      message: 'Access denied. Staff only.'
+      message: 'Access denied. Staff or admin only.'
     });
   }
 
@@ -474,15 +483,15 @@ const updateTicketStatusStaff = asyncHandler(async (req, res) => {
 });
 
 // Helper function to auto-assign tickets
-const autoAssignTicket = async (ticketId) => {
+const autoAssignTicket = async (ticketId, io = null) => {
   try {
     const ticket = await SupportTicket.findById(ticketId);
     if (!ticket) return;
 
-    // Find available staff (using Admin model with dispute resolution roles)
+    // Find available staff and admins (using Admin model with dispute resolution roles)
     const availableStaff = await Admin.find({
       isActive: true,
-      role: { $in: ['dispute_manager', 'dispute_specialist', 'dispute_analyst', 'moderator'] }
+      role: { $in: ['dispute_manager', 'dispute_specialist', 'dispute_analyst', 'moderator', 'admin', 'super_admin'] }
     }).sort({ createdAt: 1 }); // Simple round-robin assignment
 
     if (availableStaff.length > 0) {
@@ -503,6 +512,26 @@ const autoAssignTicket = async (ticketId) => {
       
       await ticket.assignToStaff(selectedStaff._id);
       
+      // Send notification to the assigned staff member
+      if (io) {
+        try {
+          const { sendNotification } = require('../utils/notificationHelper');
+          
+          await sendNotification(io, {
+            recipientId: selectedStaff._id,
+            recipientType: 'Staff',
+            notificationType: 'TICKET_ASSIGNED',
+            args: [ticket.ticketNumber, selectedStaff.name],
+            meta: {
+              ticketId: ticket._id,
+              ticketNumber: ticket.ticketNumber
+            }
+          });
+        } catch (error) {
+          console.error('Assignment notification error:', error);
+        }
+      }
+      
       console.log(`✅ Ticket ${ticket.ticketNumber} auto-assigned to ${selectedStaff.name} (${selectedStaff.email})`);
     } else {
       console.log(`⚠️ No available staff for ticket ${ticket.ticketNumber}`);
@@ -516,7 +545,7 @@ const autoAssignTicket = async (ticketId) => {
 // @route   GET /api/support/staff/tickets/my
 // @access  Private (Staff)
 const getMySupportTickets = asyncHandler(async (req, res) => {
-  const currentUser = req.staff || req.user;
+  const currentUser = req.staff || req.admin || req.user;
   const { page = 1, limit = 20, status, priority } = req.query;
   
   const userId = currentUser.staffId || currentUser.id || currentUser._id;
@@ -785,7 +814,7 @@ const getSupportTicketMessages = asyncHandler(async (req, res) => {
 const sendSupportTicketMessage = asyncHandler(async (req, res) => {
   const { ticketId } = req.params;
   const { content, messageType = 'text' } = req.body;
-  const currentUser = req.staff || req.user;
+  const currentUser = req.staff || req.admin || req.user;
   
   // Validate content
   if (!content || content.trim().length === 0) {
@@ -883,7 +912,7 @@ const sendSupportTicketMessage = asyncHandler(async (req, res) => {
 // @access  Staff
 const getSupportTicketMessagesStaff = asyncHandler(async (req, res) => {
   const { ticketId } = req.params;
-  const currentUser = req.staff || req.user;
+  const currentUser = req.staff || req.admin || req.user;
 
   // Get the ticket
   const ticket = await SupportTicket.findById(ticketId)
