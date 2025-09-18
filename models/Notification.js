@@ -11,7 +11,7 @@ const notificationSchema = new mongoose.Schema(
     recipientType: {
       type: String,
       required: true,
-      enum: ['Buyer', 'Agent', 'Vendor', 'Admin'], // ✅ All user types supported
+      enum: ['Buyer', 'Agent', 'Vendor', 'Admin', 'Staff'], // ✅ All user types supported
     },
     title: {
       type: String,

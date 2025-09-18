@@ -10,9 +10,6 @@ const protectStaff = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
     }
 
-    console.log('🔍 Staff auth - Token found:', !!token);
-    console.log('🔍 Staff auth - Authorization header:', req.headers.authorization);
-
     if (!token) {
       return res.status(401).json({
         success: false,
@@ -22,12 +19,9 @@ const protectStaff = async (req, res, next) => {
 
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'vendplugSecret');
-    console.log('🔍 Staff auth - Decoded token:', decoded);
 
     // Check if staff still exists and is active
     const staff = await Admin.findById(decoded.id);
-    console.log('🔍 Staff auth - Staff found:', !!staff);
-    console.log('🔍 Staff auth - Staff ID from token:', decoded.id);
     
     if (!staff) {
       return res.status(401).json({
@@ -47,7 +41,7 @@ const protectStaff = async (req, res, next) => {
     if (!['dispute_manager', 'dispute_specialist', 'dispute_analyst', 'moderator'].includes(staff.role)) {
       return res.status(403).json({
         success: false,
-        message: 'Access denied. Insufficient permissions.'
+        message: 'Access denied. Insufficient permissions. Required roles: dispute_manager, dispute_specialist, dispute_analyst, or moderator. Your role: ' + staff.role
       });
     }
 
@@ -59,7 +53,6 @@ const protectStaff = async (req, res, next) => {
       permissions: staff.permissions
     };
 
-    console.log('🔍 Staff auth - req.staff set:', req.staff);
     next();
 
   } catch (error) {

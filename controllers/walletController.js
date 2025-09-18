@@ -88,12 +88,14 @@ const getTransactions = async (req, res) => {
           console.log('🔍 Resolving model for:', modelName);
           
           switch(modelName) {
-            case 'Buyer': return require('../models/Buyer');
-            case 'Agent': return require('../models/Agent');
-            case 'Vendor': return require('../models/vendorModel');
+            case 'Buyer': return 'Buyer';
+            case 'Agent': return 'Agent';
+            case 'Vendor': return 'Vendor';
+            case 'Admin': return 'Admin';
+            case 'Staff': return 'Admin'; // Staff uses Admin model
             default: 
               console.log('⚠️ Unknown model type:', modelName);
-              return null;
+              return 'Buyer'; // Default fallback
           }
         }
       });

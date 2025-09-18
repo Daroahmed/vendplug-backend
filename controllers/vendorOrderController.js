@@ -36,9 +36,12 @@ const getVendorOrders = async (req, res) => {
         query.status = status;
       }
     } else {
-      // Default filter for incoming orders
+      // Default filter for incoming orders (exclude resolved)
       query.status = { $in: ["pending", "accepted", "preparing", "out_for_delivery"] };
     }
+    
+    // Always exclude resolved orders
+    query.status = { ...query.status, $ne: 'resolved' };
     
     if (startDate || endDate) {
       query.createdAt = {};

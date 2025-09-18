@@ -17,13 +17,13 @@ const getBuyerVendorOrders = async (req, res) => {
   try {
     const buyerId = req.user._id;
 
-    // Fetch both vendor and agent orders
+    // Fetch both vendor and agent orders (exclude resolved orders)
     const [vendorOrders, agentOrders] = await Promise.all([
-      VendorOrder.find({ buyer: buyerId })
+      VendorOrder.find({ buyer: buyerId, status: { $ne: 'resolved' } })
         .populate("vendor", "shopName")
         .populate("items.product", "name price")
         .sort({ createdAt: -1 }),
-      AgentOrder.find({ buyer: buyerId })
+      AgentOrder.find({ buyer: buyerId, status: { $ne: 'resolved' } })
         .populate("agent", "businessName")
         .populate("items.product", "name price")
         .sort({ createdAt: -1 })
