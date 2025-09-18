@@ -100,9 +100,11 @@ async function sendOrderStatusNotification(io, order, status, extraData = {}) {
     'accepted': 'ORDER_ACCEPTED',
     'rejected': 'ORDER_REJECTED',
     'cancelled': 'ORDER_CANCELLED',
-    'preparing': 'ORDER_SHIPPED', // Preparing = Order is being prepared
-    'out_for_delivery': 'ORDER_SHIPPED', // Out for delivery = Order shipped
+    'preparing': 'ORDER_PREPARING',
+    'out_for_delivery': 'ORDER_OUT_FOR_DELIVERY',
     'delivered': 'ORDER_DELIVERED',
+    'fulfilled': 'ORDER_FULFILLED',
+    'resolved': 'ORDER_RESOLVED',
     'in_transit': 'IN_TRANSIT',
     'ready_for_pickup': 'PICKUP_READY'
   };

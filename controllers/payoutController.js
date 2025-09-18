@@ -302,12 +302,50 @@ const processPayouts = async (req, res) => {
 
         results.push({ payoutId: payout._id, status: 'completed' });
 
+        // Send success notification
+        try {
+          const io = req.app.get('io');
+          const { sendNotification } = require('../utils/notificationHelper');
+          
+          await sendNotification(io, {
+            recipientId: payout.userId,
+            recipientType: payout.userType,
+            notificationType: 'PAYOUT_PROCESSED',
+            args: [payout.amount],
+            meta: {
+              payoutId: payout._id,
+              paystackReference: transferResult.data.reference
+            }
+          });
+        } catch (notificationError) {
+          console.error('Payout success notification error:', notificationError);
+        }
+
       } catch (error) {
         console.error(`Error processing payout ${payout._id}:`, error);
         payout.status = 'failed';
         payout.failureReason = error.message;
         await payout.save();
         results.push({ payoutId: payout._id, status: 'failed', reason: error.message });
+
+        // Send failure notification
+        try {
+          const io = req.app.get('io');
+          const { sendNotification } = require('../utils/notificationHelper');
+          
+          await sendNotification(io, {
+            recipientId: payout.userId,
+            recipientType: payout.userType,
+            notificationType: 'PAYOUT_FAILED',
+            args: [payout.amount, error.message],
+            meta: {
+              payoutId: payout._id,
+              failureReason: error.message
+            }
+          });
+        } catch (notificationError) {
+          console.error('Payout failure notification error:', notificationError);
+        }
       }
     }
 

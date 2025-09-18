@@ -567,26 +567,53 @@ const resolveDispute = async (req, res) => {
 
     // Send notifications
     const io = req.app.get('io');
+    const { sendNotification } = require('../utils/notificationHelper');
     
-    // Notify complainant
-    await sendNotification(
-      io,
-      dispute.complainant.userId,
-      dispute.complainant.userType,
-      'Dispute Resolved',
-      `Your dispute ${dispute.disputeId} has been resolved`,
-      'success'
-    );
+    // Notify complainant with specific resolution details
+    let complainantNotificationType = 'DISPUTE_RESOLVED';
+    let complainantArgs = [dispute.disputeId, decision];
+    
+    if (decision === 'favor_complainant') {
+      complainantNotificationType = 'DISPUTE_FAVOR_COMPLAINANT';
+      complainantArgs = [dispute.disputeId, refundAmount || dispute.order?.totalAmount];
+    } else if (decision === 'favor_respondent') {
+      complainantNotificationType = 'DISPUTE_FAVOR_RESPONDENT';
+      complainantArgs = [dispute.disputeId];
+    } else if (decision === 'partial_refund') {
+      complainantNotificationType = 'DISPUTE_PARTIAL_REFUND';
+      complainantArgs = [dispute.disputeId, refundAmount];
+    }
+    
+    await sendNotification(io, {
+      recipientId: dispute.complainant.userId,
+      recipientType: dispute.complainant.userType,
+      notificationType: complainantNotificationType,
+      args: complainantArgs,
+      orderId: dispute.orderId
+    });
 
-    // Notify respondent
-    await sendNotification(
-      io,
-      dispute.respondent.userId,
-      dispute.respondent.userType,
-      'Dispute Resolved',
-      `Dispute ${dispute.disputeId} has been resolved`,
-      'info'
-    );
+    // Notify respondent with specific resolution details
+    let respondentNotificationType = 'DISPUTE_RESOLVED';
+    let respondentArgs = [dispute.disputeId, decision];
+    
+    if (decision === 'favor_respondent') {
+      respondentNotificationType = 'DISPUTE_FAVOR_RESPONDENT';
+      respondentArgs = [dispute.disputeId];
+    } else if (decision === 'favor_complainant') {
+      respondentNotificationType = 'DISPUTE_FAVOR_COMPLAINANT';
+      respondentArgs = [dispute.disputeId, refundAmount || dispute.order?.totalAmount];
+    } else if (decision === 'partial_refund') {
+      respondentNotificationType = 'DISPUTE_PARTIAL_REFUND';
+      respondentArgs = [dispute.disputeId, refundAmount];
+    }
+    
+    await sendNotification(io, {
+      recipientId: dispute.respondent.userId,
+      recipientType: dispute.respondent.userType,
+      notificationType: respondentNotificationType,
+      args: respondentArgs,
+      orderId: dispute.orderId
+    });
 
     res.json({ message: 'Dispute resolved successfully' });
 

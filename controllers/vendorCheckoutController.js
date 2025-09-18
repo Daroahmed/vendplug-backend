@@ -138,6 +138,39 @@ const checkoutCart = async (req, res) => {
 
     await session.commitTransaction();
 
+    // ===============================
+    // 9. Send notifications
+    // ===============================
+    try {
+      const io = req.app.get('io');
+      const { sendNotification } = require('../utils/notificationHelper');
+      
+      // Notify buyer about order creation
+      await sendNotification(io, {
+        recipientId: req.buyer._id,
+        recipientType: 'Buyer',
+        notificationType: 'ORDER_CREATED',
+        args: [createdOrders[0]._id, totalCost],
+        orderId: createdOrders[0]._id
+      });
+
+      // Notify each vendor about new orders
+      for (const order of createdOrders) {
+        await sendNotification(io, {
+          recipientId: order.vendor,
+          recipientType: 'Vendor',
+          notificationType: 'ORDER_CREATED',
+          args: [order._id, order.totalAmount],
+          orderId: order._id
+        });
+      }
+
+      console.log('✅ Order creation notifications sent');
+    } catch (notificationError) {
+      console.error('❌ Notification error:', notificationError);
+      // Don't fail the checkout if notifications fail
+    }
+
     res.json({
       message: "Checkout successful. Orders created and funds held in escrow.",
       orders: createdOrders
