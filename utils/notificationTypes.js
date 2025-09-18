@@ -17,13 +17,25 @@ const NOTIFICATION_TYPES = {
     title: '🚫 Order Cancelled',
     getMessage: (orderId) => `Order #${orderId} has been cancelled`,
   },
-  ORDER_SHIPPED: {
-    title: '🚚 Order Shipped',
-    getMessage: (orderId) => `Order #${orderId} is on its way to you (out for delivery)`,
+  ORDER_PREPARING: {
+    title: '👨‍🍳 Order Being Prepared',
+    getMessage: (orderId) => `Order #${orderId} is being prepared by the vendor`,
+  },
+  ORDER_OUT_FOR_DELIVERY: {
+    title: '🚚 Order Out for Delivery',
+    getMessage: (orderId) => `Order #${orderId} is on its way to you`,
   },
   ORDER_DELIVERED: {
     title: '📦 Order Delivered',
     getMessage: (orderId) => `Order #${orderId} has been delivered. Please confirm receipt.`,
+  },
+  ORDER_FULFILLED: {
+    title: '🎉 Order Fulfilled',
+    getMessage: (orderId, amount) => `Order #${orderId} has been fulfilled! ₦${amount} has been credited to your wallet.`,
+  },
+  ORDER_RESOLVED: {
+    title: '⚖️ Order Resolved',
+    getMessage: (orderId, resolution) => `Order #${orderId} has been resolved through dispute: ${resolution}`,
   },
 
   // Payment Notifications
@@ -34,6 +46,18 @@ const NOTIFICATION_TYPES = {
   PAYMENT_REFUNDED: {
     title: '↩️ Payment Refunded',
     getMessage: (amount) => `₦${amount} has been refunded to your wallet`,
+  },
+  PAYSTACK_SUCCESS: {
+    title: '✅ Payment Successful',
+    getMessage: (amount, orderId) => `Payment of ₦${amount} for order #${orderId} was successful via Paystack`,
+  },
+  PAYSTACK_FAILED: {
+    title: '❌ Payment Failed',
+    getMessage: (amount, reason) => `Payment of ₦${amount} failed: ${reason || 'Please try again'}`,
+  },
+  PAYSTACK_PENDING: {
+    title: '⏳ Payment Pending',
+    getMessage: (amount) => `Payment of ₦${amount} is being processed`,
   },
   PAYOUT_READY: {
     title: '💸 Payout Ready',
@@ -97,6 +121,10 @@ const NOTIFICATION_TYPES = {
   },
 
   // Dispute Notifications
+  DISPUTE_CREATED: {
+    title: '⚖️ New Dispute Created',
+    getMessage: (disputeId, orderId) => `A dispute has been created for order #${orderId} (Dispute #${disputeId})`,
+  },
   DISPUTE_ASSIGNED: {
     title: '📋 Dispute Assigned',
     getMessage: (disputeId, staffName) => `Dispute ${disputeId} has been assigned to ${staffName}.`,
@@ -112,6 +140,22 @@ const NOTIFICATION_TYPES = {
   DISPUTE_MESSAGE: {
     title: '💬 New Dispute Message',
     getMessage: (disputeId) => `New message in dispute ${disputeId}`,
+  },
+  DISPUTE_REFUND_PROCESSED: {
+    title: '💰 Dispute Refund Processed',
+    getMessage: (disputeId, amount) => `Refund of ₦${amount} has been processed for dispute ${disputeId}`,
+  },
+  DISPUTE_FAVOR_COMPLAINANT: {
+    title: '✅ Dispute Resolved in Your Favor',
+    getMessage: (disputeId, amount) => `Dispute ${disputeId} resolved in your favor. ${amount ? `₦${amount} refunded.` : 'Full refund processed.'}`,
+  },
+  DISPUTE_FAVOR_RESPONDENT: {
+    title: '✅ Dispute Resolved in Your Favor',
+    getMessage: (disputeId) => `Dispute ${disputeId} resolved in your favor. No refund required.`,
+  },
+  DISPUTE_PARTIAL_REFUND: {
+    title: '⚖️ Partial Refund Processed',
+    getMessage: (disputeId, amount) => `Dispute ${disputeId} resolved with partial refund of ₦${amount}`,
   },
 
   // Wallet & Transaction Notifications
@@ -148,6 +192,42 @@ const NOTIFICATION_TYPES = {
   SECURITY_ALERT: {
     title: '🔐 Security Alert',
     getMessage: (message) => message,
+  },
+  
+  // Staff Notifications
+  NEW_DISPUTE_ASSIGNED: {
+    title: '⚖️ New Dispute Assigned',
+    getMessage: (disputeId, orderId) => `Dispute ${disputeId} for order #${orderId} has been assigned to you`,
+  },
+  DISPUTE_ESCALATED_TO_ADMIN: {
+    title: '🚨 Dispute Escalated to Admin',
+    getMessage: (disputeId, reason) => `Dispute ${disputeId} escalated: ${reason}`,
+  },
+  NEW_SUPPORT_TICKET_ASSIGNED: {
+    title: '🎫 New Support Ticket Assigned',
+    getMessage: (ticketNumber, category) => `Support ticket ${ticketNumber} (${category}) assigned to you`,
+  },
+  STAFF_MESSAGE_RECEIVED: {
+    title: '💬 New Message Received',
+    getMessage: (senderName, ticketNumber) => `New message from ${senderName} in ticket ${ticketNumber}`,
+  },
+  
+  // Admin Notifications
+  ADMIN_DISPUTE_ESCALATED: {
+    title: '🚨 Dispute Escalated to Admin',
+    getMessage: (disputeId, reason) => `Dispute ${disputeId} requires admin attention: ${reason}`,
+  },
+  ADMIN_HIGH_VALUE_TRANSACTION: {
+    title: '💰 High Value Transaction',
+    getMessage: (amount, type) => `High value ${type} transaction: ₦${amount}`,
+  },
+  ADMIN_SYSTEM_ALERT: {
+    title: '⚠️ System Alert',
+    getMessage: (message) => message,
+  },
+  ADMIN_USER_SUSPENDED: {
+    title: '🚫 User Suspended',
+    getMessage: (userType, userName, reason) => `${userType} ${userName} suspended: ${reason}`,
   },
 
   // Chat & Messaging Notifications
