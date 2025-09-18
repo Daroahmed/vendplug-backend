@@ -30,8 +30,8 @@ const getVendorOrders = async (req, res) => {
 
     if (status) {
       if (status === "delivered") {
-        // For delivered orders, include both delivered and fulfilled
-        query.status = { $in: ["delivered", "fulfilled"] };
+        // For delivered orders, include delivered, fulfilled, and resolved
+        query.status = { $in: ["delivered", "fulfilled", "resolved"] };
       } else {
         query.status = status;
       }
@@ -40,8 +40,10 @@ const getVendorOrders = async (req, res) => {
       query.status = { $in: ["pending", "accepted", "preparing", "out_for_delivery"] };
     }
     
-    // Always exclude resolved orders
-    query.status = { ...query.status, $ne: 'resolved' };
+    // Only exclude resolved orders for default (incoming) orders
+    if (!status) {
+      query.status = { ...query.status, $ne: 'resolved' };
+    }
     
     if (startDate || endDate) {
       query.createdAt = {};

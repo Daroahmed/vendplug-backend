@@ -3,7 +3,6 @@ const Buyer = require("../models/Buyer");
 const generateToken = require("../utils/generateToken");
 const bcrypt = require("bcryptjs");
 const { createWalletIfNotExists } = require("../controllers/walletHelper");
-const Order = require("../models/Order");
 const { notifyUser, handleError } = require('../utils/orderHelpers');
 const { sendVerificationEmail } = require('../utils/emailService');
 

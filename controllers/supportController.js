@@ -83,10 +83,10 @@ const createSupportTicket = asyncHandler(async (req, res) => {
   try {
     const { sendNotification } = require('../utils/notificationHelper');
     
-    // Find all available staff and admins to notify them about the new ticket
+    // Find all available staff to notify them about the new ticket
     const availableStaff = await Admin.find({
       isActive: true,
-      role: { $in: ['dispute_manager', 'dispute_specialist', 'dispute_analyst', 'moderator', 'admin', 'super_admin'] }
+      role: { $in: ['dispute_manager', 'dispute_specialist', 'dispute_analyst', 'moderator'] }
     });
 
     // Send notification to each staff member
@@ -170,8 +170,11 @@ const getSupportTicket = asyncHandler(async (req, res) => {
   // Build query based on user type
   let query = { _id: ticketId };
   
-  if (currentUser.staffId || req.admin) {
-    // Staff and admins can see tickets assigned to them or tickets they created
+  if (req.admin) {
+    // Admins can see all tickets
+    query = { _id: ticketId };
+  } else if (currentUser.staffId) {
+    // Staff can see tickets assigned to them or tickets they created
     query.$or = [
       { assignedTo: userId },
       { requester: userId }
@@ -488,10 +491,10 @@ const autoAssignTicket = async (ticketId, io = null) => {
     const ticket = await SupportTicket.findById(ticketId);
     if (!ticket) return;
 
-    // Find available staff and admins (using Admin model with dispute resolution roles)
+    // Find available staff only (exclude admins from auto-assignment)
     const availableStaff = await Admin.find({
       isActive: true,
-      role: { $in: ['dispute_manager', 'dispute_specialist', 'dispute_analyst', 'moderator', 'admin', 'super_admin'] }
+      role: { $in: ['dispute_manager', 'dispute_specialist', 'dispute_analyst', 'moderator'] }
     }).sort({ createdAt: 1 }); // Simple round-robin assignment
 
     if (availableStaff.length > 0) {
