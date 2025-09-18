@@ -105,6 +105,16 @@ const createDispute = async (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
     }
 
+    // Check if order is eligible for disputes (must be in escrow or pending)
+    const eligibleStatuses = ['pending', 'accepted', 'preparing', 'out_for_delivery', 'delivered'];
+    if (!eligibleStatuses.includes(order.status)) {
+      return res.status(400).json({ 
+        error: 'Disputes are only allowed for orders in escrow or pending status. This order has already been fulfilled or resolved.',
+        orderStatus: order.status,
+        eligibleStatuses: eligibleStatuses
+      });
+    }
+
     // Check if user is involved in the order
     console.log('🔍 Authorization check:');
     console.log('   complainantUserId:', complainantUserId, typeof complainantUserId);
@@ -259,6 +269,8 @@ const getUserDisputes = async (req, res) => {
     const userType = req.user.role === 'buyer' ? 'Buyer' : 
                     req.user.role === 'vendor' ? 'Vendor' : 'Agent';
 
+    console.log('🔍 Getting disputes for user:', { userId, userType });
+
     const disputes = await Dispute.find({
       $or: [
         { raisedBy: userId, raisedByType: userType },
@@ -271,6 +283,12 @@ const getUserDisputes = async (req, res) => {
     .populate('complainant.userId', 'fullName email shopName businessName')
     .populate('respondent.userId', 'fullName email shopName businessName')
     .sort({ createdAt: -1 });
+
+    console.log('🔍 Found disputes:', disputes.length);
+    if (disputes.length > 0) {
+      console.log('🔍 First dispute orderId:', disputes[0].orderId);
+      console.log('🔍 First dispute orderType:', disputes[0].orderType);
+    }
 
     res.json({ disputes });
 
@@ -578,7 +596,7 @@ const resolveDispute = async (req, res) => {
   }
 };
 
-// Helper function to process dispute refunds
+// Helper function to process dispute refunds within escrow system
 const processDisputeRefund = async (dispute, refundAmount, resolution) => {
   try {
     // Get the order to find the buyer and vendor/agent
@@ -595,57 +613,39 @@ const processDisputeRefund = async (dispute, refundAmount, resolution) => {
       throw new Error('Order not found for dispute resolution');
     }
 
-    // Determine who gets the money based on resolution
-    if (resolution === 'no_refund' || resolution === 'favor_respondent') {
-      // Vendor/Agent wins - credit their wallet
-      const vendorAgentId = dispute.orderType === 'Order' ? order.agent : 
-                           dispute.orderType === 'VendorOrder' ? order.vendor : order.agent;
-      const vendorAgentRole = dispute.orderType === 'Order' ? 'agent' : 
-                             dispute.orderType === 'VendorOrder' ? 'vendor' : 'agent';
+    // Check if order is still in escrow or pending (disputes only allowed for orders in escrow or pending)
+    const escrowStatuses = ['pending', 'accepted', 'preparing', 'out_for_delivery', 'delivered'];
+    if (!escrowStatuses.includes(order.status)) {
+      throw new Error('Order is no longer in escrow - disputes not allowed after fulfillment');
+    }
+
+    const orderAmount = order.totalAmount || order.amount;
+    const vendorAgentId = dispute.orderType === 'Order' ? order.agent : 
+                         dispute.orderType === 'VendorOrder' ? order.vendor : order.agent;
+    const vendorAgentRole = dispute.orderType === 'Order' ? 'agent' : 
+                           dispute.orderType === 'VendorOrder' ? 'vendor' : 'agent';
+
+    // Process resolution within escrow system
+    if (resolution === 'favor_respondent') {
+      // Vendor/Agent wins - money stays in escrow, will be released to them
+      // No wallet movement needed - money is already in escrow
       
-      const vendorAgentWallet = await Wallet.findOne({ 
-        user: vendorAgentId, 
-        role: vendorAgentRole 
-      });
-
-      if (!vendorAgentWallet) {
-        throw new Error(`${vendorAgentRole} wallet not found`);
-      }
-
-      // Credit vendor/agent's wallet with full order amount
-      const orderAmount = order.totalAmount || order.amount;
-      vendorAgentWallet.balance += orderAmount;
-      await vendorAgentWallet.save();
-
-      // Create transaction record for vendor/agent
-      const transaction = new Transaction({
-        ref: `DISP_WIN_${dispute.disputeId}_${Date.now()}`,
-        type: 'credit',
-        status: 'successful',
-        amount: orderAmount,
-        to: vendorAgentId.toString(),
-        description: `Dispute resolved in favor of ${vendorAgentRole} - ${dispute.disputeId}`,
-        initiatedBy: dispute.resolution.resolvedBy,
-        initiatorType: 'Admin',
-        metadata: {
-          disputeId: dispute.disputeId,
-          orderId: order._id,
-          orderType: dispute.orderType,
-          resolution: 'no_refund'
-        }
-      });
-
-      await transaction.save();
-
-      // Update order status to completed
-      order.status = 'completed';
-      order.completedAt = new Date();
+      // Update order status to resolved (money will be released to vendor/agent)
+      order.status = 'resolved';
+      order.resolvedAt = new Date();
+      order.resolution = {
+        type: 'favor_respondent',
+        disputeId: dispute.disputeId,
+        resolvedBy: dispute.resolution.resolvedBy,
+        resolvedAt: new Date(),
+        escrowAction: 'release_to_vendor_agent'
+      };
       await order.save();
 
-      console.log(`✅ Dispute resolved in favor of ${vendorAgentRole}: ${orderAmount} credited to ${vendorAgentId}`);
+      console.log(`✅ Dispute resolved in favor of ${vendorAgentRole}: Money in escrow will be released to ${vendorAgentId}`);
 
-    } else if (refundAmount > 0 && (resolution === 'favor_complainant' || resolution === 'partial_refund' || resolution === 'full_refund')) {
-      // Buyer gets refund - credit their wallet
+    } else if (resolution === 'favor_complainant') {
+      // Buyer wins - refund from escrow
       const buyerWallet = await Wallet.findOne({ 
         user: order.buyer, 
         role: 'buyer' 
@@ -655,78 +655,132 @@ const processDisputeRefund = async (dispute, refundAmount, resolution) => {
         throw new Error('Buyer wallet not found');
       }
 
-      // Credit buyer's wallet
-      buyerWallet.balance += refundAmount;
+      // Credit buyer's wallet from escrow
+      buyerWallet.balance += orderAmount;
       await buyerWallet.save();
 
-      // Create transaction record for buyer refund
+      // Create transaction record for buyer refund from escrow
       const transaction = new Transaction({
-        ref: `DISP_REFUND_${dispute.disputeId}_${Date.now()}`,
+        ref: `DISP_ESCROW_REFUND_${dispute.disputeId}_${Date.now()}`,
         type: 'credit',
         status: 'successful',
-        amount: refundAmount,
+        amount: orderAmount,
         to: order.buyer.toString(),
-        description: `Dispute refund for ${dispute.disputeId}`,
+        description: `Dispute refund from escrow - ${dispute.disputeId}`,
         initiatedBy: dispute.resolution.resolvedBy,
         initiatorType: 'Admin',
         metadata: {
           disputeId: dispute.disputeId,
           orderId: order._id,
           orderType: dispute.orderType,
-          resolution: resolution
+          resolution: 'favor_complainant',
+          source: 'escrow'
         }
       });
 
       await transaction.save();
 
-      // If partial refund, also credit vendor/agent with remaining amount
-      if (resolution === 'partial_refund') {
-        const vendorAgentId = dispute.orderType === 'Order' ? order.agent : 
-                             dispute.orderType === 'VendorOrder' ? order.vendor : order.agent;
-        const vendorAgentRole = dispute.orderType === 'Order' ? 'agent' : 
-                               dispute.orderType === 'VendorOrder' ? 'vendor' : 'agent';
-        const orderAmount = order.totalAmount || order.amount;
-        const remainingAmount = orderAmount - refundAmount;
-        
-        if (remainingAmount > 0) {
-          const vendorAgentWallet = await Wallet.findOne({ 
-            user: vendorAgentId, 
-            role: vendorAgentRole 
-          });
-
-          if (vendorAgentWallet) {
-            vendorAgentWallet.balance += remainingAmount;
-            await vendorAgentWallet.save();
-
-            // Create transaction for vendor/agent
-            const vendorTransaction = new Transaction({
-              ref: `DISP_PARTIAL_${dispute.disputeId}_${Date.now()}`,
-              type: 'credit',
-              status: 'successful',
-              amount: remainingAmount,
-              to: vendorAgentId.toString(),
-              description: `Partial dispute resolution - ${dispute.disputeId}`,
-              initiatedBy: dispute.resolution.resolvedBy,
-              initiatorType: 'Admin',
-              metadata: {
-                disputeId: dispute.disputeId,
-                orderId: order._id,
-                orderType: dispute.orderType,
-                resolution: 'partial_refund'
-              }
-            });
-
-            await vendorTransaction.save();
-          }
-        }
-      }
-
-      // Update order status to completed
-      order.status = 'completed';
-      order.completedAt = new Date();
+      // Update order status to resolved
+      order.status = 'resolved';
+      order.resolvedAt = new Date();
+      order.resolution = {
+        type: 'favor_complainant',
+        disputeId: dispute.disputeId,
+        resolvedBy: dispute.resolution.resolvedBy,
+        resolvedAt: new Date(),
+        escrowAction: 'refund_to_buyer',
+        refundAmount: orderAmount
+      };
       await order.save();
 
-      console.log(`✅ Dispute refund processed: ${refundAmount} to buyer ${order.buyer}`);
+      console.log(`✅ Dispute resolved in favor of buyer: ${orderAmount} refunded from escrow to buyer ${order.buyer}`);
+
+    } else if (resolution === 'partial_refund') {
+      // Partial refund - split escrow money
+      const buyerRefundAmount = refundAmount || (orderAmount * 0.5); // Default to 50% if not specified
+      const vendorAgentAmount = orderAmount - buyerRefundAmount;
+
+      // Credit buyer's wallet with partial refund
+      const buyerWallet = await Wallet.findOne({ 
+        user: order.buyer, 
+        role: 'buyer' 
+      });
+
+      if (!buyerWallet) {
+        throw new Error('Buyer wallet not found');
+      }
+
+      buyerWallet.balance += buyerRefundAmount;
+      await buyerWallet.save();
+
+      // Create transaction record for buyer partial refund
+      const buyerTransaction = new Transaction({
+        ref: `DISP_ESCROW_PARTIAL_${dispute.disputeId}_${Date.now()}`,
+        type: 'credit',
+        status: 'successful',
+        amount: buyerRefundAmount,
+        to: order.buyer.toString(),
+        description: `Partial dispute refund from escrow - ${dispute.disputeId}`,
+        initiatedBy: dispute.resolution.resolvedBy,
+        initiatorType: 'Admin',
+        metadata: {
+          disputeId: dispute.disputeId,
+          orderId: order._id,
+          orderType: dispute.orderType,
+          resolution: 'partial_refund',
+          source: 'escrow'
+        }
+      });
+
+      await buyerTransaction.save();
+
+      // Credit vendor/agent with remaining amount
+      const vendorAgentWallet = await Wallet.findOne({ 
+        user: vendorAgentId, 
+        role: vendorAgentRole 
+      });
+
+      if (vendorAgentWallet) {
+        vendorAgentWallet.balance += vendorAgentAmount;
+        await vendorAgentWallet.save();
+
+        // Create transaction record for vendor/agent
+        const vendorTransaction = new Transaction({
+          ref: `DISP_ESCROW_PARTIAL_${dispute.disputeId}_${Date.now()}`,
+          type: 'credit',
+          status: 'successful',
+          amount: vendorAgentAmount,
+          to: vendorAgentId.toString(),
+          description: `Partial dispute resolution from escrow - ${dispute.disputeId}`,
+          initiatedBy: dispute.resolution.resolvedBy,
+          initiatorType: 'Admin',
+          metadata: {
+            disputeId: dispute.disputeId,
+            orderId: order._id,
+            orderType: dispute.orderType,
+            resolution: 'partial_refund',
+            source: 'escrow'
+          }
+        });
+
+        await vendorTransaction.save();
+      }
+
+      // Update order status to resolved
+      order.status = 'resolved';
+      order.resolvedAt = new Date();
+      order.resolution = {
+        type: 'partial_refund',
+        disputeId: dispute.disputeId,
+        resolvedBy: dispute.resolution.resolvedBy,
+        resolvedAt: new Date(),
+        escrowAction: 'split_refund',
+        buyerRefundAmount: buyerRefundAmount,
+        vendorAgentAmount: vendorAgentAmount
+      };
+      await order.save();
+
+      console.log(`✅ Dispute resolved with partial refund: ${buyerRefundAmount} to buyer, ${vendorAgentAmount} to ${vendorAgentRole}`);
     }
 
   } catch (error) {

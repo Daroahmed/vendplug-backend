@@ -4,6 +4,7 @@ const Vendor = require('../models/vendorModel');
 const Agent = require('../models/Agent');
 const Order = require('../models/Order');
 const VendorOrder = require('../models/vendorOrderModel');
+const AgentOrder = require('../models/AgentOrder');
 const PayoutRequest = require('../models/PayoutRequest');
 const Transaction = require('../models/Transaction');
 const Dispute = require('../models/Dispute');
@@ -162,6 +163,7 @@ const getDashboardOverview = async (req, res) => {
     
     const totalOrders = await Order.countDocuments();
     const totalVendorOrders = await VendorOrder.countDocuments();
+    const totalAgentOrders = await AgentOrder.countDocuments();
     
     const pendingPayouts = await PayoutRequest.countDocuments({ status: 'pending' });
     const processingPayouts = await PayoutRequest.countDocuments({ status: 'processing' });
@@ -184,6 +186,10 @@ const getDashboardOverview = async (req, res) => {
     ]);
     
     const totalVendorOrderAmount = await VendorOrder.aggregate([
+      { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+    ]);
+    
+    const totalAgentOrderAmount = await AgentOrder.aggregate([
       { $group: { _id: null, total: { $sum: '$totalAmount' } } }
     ]);
     
@@ -217,10 +223,18 @@ const getDashboardOverview = async (req, res) => {
       .populate('vendor', 'shopName fullName email')
       .select('status totalAmount createdAt buyer vendor');
 
-    // Combine both order types and add orderId field
+    const recentAgentOrders = await AgentOrder.find(dateFilter)
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('buyer', 'fullName email')
+      .populate('agent', 'businessName fullName email')
+      .select('status totalAmount createdAt buyer agent');
+
+    // Combine all order types and add orderId field
     const allRecentOrders = [
       ...recentOrders.map(order => ({ ...order.toObject(), orderId: order._id, orderType: 'Order' })),
-      ...recentVendorOrders.map(order => ({ ...order.toObject(), orderId: order._id, orderType: 'VendorOrder' }))
+      ...recentVendorOrders.map(order => ({ ...order.toObject(), orderId: order._id, orderType: 'VendorOrder' })),
+      ...recentAgentOrders.map(order => ({ ...order.toObject(), orderId: order._id, orderType: 'AgentOrder' }))
     ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
 
     // Get recent transactions with proper populate and date filter
@@ -252,7 +266,9 @@ const getDashboardOverview = async (req, res) => {
           totalBuyers,
           totalVendors,
           totalAgents,
-          totalOrders: totalOrders + totalVendorOrders,
+          totalOrders: totalOrders + totalVendorOrders + totalAgentOrders,
+          totalVendorOrders,
+          totalAgentOrders,
           pendingPayouts,
           processingPayouts,
           // Dispute counts
@@ -270,7 +286,9 @@ const getDashboardOverview = async (req, res) => {
         },
         financial: {
           totalTransactionAmount: totalTransactionAmount[0]?.total || 0,
-          totalOrderAmount: (totalOrderAmount[0]?.total || 0) + (totalVendorOrderAmount[0]?.total || 0),
+          totalOrderAmount: (totalOrderAmount[0]?.total || 0) + (totalVendorOrderAmount[0]?.total || 0) + (totalAgentOrderAmount[0]?.total || 0),
+          totalVendorOrderAmount: totalVendorOrderAmount[0]?.total || 0,
+          totalAgentOrderAmount: totalAgentOrderAmount[0]?.total || 0,
           totalPayoutAmount: totalPayoutAmount[0]?.total || 0,
           netRevenue: (totalTransactionAmount[0]?.total || 0) - (totalPayoutAmount[0]?.total || 0)
         },
@@ -487,7 +505,8 @@ const getAllOrders = async (req, res) => {
       query.$or = [
         { orderId: { $regex: search, $options: 'i' } },
         { 'buyer.fullName': { $regex: search, $options: 'i' } },
-        { 'vendor.shopName': { $regex: search, $options: 'i' } }
+        { 'vendor.shopName': { $regex: search, $options: 'i' } },
+        { 'agent.businessName': { $regex: search, $options: 'i' } }
       ];
     }
 
@@ -504,15 +523,15 @@ const getAllOrders = async (req, res) => {
     }
 
     if (orderType === 'agent' || !orderType) {
-      const agentOrders = await Order.find(query)
+      const agentOrders = await AgentOrder.find(query)
         .populate('buyer', 'fullName email')
-        .populate('agent', 'fullName email')
+        .populate('agent', 'businessName fullName email')
         .limit(parseInt(limit))
         .skip(skip)
         .sort({ createdAt: -1 });
       
       orders.push(...agentOrders);
-      total += await Order.countDocuments(query);
+      total += await AgentOrder.countDocuments(query);
     }
 
     // Sort combined orders by creation date
@@ -740,19 +759,74 @@ const resolveDispute = async (req, res) => {
     const { decision, reason, refundAmount, notes } = req.body;
     const adminId = req.admin._id;
 
-    const dispute = await Dispute.findOne({ disputeId });
-    if (!dispute) {
-      return res.status(404).json({ error: 'Dispute not found' });
+    // Map frontend resolution types to backend logic (same as staff system)
+    let resolutionType;
+    if (decision === 'refund') {
+      resolutionType = 'favor_complainant';
+    } else if (decision === 'no_refund') {
+      resolutionType = 'favor_respondent';
+    } else if (decision === 'partial_refund') {
+      resolutionType = 'partial_refund';
+    } else {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid resolution type. Use: refund, no_refund, or partial_refund' 
+      });
     }
 
-    // Resolve the dispute
-    await dispute.resolve(decision, reason, refundAmount, adminId, notes);
+    const dispute = await Dispute.findOne({ disputeId });
+    if (!dispute) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Dispute not found' 
+      });
+    }
 
-    res.json({ message: 'Dispute resolved successfully' });
+    // Update dispute status and resolution
+    dispute.status = 'resolved';
+    dispute.resolution = {
+      resolution: decision,
+      notes: notes || '',
+      refundAmount: refundAmount || 0,
+      resolvedBy: adminId,
+      resolvedAt: new Date()
+    };
+    dispute.lastActivity = new Date();
+
+    // Add activity log
+    if (!dispute.activityLog) dispute.activityLog = [];
+    dispute.activityLog.push({
+      action: 'dispute_resolved_by_admin',
+      performedBy: adminId,
+      performedByType: 'Admin',
+      timestamp: new Date(),
+      details: `Dispute resolved with ${decision}`
+    });
+
+    await dispute.save();
+
+    // Process wallet credit based on resolution
+    try {
+      await processDisputeRefund(dispute, refundAmount || 0, resolutionType);
+      console.log(`✅ Admin dispute resolution processed: ${resolutionType} for dispute ${dispute.disputeId}`);
+    } catch (refundError) {
+      console.error('❌ Error processing admin dispute resolution:', refundError);
+      // Continue with resolution even if wallet processing fails
+    }
+
+    res.json({ 
+      success: true,
+      message: 'Dispute resolved successfully',
+      data: { dispute }
+    });
 
   } catch (error) {
     console.error('❌ Resolve dispute error:', error);
-    res.status(500).json({ error: 'Failed to resolve dispute' });
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to resolve dispute',
+      error: error.message 
+    });
   }
 };
 
@@ -818,14 +892,32 @@ const resolveEscalatedDispute = async (req, res) => {
       return res.status(404).json({ error: 'Escalated dispute not found' });
     }
 
-    // Resolve the dispute using the model method
-    await dispute.resolve(decision, reason, refundAmount, adminId, notes);
+    // Map frontend resolution types to backend logic (same as staff system)
+    let resolutionType;
+    if (decision === 'refund') {
+      resolutionType = 'favor_complainant';
+    } else if (decision === 'no_refund') {
+      resolutionType = 'favor_respondent';
+    } else if (decision === 'partial_refund') {
+      resolutionType = 'partial_refund';
+    }
+
+    // Update dispute status and resolution (same as staff system)
+    dispute.status = 'resolved';
+    dispute.resolution = {
+      resolution: decision,
+      notes: notes || '',
+      refundAmount: refundAmount || 0,
+      resolvedBy: adminId,
+      resolvedAt: new Date()
+    };
+    dispute.lastActivity = new Date();
 
     // Process refund if applicable
-    if (decision === 'no_refund' || decision === 'favor_respondent' || (refundAmount > 0 && (decision === 'favor_complainant' || decision === 'partial_refund' || decision === 'full_refund'))) {
+    if (resolutionType) {
       try {
-        await processDisputeRefund(dispute, refundAmount || 0, decision);
-        console.log(`✅ Escalated dispute refund processed: ${decision} for dispute ${dispute.disputeId}`);
+        await processDisputeRefund(dispute, refundAmount || 0, resolutionType);
+        console.log(`✅ Escalated dispute refund processed: ${resolutionType} for dispute ${dispute.disputeId}`);
       } catch (refundError) {
         console.error('❌ Error processing escalated dispute refund:', refundError);
         // Continue with resolution even if wallet processing fails
