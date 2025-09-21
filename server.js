@@ -105,6 +105,7 @@ app.use('/api/staff', staffAuthRoutes);
 app.use('/api/staff', staffDisputeRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/support', supportRoutes);
+app.use('/api/admin-ads', require('./routes/adminAdRoutes'));
 // ✅ Test route
 app.get('/', (req, res) => res.send('Backend is running 🚀'));
 

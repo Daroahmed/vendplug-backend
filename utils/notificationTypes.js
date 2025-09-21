@@ -229,6 +229,10 @@ const NOTIFICATION_TYPES = {
     title: '🚫 User Suspended',
     getMessage: (userType, userName, reason) => `${userType} ${userName} suspended: ${reason}`,
   },
+  ADMIN_ANNOUNCEMENT: {
+    title: '📢 Platform Announcement',
+    getMessage: (title, message) => `${title}: ${message}`,
+  },
 
   // Chat & Messaging Notifications
   NEW_MESSAGE: {
