@@ -55,7 +55,7 @@ const adSchema = new mongoose.Schema({
   // Targeting
   targetPages: [{
     type: String,
-    enum: ['home', 'buyer-home', 'agent-home', 'vendor-home', 'shop', 'category', 'product', 'search', 'all']
+    enum: ['home', 'buyer-home', 'buyer-agent-home', 'agent-home', 'vendor-home', 'agent-shop', 'vendor-shop', 'view-shop', 'view-business', 'shop', 'category', 'product', 'search', 'all']
   }],
   targetUserTypes: [{
     type: String,
@@ -153,7 +153,8 @@ const adSchema = new mongoose.Schema({
 
 // Indexes for performance
 adSchema.index({ type: 1, isActive: 1, startDate: 1, endDate: 1 });
-adSchema.index({ targetPages: 1, targetUserTypes: 1 });
+adSchema.index({ targetPages: 1 }); // Separate index for targetPages
+adSchema.index({ targetUserTypes: 1 }); // Separate index for targetUserTypes
 adSchema.index({ position: 1, priority: -1 });
 
 // Virtual for click-through rate
