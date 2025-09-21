@@ -55,7 +55,7 @@ const adSchema = new mongoose.Schema({
   // Targeting
   targetPages: [{
     type: String,
-    enum: ['home', 'buyer-home', 'buyer-agent-home', 'agent-home', 'vendor-home', 'agent-shop', 'vendor-shop', 'view-shop', 'view-business', 'shop', 'category', 'product', 'search', 'all']
+    enum: ['home', 'buyer-home', 'buyer-agent-home', 'agent-home', 'vendor-home', 'vendor-dashboard', 'agent-dashboard', 'agent-shop', 'vendor-shop', 'view-shop', 'view-business', 'shop', 'category', 'product', 'search', 'all']
   }],
   targetUserTypes: [{
     type: String,
