@@ -23,14 +23,21 @@ const upload = multer({ dest: 'uploads/' });
 // ✅ STATIC ROUTES FIRST
 router.get('/shop-agents', asyncHandler(async (req, res) => {
   const { state, category } = req.query;
-  if (!state || !category) {
-    return res.status(400).json({ message: 'Missing state or category' });
+  if (!category) {
+    return res.status(400).json({ message: 'Missing category' });
   }
 
-  const agents = await Agent.find({
-    state,
+  // Build query object
+  const query = {
     category: { $regex: new RegExp(`^${category}$`, 'i') }
-  }).select('-password');
+  };
+  
+  // Only add state filter if state is provided
+  if (state && state.trim() !== '') {
+    query.state = state;
+  }
+
+  const agents = await Agent.find(query).select('-password');
 
   res.json(agents);
 }));
