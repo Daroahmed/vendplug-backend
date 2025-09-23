@@ -309,6 +309,23 @@ const getNotificationCampaigns = async (req, res) => {
   }
 };
 
+// Get single notification campaign
+const getNotificationCampaign = async (req, res) => {
+  try {
+    const { campaignId } = req.params;
+    const campaign = await NotificationCampaign.findById(campaignId).populate('createdBy', 'fullName email');
+
+    if (!campaign) {
+      return res.status(404).json({ success: false, message: 'Campaign not found' });
+    }
+
+    res.json({ success: true, data: campaign });
+  } catch (error) {
+    console.error('❌ Get notification campaign error:', error);
+    res.status(500).json({ success: false, message: 'Error fetching notification campaign' });
+  }
+};
+
 // Create notification campaign
 const createNotificationCampaign = async (req, res) => {
   try {
@@ -331,6 +348,58 @@ const createNotificationCampaign = async (req, res) => {
       success: false,
       message: 'Error creating notification campaign'
     });
+  }
+};
+
+// Update notification campaign
+const updateNotificationCampaign = async (req, res) => {
+  try {
+    const { campaignId } = req.params;
+    const campaign = await NotificationCampaign.findById(campaignId);
+
+    if (!campaign) {
+      return res.status(404).json({ success: false, message: 'Campaign not found' });
+    }
+
+    if (campaign.status === 'sending') {
+      return res.status(400).json({ success: false, message: 'Cannot update a campaign while sending' });
+    }
+
+    // Allow updating core fields
+    const updatable = ['title','message','type','image','link','linkText','targetUserTypes','targetUserIds','targetUserType','deliveryMethod','priority','scheduledFor','expiresAt','isActive','status','settings'];
+    for (const key of updatable) {
+      if (key in req.body) {
+        campaign[key] = req.body[key];
+      }
+    }
+
+    await campaign.save();
+    res.json({ success: true, message: 'Campaign updated successfully', data: campaign });
+  } catch (error) {
+    console.error('❌ Update notification campaign error:', error);
+    res.status(500).json({ success: false, message: 'Error updating notification campaign' });
+  }
+};
+
+// Delete notification campaign
+const deleteNotificationCampaign = async (req, res) => {
+  try {
+    const { campaignId } = req.params;
+    const campaign = await NotificationCampaign.findById(campaignId);
+
+    if (!campaign) {
+      return res.status(404).json({ success: false, message: 'Campaign not found' });
+    }
+
+    if (campaign.status === 'sending') {
+      return res.status(400).json({ success: false, message: 'Cannot delete a campaign while sending' });
+    }
+
+    await NotificationCampaign.deleteOne({ _id: campaignId });
+    res.json({ success: true, message: 'Campaign deleted successfully' });
+  } catch (error) {
+    console.error('❌ Delete notification campaign error:', error);
+    res.status(500).json({ success: false, message: 'Error deleting notification campaign' });
   }
 };
 
@@ -358,27 +427,63 @@ const sendNotificationCampaign = async (req, res) => {
     campaign.status = 'sending';
     await campaign.save();
 
-    // Get target users
+    // Build recipient list
     let targetUsers = [];
-    
-    if (campaign.targetUserIds && campaign.targetUserIds.length > 0) {
-      // Specific users
-      targetUsers = campaign.targetUserIds.map(userId => ({
-        id: userId,
-        type: campaign.targetUserType
-      }));
+
+    // If explicit user IDs provided, use them with provided capitalized type
+    if (campaign.targetUserIds && campaign.targetUserIds.length > 0 && campaign.targetUserType) {
+      targetUsers = campaign.targetUserIds.map(userId => ({ id: userId, type: campaign.targetUserType }));
     } else {
-      // All users of specified types
-      const UserModel = require(`../models/${campaign.targetUserType}`);
-      const users = await UserModel.find({ isActive: true }).select('_id');
-      targetUsers = users.map(user => ({
-        id: user._id,
-        type: campaign.targetUserType
-      }));
+      // Otherwise use targetUserTypes array (lowercase enums) or 'all'
+      let roles = Array.isArray(campaign.targetUserTypes) && campaign.targetUserTypes.length
+        ? campaign.targetUserTypes
+        : ['all'];
+
+      if (roles.includes('all')) {
+        roles = ['buyer', 'agent', 'vendor']; // staff/admin excluded from mass sends by default
+      }
+
+      const roleToModel = {
+        buyer: { modelKey: 'Buyer', type: 'Buyer' },
+        agent: { modelKey: 'Agent', type: 'Agent' },
+        vendor: { modelKey: 'Vendor', type: 'Vendor' },
+        staff: { modelKey: 'Staff', type: 'Staff' },
+        admin: { modelKey: 'Admin', type: 'Admin' },
+      };
+
+      // Use static requires that match real filenames
+      const userModels = {
+        Buyer: require('../models/Buyer'),
+        Agent: require('../models/Agent'),
+        Vendor: require('../models/vendorModel'),
+        Staff: require('../models/Staff'),
+        Admin: require('../models/Admin'),
+      };
+
+      for (const role of roles) {
+        const map = roleToModel[role];
+        if (!map) continue;
+        const UserModel = userModels[map.modelKey];
+        if (!UserModel || !UserModel.find) continue;
+        const hasIsActive = !!(UserModel.schema && UserModel.schema.path && UserModel.schema.path('isActive'));
+        const query = hasIsActive ? { isActive: true } : {};
+        const users = await UserModel.find(query).select('_id');
+        targetUsers.push(...users.map(u => ({ id: u._id, type: map.type })));
+      }
     }
 
     campaign.totalRecipients = targetUsers.length;
     await campaign.save();
+
+    if (targetUsers.length === 0) {
+      campaign.status = 'failed';
+      await campaign.save();
+      return res.status(400).json({
+        success: false,
+        message: 'No recipients matched the campaign filters',
+        data: { totalRecipients: 0 }
+      });
+    }
 
     // Send notifications
     const io = req.app.get('io');
@@ -561,7 +666,10 @@ module.exports = {
   
   // Notification Campaigns
   getNotificationCampaigns,
+  getNotificationCampaign,
   createNotificationCampaign,
+  updateNotificationCampaign,
+  deleteNotificationCampaign,
   sendNotificationCampaign,
   getCampaignAnalytics,
   

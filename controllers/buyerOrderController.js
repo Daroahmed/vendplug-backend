@@ -280,6 +280,8 @@ const confirmReceipt = async (req, res) => {
     // ✅ Decrement product stock and release reservation now that order is fulfilled
     try {
       const ProductModel = isAgentOrder ? AgentProduct : VendorProduct;
+      const { checkAndNotifyIfOutOfStock } = require('../utils/inventoryNotifier');
+      const io = req.app.get('io');
       for (const item of (order.items || [])) {
         // Decrement by ordered quantity
         const qty = Number(item.quantity || 0);
@@ -297,6 +299,9 @@ const confirmReceipt = async (req, res) => {
           { _id: item.product, reserved: { $lt: 0 } },
           { $set: { reserved: 0 } }
         );
+
+        // Notify if now out of stock, or clear flag on restock
+        await checkAndNotifyIfOutOfStock(io, isAgentOrder ? 'agent' : 'vendor', item.product);
       }
       console.log('📦 Stock decremented for fulfilled order items');
     } catch (stockError) {

@@ -12,7 +12,10 @@ const {
   
   // Notification Campaigns
   getNotificationCampaigns,
+  getNotificationCampaign,
   createNotificationCampaign,
+  updateNotificationCampaign,
+  deleteNotificationCampaign,
   sendNotificationCampaign,
   getCampaignAnalytics,
   
@@ -58,8 +61,17 @@ router.get('/ads/:adId/analytics', protectAdmin, getAdAnalytics);
 // Get all notification campaigns
 router.get('/campaigns', protectAdmin, getNotificationCampaigns);
 
+// Get single campaign
+router.get('/campaigns/:campaignId', protectAdmin, getNotificationCampaign);
+
 // Create notification campaign
 router.post('/campaigns', protectAdmin, createNotificationCampaign);
+
+// Update notification campaign
+router.put('/campaigns/:campaignId', protectAdmin, updateNotificationCampaign);
+
+// Delete notification campaign
+router.delete('/campaigns/:campaignId', protectAdmin, deleteNotificationCampaign);
 
 // Send notification campaign
 router.post('/campaigns/:campaignId/send', protectAdmin, sendNotificationCampaign);
