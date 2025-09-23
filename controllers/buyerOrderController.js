@@ -11,6 +11,8 @@ const Transaction = require('../models/Transaction');
 const { handleError } = require('../utils/orderHelpers');
 const { sendOrderStatusNotification, sendPayoutNotification } = require('../utils/notificationHelper');
 const { incrementVendorTransactions, incrementAgentTransactions } = require('../utils/transactionHelper');
+const VendorProduct = require('../models/vendorProductModel');
+const AgentProduct = require('../models/AgentProduct');
 
 // Fetch all orders for the logged-in buyer (both vendor and agent orders)
 const getBuyerVendorOrders = async (req, res) => {
@@ -274,6 +276,32 @@ const confirmReceipt = async (req, res) => {
     }
 
     console.log('✅ Order status updated to fulfilled:', updatedOrder._id);
+
+    // ✅ Decrement product stock and release reservation now that order is fulfilled
+    try {
+      const ProductModel = isAgentOrder ? AgentProduct : VendorProduct;
+      for (const item of (order.items || [])) {
+        // Decrement by ordered quantity
+        const qty = Number(item.quantity || 0);
+        await ProductModel.findByIdAndUpdate(
+          item.product,
+          { $inc: { stock: -qty, reserved: -qty } },
+          { useFindAndModify: false }
+        );
+        // Clamp to zero if negative (best-effort)
+        await ProductModel.updateOne(
+          { _id: item.product, stock: { $lt: 0 } },
+          { $set: { stock: 0 } }
+        );
+        await ProductModel.updateOne(
+          { _id: item.product, reserved: { $lt: 0 } },
+          { $set: { reserved: 0 } }
+        );
+      }
+      console.log('📦 Stock decremented for fulfilled order items');
+    } catch (stockError) {
+      console.error('⚠️ Failed to decrement stock (non-critical):', stockError);
+    }
 
     const userId = isAgentOrder ? updatedOrder.agent._id : updatedOrder.vendor._id;
     const userRole = isAgentOrder ? 'agent' : 'vendor';

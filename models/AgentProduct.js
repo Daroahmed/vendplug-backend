@@ -131,6 +131,7 @@ const agentProductSchema = new mongoose.Schema({
 
   description: { type: String },
   stock: { type: Number },
+  reserved: { type: Number, default: 0 },
   image: { type: String },
   createdAt: { type: Date, default: Date.now }
 });

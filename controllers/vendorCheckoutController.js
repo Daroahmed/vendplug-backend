@@ -4,6 +4,7 @@ const Cart = require("../models/vendorCartModel");
 const Wallet = require("../models/walletModel");
 const Order = require("../models/vendorOrderModel");
 const Transaction = require("../models/Transaction");
+const VendorProduct = require("../models/vendorProductModel");
 
 const checkoutCart = async (req, res) => {
   const session = await mongoose.startSession();
@@ -97,7 +98,7 @@ const checkoutCart = async (req, res) => {
     });
 
     // ===============================
-    // 7. Create orders per vendor
+    // 7. Reserve stock atomically per item and create orders per vendor
     // ===============================
     const createdOrders = [];
     for (let vendorId in ordersByVendor) {
@@ -107,6 +108,22 @@ const checkoutCart = async (req, res) => {
         (sum, item) => sum + (item.price || 0) * (item.quantity || 1),
         0
       );
+
+      // Reserve stock for each item (ensure available >= qty)
+      for (const item of vendorItems) {
+        const inc = Number(item.quantity || 0);
+        const reservedResult = await VendorProduct.findOneAndUpdate(
+          {
+            _id: item.product._id,
+            $expr: { $gte: [ { $subtract: ["$stock", "$reserved"] }, inc ] }
+          },
+          { $inc: { reserved: inc } },
+          { new: true, session }
+        );
+        if (!reservedResult) {
+          throw new Error(`Insufficient stock for ${item.product?.name || 'product'}`);
+        }
+      }
 
       const order = await Order.create(
         [
