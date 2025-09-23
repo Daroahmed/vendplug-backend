@@ -22,11 +22,13 @@ async function createNotification({ recipientId, recipientType, title, message, 
       recipientType,
       title,
       message,
-      order: orderId
+      orderId: orderId
     });
 
     if (io) {
+      // Emit to both legacy and current room formats
       io.to(`${recipientType}:${recipientId}`).emit('new-notification', notification);
+      io.to(`user:${recipientId}`).emit('new-notification', notification);
     }
 
     return notification;

@@ -123,6 +123,8 @@ const checkoutCart = async (req, res) => {
         if (!reservedResult) {
           throw new Error(`Insufficient stock for ${item.product?.name || 'product'}`);
         }
+        // If reservation pushed available to 0, mark for notify
+        // We only notify on true stock change after fulfillment to reduce noise
       }
 
       const order = await Order.create(
