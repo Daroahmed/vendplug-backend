@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const Vendor = require("../models/vendorModel");
 const Order = require("../models/vendorOrderModel");
 const Payout = require("../models/payoutModel"); // ✅ Import Payout model
+const VendorProduct = require('../models/vendorProductModel');
 const Wallet = require("../models/walletModel");
 const Transaction = require("../models/Transaction");
 const {
@@ -196,6 +197,20 @@ const rejectOrder = async (req, res) => {
         }
       ];
       await order.save({ session });
+
+      // Release reserved stock for all items
+      try {
+        for (const item of (order.items || [])) {
+          const qty = Number(item.quantity || 0);
+          await VendorProduct.findByIdAndUpdate(
+            item.product,
+            { $inc: { reserved: -qty } },
+            { session }
+          );
+        }
+      } catch (invErr) {
+        console.error('⚠️ Failed to release reserved stock on rejection:', invErr);
+      }
 
       // Commit transaction
       await session.commitTransaction();
