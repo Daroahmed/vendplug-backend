@@ -22,24 +22,46 @@ const upload = multer({ dest: 'uploads/' });
 
 // ✅ STATIC ROUTES FIRST
 router.get('/shop-agents', asyncHandler(async (req, res) => {
-  const { state, category } = req.query;
-  if (!category) {
-    return res.status(400).json({ message: 'Missing category' });
-  }
+  const { state, category, search, minTransactions, page, limit } = req.query;
 
-  // Build query object
-  const query = {
-    category: { $regex: new RegExp(`^${category}$`, 'i') }
-  };
-  
-  // Only add state filter if state is provided
+  const query = {};
+
+  if (category && category.trim() !== '') {
+    query.category = { $regex: new RegExp(`^${category.trim()}$`, 'i') };
+  }
   if (state && state.trim() !== '') {
-    query.state = state;
+    query.state = state.trim();
+  }
+  if (minTransactions && Number(minTransactions) > 0) {
+    query.totalTransactions = { $gte: Number(minTransactions) };
+  }
+  if (search && search.trim() !== '') {
+    const rx = new RegExp(search.trim(), 'i');
+    query.$or = [
+      { businessName: rx },
+      { fullName: rx },
+      { category: rx },
+      { state: rx }
+    ];
   }
 
-  const agents = await Agent.find(query).select('-password');
+  const pageNum = Number(page) > 0 ? Number(page) : 1;
+  const pageSize = Number(limit) > 0 ? Number(limit) : 24;
+  const skip = (pageNum - 1) * pageSize;
 
-  res.json(agents);
+  const [agents, total] = await Promise.all([
+    Agent.find(query)
+      .select('-password')
+      .sort({ totalTransactions: -1, createdAt: -1 })
+      .skip(skip)
+      .limit(pageSize),
+    Agent.countDocuments(query)
+  ]);
+
+  const totalPages = Math.ceil(total / pageSize) || 1;
+  const hasMore = pageNum < totalPages;
+
+  res.json({ agents, total, page: pageNum, totalPages, hasMore });
 }));
 
 router.get('/by-agent', asyncHandler(async (req, res) => {
