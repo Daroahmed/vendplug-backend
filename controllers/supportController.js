@@ -456,7 +456,7 @@ const updateTicketStatusStaff = asyncHandler(async (req, res) => {
     // Notify the ticket requester about status change
     await sendNotification(io, {
       recipientId: ticket.requester,
-      recipientType: 'Buyer', // We'll need to determine the actual user type
+      recipientType: ticket.requesterType || 'Buyer',
       notificationType: 'TICKET_UPDATED',
       args: [ticket.ticketNumber, status],
       meta: {
@@ -733,7 +733,7 @@ const sendSupportTicketMessageUser = asyncHandler(async (req, res) => {
         recipientId: ticket.assignedTo,
         recipientType: 'Staff',
         notificationType: 'SUPPORT_MESSAGE',
-        args: [ticket.ticketNumber, req.user?.fullName || req.user?.email || 'User'],
+        args: [req.user?.fullName || req.user?.email || 'User', ticket.ticketNumber],
         meta: {
           ticketId: ticket._id,
           ticketNumber: ticket.ticketNumber,
@@ -879,7 +879,7 @@ const sendSupportTicketMessage = asyncHandler(async (req, res) => {
     // Notify the ticket requester (user)
     await sendNotification(io, {
       recipientId: ticket.requester,
-      recipientType: 'Buyer', // We'll need to determine the actual user type
+      recipientType: ticket.requesterType || 'Buyer',
       notificationType: 'SUPPORT_MESSAGE_STAFF',
       args: [ticket.ticketNumber, currentUser.fullName || currentUser.email || 'Support Staff'],
       meta: {
