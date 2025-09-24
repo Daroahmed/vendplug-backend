@@ -821,8 +821,22 @@ const escalateDispute = async (req, res) => {
       role: 'admin' 
     });
 
-    // Send notifications to admins (you can implement notification system here)
-    console.log(`🚨 Dispute ${dispute.disputeId} escalated to admins: ${reason}`);
+    // Notify all admins via notification system
+    try {
+      const io = req.app.get('io');
+      const { sendNotification } = require('../utils/notificationHelper');
+      for (const admin of admins) {
+        await sendNotification(io, {
+          recipientId: admin._id,
+          recipientType: 'Admin',
+          notificationType: 'ADMIN_DISPUTE_ESCALATED',
+          args: [dispute.disputeId, reason],
+          meta: { disputeId: dispute.disputeId, ticket: null }
+        });
+      }
+    } catch (notifyErr) {
+      console.error('❌ Failed to notify admins about escalation:', notifyErr.message);
+    }
 
     res.status(200).json({
       success: true,
