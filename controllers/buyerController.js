@@ -3,7 +3,8 @@ const Buyer = require("../models/Buyer");
 const generateToken = require("../utils/generateToken");
 const bcrypt = require("bcryptjs");
 const { createWalletIfNotExists } = require("../controllers/walletHelper");
-const Order = require("../models/order");
+const { notifyUser, handleError } = require('../utils/orderHelpers');
+const { sendVerificationEmail } = require('../utils/emailService');
 
 // @desc    Register new buyer
 // @desc    Register new buyer
@@ -18,29 +19,42 @@ const registerBuyer = asyncHandler(async (req, res) => {
     throw new Error("Buyer already exists");
   }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+ 
 
-  // ✅ Create buyer first (without virtualAccount)
+  const tempVirtualAccount = "BP" + Date.now(); // temporary value
+
   const newBuyer = new Buyer({
     fullName,
     email,
-    password: hashedPassword,
+    password,
     phoneNumber,
     address,
+    virtualAccount: tempVirtualAccount, // ⛑️ prevent null insert
   });
+  
+  const savedBuyer = await newBuyer.save();
+  console.log("🔍 Saved Buyer ID:", savedBuyer._id);
+  
+  console.log("📦 Creating wallet...");
+  const wallet = await createWalletIfNotExists(savedBuyer._id, "buyer");
+  
+  savedBuyer.virtualAccount = wallet.virtualAccount;
+  await savedBuyer.save();
 
+  // Send verification email
+  try {
+    const verificationToken = generateToken(savedBuyer._id, "verification");
+    await sendVerificationEmail(email, verificationToken);
+    console.log("✉️ Verification email sent to:", email);
+  } catch (error) {
+    console.error("❌ Error sending verification email:", error);
+    // Continue with registration even if email fails
+  }
 
-  // ✅ Create wallet and assign virtual account
-const savedBuyer = await newBuyer.save();
-const wallet = await createWalletIfNotExists(savedBuyer._id, "buyer");
-
-savedBuyer.virtualAccount = wallet.virtualAccount;
-await savedBuyer.save();
-
-const updatedBuyer = await Buyer.findById(savedBuyer._id).select("-password");
+  const updatedBuyer = await Buyer.findById(savedBuyer._id).select("-password");
 
   res.status(201).json({
-    message: "Buyer registered successfully",
+    message: "Registration successful! Please check your email to verify your account.",
     buyer: updatedBuyer,
   });
 });
@@ -58,6 +72,7 @@ const loginBuyer = asyncHandler(async (req, res) => {
       virtualAccount: buyer.virtualAccount,
       role: buyer.role || "buyer",
       token: generateToken(buyer._id, "buyer"),
+
     });
   } else {
     res.status(401);
@@ -65,23 +80,7 @@ const loginBuyer = asyncHandler(async (req, res) => {
   }
 });
 
-// ✅ Reset Password
-const resetBuyerPassword = async (req, res) => {
-  try {
-    const { email, newPassword } = req.body;
 
-    const buyer = await Buyer.findOne({ email });
-    if (!buyer) return res.status(404).json({ message: "Buyer not found" });
-
-    buyer.password = await bcrypt.hash(newPassword, 10);
-    await buyer.save();
-
-    res.status(200).json({ message: "Password reset successfully" });
-  } catch (error) {
-    console.error("❌ Reset Error:", error.message);
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-};
 
 // @desc    Get buyer profile
 // @route   GET /api/buyers/profile
@@ -122,7 +121,7 @@ const getBuyerOrderStats = asyncHandler(async (req, res) => {
 module.exports = {
   registerBuyer,
   loginBuyer,
-  resetBuyerPassword,
   getBuyerProfile,
   getBuyerOrderStats,
+  notifyUser, handleError
 };
