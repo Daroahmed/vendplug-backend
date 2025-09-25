@@ -1,0 +1,465 @@
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const Buyer = require('../models/Buyer');
+const Vendor = require('../models/vendorModel');
+const Agent = require('../models/Agent');
+const Token = require('../models/Token');
+const { sendVerificationEmail, sendPasswordResetEmail } = require('../utils/emailService');
+
+// Verify email
+const verifyEmail = async (req, res) => {
+  try {
+    // Get token from request body (POST) or query params (GET)
+    const token = req.body.token || req.query.token;
+    
+    console.log('🔍 Request method:', req.method);
+    console.log('🔍 Token from body:', req.body.token);
+    console.log('🔍 Token from query:', req.query.token);
+    console.log('🔍 Final token to verify:', token);
+
+    if (!token) {
+      return res.status(400).json({ message: 'Verification token is required' });
+    }
+
+    console.log('🔍 Verifying token:', token);
+
+    // First, find the token in the database
+    console.log('🔍 Looking for token in database:', token);
+    const tokenDoc = await Token.findOne({ 
+      token, 
+      type: 'verification',
+      expires: { $gt: new Date() }
+    });
+    
+    console.log('🔍 Token lookup result:', tokenDoc ? {
+      id: tokenDoc._id,
+      userId: tokenDoc.userId,
+      userModel: tokenDoc.userModel,
+      type: tokenDoc.type,
+      expires: tokenDoc.expires,
+      isExpired: tokenDoc.expires < new Date()
+    } : 'Token not found');
+
+    if (!tokenDoc) {
+      console.log('❌ Token not found in database or expired');
+      return res.status(400).json({ message: 'Invalid or expired verification token' });
+    }
+
+    console.log('✅ Token found in database:', tokenDoc._id);
+
+    // Verify JWT token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log('✅ JWT decoded:', { id: decoded.id, type: decoded.type });
+    } catch (err) {
+      console.log('❌ JWT verification failed:', err.message);
+      return res.status(400).json({ message: 'Invalid or expired verification token' });
+    }
+
+    // Check if token is for verification
+    if (decoded.type !== 'verification') {
+      console.log('❌ Wrong token type:', decoded.type);
+      return res.status(400).json({ message: 'Invalid token type' });
+    }
+
+    // Find user by ID across all user types
+    let user = await Buyer.findById(decoded.id);
+    let userType = 'Buyer';
+    
+    if (!user) {
+      user = await Vendor.findById(decoded.id);
+      userType = 'Vendor';
+    }
+    
+    if (!user) {
+      user = await Agent.findById(decoded.id);
+      userType = 'Agent';
+    }
+    
+    if (!user) {
+      console.log('❌ User not found for ID:', decoded.id);
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    console.log('✅ User found:', { id: user._id, email: user.email, userType });
+
+    if (user.isEmailVerified) {
+      console.log('⚠️ User already verified');
+      return res.status(400).json({ message: 'Email already verified' });
+    }
+
+    // Update user verification status
+    user.isEmailVerified = true;
+    user.emailVerifiedAt = new Date();
+    await user.save();
+
+    console.log('✅ User verification updated');
+
+    // Delete the used token
+    await Token.findByIdAndDelete(tokenDoc._id);
+    console.log('✅ Token deleted');
+
+    res.json({ message: 'Email verified successfully' });
+  } catch (error) {
+    console.error('❌ Verification error:', error);
+    res.status(500).json({ message: 'Error verifying email' });
+  }
+};
+
+// Send verification email
+const sendVerification = async (req, res) => {
+  try {
+    const { email, userType } = req.body;
+
+    if (!email || !userType) {
+      return res.status(400).json({ message: 'Email and user type are required' });
+    }
+
+    // Find user based on type
+    let user;
+    let model;
+    
+    switch (userType.toLowerCase()) {
+      case 'buyer':
+        model = Buyer;
+        break;
+      case 'vendor':
+        model = Vendor;
+        break;
+      case 'agent':
+        model = Agent;
+        break;
+      default:
+        return res.status(400).json({ message: 'Invalid user type' });
+    }
+
+    user = await model.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.isEmailVerified) {
+      return res.status(400).json({ message: 'Email already verified' });
+    }
+
+    // Generate verification token
+    const token = jwt.sign(
+      { id: user._id, type: 'verification' },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    // Save token to database
+    const tokenDoc = await Token.create({
+      userId: user._id,
+      userModel: userType.charAt(0).toUpperCase() + userType.slice(1), // Capitalize first letter
+      token,
+      type: 'verification',
+      expires: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+    });
+    
+    console.log('✅ Token saved to database:', {
+      id: tokenDoc._id,
+      userId: tokenDoc.userId,
+      userModel: tokenDoc.userModel,
+      type: tokenDoc.type,
+      expires: tokenDoc.expires
+    });
+
+    // Send verification email
+    const emailSent = await sendVerificationEmail(email, token);
+    if (!emailSent) {
+      return res.status(500).json({ message: 'Failed to send verification email' });
+    }
+
+    res.json({ message: 'Verification email sent successfully' });
+  } catch (error) {
+    console.error('❌ Send verification error:', error);
+    res.status(500).json({ message: 'Error sending verification email' });
+  }
+};
+
+// Request password reset
+const requestPasswordReset = async (req, res) => {
+  try {
+    const { email, userType } = req.body;
+
+    if (!email || !userType) {
+      return res.status(400).json({ message: 'Email and user type are required' });
+    }
+
+    // Find user based on type
+    let user;
+    let model;
+    
+    switch (userType.toLowerCase()) {
+      case 'buyer':
+        model = Buyer;
+        break;
+      case 'vendor':
+        model = Vendor;
+        break;
+      case 'agent':
+        model = Agent;
+        break;
+      default:
+        return res.status(400).json({ message: 'Invalid user type' });
+    }
+
+    user = await model.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Generate reset token
+    const token = jwt.sign(
+      { id: user._id, type: 'reset' },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    // Save token to database
+    const tokenDoc = await Token.create({
+      userId: user._id,
+      userModel: userType.charAt(0).toUpperCase() + userType.slice(1), // Capitalize first letter
+      token,
+      type: 'reset',
+      expires: new Date(Date.now() + 60 * 60 * 1000) // 1 hour
+    });
+    
+    console.log('✅ Reset token saved to database:', {
+      id: tokenDoc._id,
+      userId: tokenDoc.userId,
+      userModel: tokenDoc.userModel,
+      type: tokenDoc.type,
+      expires: tokenDoc.expires
+    });
+
+    // Send reset email
+    const emailSent = await sendPasswordResetEmail(email, token);
+    if (!emailSent) {
+      return res.status(500).json({ message: 'Failed to send reset email' });
+    }
+
+    res.json({ message: 'Password reset email sent successfully' });
+  } catch (error) {
+    console.error('❌ Request reset error:', error);
+    res.status(500).json({ message: 'Error sending reset email' });
+  }
+};
+
+// Reset password
+const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ message: 'Token and new password are required' });
+    }
+
+    // Verify token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      return res.status(400).json({ message: 'Invalid or expired reset token' });
+    }
+
+    // Check if token is for reset
+    if (decoded.type !== 'reset') {
+      return res.status(400).json({ message: 'Invalid token type' });
+    }
+
+    // Find token in database
+    const tokenDoc = await Token.findOne({ 
+      token, 
+      type: 'reset',
+      expires: { $gt: new Date() }
+    });
+
+    if (!tokenDoc) {
+      return res.status(400).json({ message: 'Invalid or expired reset token' });
+    }
+
+    // Find user and update password using the token's userModel
+    let user;
+    let userModel;
+    
+    // First try to find by the userModel stored in the token
+    if (tokenDoc.userModel === 'Buyer') {
+      user = await Buyer.findById(decoded.id);
+      userModel = 'Buyer';
+    } else if (tokenDoc.userModel === 'Vendor') {
+      user = await Vendor.findById(decoded.id);
+      userModel = 'Vendor';
+    } else if (tokenDoc.userModel === 'Agent') {
+      user = await Agent.findById(decoded.id);
+      userModel = 'Agent';
+    }
+    
+    // If not found by userModel, fallback to searching all models
+    if (!user) {
+      console.log('⚠️ User not found by userModel, searching all models...');
+      user = await Buyer.findById(decoded.id);
+      if (user) userModel = 'Buyer';
+      
+      if (!user) {
+        user = await Vendor.findById(decoded.id);
+        if (user) userModel = 'Vendor';
+      }
+      
+      if (!user) {
+        user = await Agent.findById(decoded.id);
+        if (user) userModel = 'Agent';
+      }
+    }
+    
+    if (!user) {
+      console.log('❌ User not found in any model for ID:', decoded.id);
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    console.log('✅ Found user for password reset:', { id: user._id, email: user.email, userModel });
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    console.log('🔐 Hashing new password for user:', user.email);
+    
+    // Set password directly and save WITHOUT triggering pre-save middleware
+    user.password = hashedPassword;
+    user.markModified('password'); // Mark as modified to ensure save
+    
+    // Use updateOne to bypass pre-save hooks completely
+    await user.constructor.updateOne(
+      { _id: user._id },
+      { 
+        password: hashedPassword,
+        $unset: { __v: 1 } // Remove version key to prevent conflicts
+      }
+    );
+    
+    console.log('✅ Password updated successfully for user:', user.email);
+    console.log('🔍 New password hash:', hashedPassword.substring(0, 20) + '...');
+
+    // Delete used token
+    await Token.findByIdAndDelete(tokenDoc._id);
+
+    res.json({ message: 'Password reset successfully' });
+  } catch (error) {
+    console.error('❌ Reset password error:', error);
+    res.status(500).json({ message: 'Error resetting password' });
+  }
+};
+
+// Test endpoint to debug tokens
+const testToken = async (req, res) => {
+  try {
+    const { token } = req.body;
+    
+    if (!token) {
+      return res.status(400).json({ message: 'Token is required' });
+    }
+
+    console.log('🔍 Testing token:', token);
+
+    // Check if token exists in database
+    const tokenDoc = await Token.findOne({ token });
+    if (tokenDoc) {
+      console.log('✅ Token found in database:', {
+        id: tokenDoc._id,
+        userId: tokenDoc.userId,
+        userModel: tokenDoc.userModel,
+        type: tokenDoc.type,
+        expires: tokenDoc.expires,
+        isExpired: tokenDoc.expires < new Date()
+      });
+    } else {
+      console.log('❌ Token not found in database');
+    }
+
+    // Try to decode JWT
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log('✅ JWT decoded:', decoded);
+      
+      // Check if user exists
+      let user;
+      if (tokenDoc && tokenDoc.userModel === 'Buyer') {
+        user = await Buyer.findById(decoded.id);
+      } else if (tokenDoc && tokenDoc.userModel === 'Vendor') {
+        user = await Vendor.findById(decoded.id);
+      } else if (tokenDoc && tokenDoc.userModel === 'Agent') {
+        user = await Agent.findById(decoded.id);
+      }
+      
+      if (user) {
+        console.log('✅ User found:', { id: user._id, email: user.email });
+      } else {
+        console.log('❌ User not found for ID:', decoded.id);
+      }
+      
+      res.json({ 
+        message: 'Token analysis complete',
+        tokenExists: !!tokenDoc,
+        tokenDetails: tokenDoc,
+        jwtDecoded: decoded,
+        userFound: !!user,
+        user: user ? { id: user._id, email: user.email } : null
+      });
+    } catch (err) {
+      console.log('❌ JWT verification failed:', err.message);
+      res.json({ 
+        message: 'JWT verification failed',
+        error: err.message,
+        tokenExists: !!tokenDoc,
+        tokenDetails: tokenDoc
+      });
+    }
+  } catch (error) {
+    console.error('❌ Test token error:', error);
+    res.status(500).json({ message: 'Error testing token' });
+  }
+};
+
+// Debug endpoint to check all tokens
+const debugTokens = async (req, res) => {
+  try {
+    const tokens = await Token.find().sort({ createdAt: -1 }).limit(10);
+    
+    const tokenDetails = await Promise.all(tokens.map(async (token) => {
+      let user;
+      if (token.userModel === 'Buyer') {
+        user = await Buyer.findById(token.userId);
+      } else if (token.userModel === 'Vendor') {
+        user = await Vendor.findById(token.userId);
+      } else if (token.userModel === 'Agent') {
+        user = await Agent.findById(token.userId);
+      }
+      
+      return {
+        id: token._id,
+        userId: token.userId,
+        userModel: token.userModel,
+        type: token.type,
+        expires: token.expires,
+        isExpired: token.expires < new Date(),
+        user: user ? { id: user._id, email: user.email } : null
+      };
+    }));
+    
+    res.json({ tokens: tokenDetails });
+  } catch (error) {
+    console.error('❌ Debug tokens error:', error);
+    res.status(500).json({ message: 'Error debugging tokens' });
+  }
+};
+
+module.exports = {
+  sendVerification,
+  verifyEmail,
+  requestPasswordReset,
+  resetPassword,
+  testToken,
+  debugTokens
+};

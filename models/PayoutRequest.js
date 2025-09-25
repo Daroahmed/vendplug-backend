@@ -1,22 +1,57 @@
 const mongoose = require('mongoose');
 
 const payoutRequestSchema = new mongoose.Schema({
-  vendorId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Vendor',
-    required: true,
+  userId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    refPath: 'userType',
+    required: true 
   },
-  amount: {
+  userType: { 
+    type: String, 
+    enum: ['Vendor', 'Agent'], 
+    required: true 
+  },
+  bankAccountId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'BankAccount',
+    required: true 
+  },
+  amount: { 
+    type: Number, 
+    required: true,
+    min: 0
+  },
+  netAmount: {
     type: Number,
     required: true,
+    min: 0
   },
-  status: {
-    type: String,
-    enum: ['pending', 'approved', 'rejected', 'paid'],
-    default: 'pending',
+  transferFee: {
+    type: Number,
+    required: true,
+    default: 50
   },
-  bankAccount: String, // vendor's preferred payout account
-  notes: String,
+  status: { 
+    type: String, 
+    enum: ['pending', 'processing', 'completed', 'failed', 'reversed'],
+    default: 'pending'
+  },
+  paystackReference: { 
+    type: String 
+  },
+  paystackTransferCode: { 
+    type: String 
+  },
+  failureReason: { 
+    type: String 
+  },
+  processedAt: { 
+    type: Date 
+  },
+  metadata: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model('PayoutRequest', payoutRequestSchema);
