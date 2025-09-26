@@ -20,7 +20,8 @@ const buyerSchema = new mongoose.Schema(
     },
     isEmailVerified: {
       type: Boolean,
-      default: false
+      default: false,
+      required: true
     },
     emailVerifiedAt: {
       type: Date,
