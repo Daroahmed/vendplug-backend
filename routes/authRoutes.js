@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { sendVerification, verifyEmail, requestPasswordReset, resetPassword, testToken } = require('../controllers/authController');
+const { sendVerification, verifyEmail, requestPasswordReset, resetPassword, testToken, refreshSession, logout } = require('../controllers/authController');
 const { testConnection } = require('../utils/emailService');
 
 // Email verification routes
@@ -11,6 +11,10 @@ router.get('/verify-email', verifyEmail); // Add GET route for email verificatio
 // Password reset routes
 router.post('/request-reset', requestPasswordReset);
 router.post('/reset-password', resetPassword);
+
+// Refresh-session and logout
+router.post('/refresh', refreshSession);
+router.post('/logout', logout);
 
 // Test email connection (for debugging)
 router.get('/test-email', async (req, res) => {

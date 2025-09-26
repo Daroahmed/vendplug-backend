@@ -6,6 +6,7 @@ console.log('✅ Loaded MONGO_URI:', process.env.MONGO_URI);
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const path = require('path');
 const http = require('http');
 const socketIO = require('socket.io');
@@ -33,6 +34,7 @@ const app = express();
 // ✅ Middleware
 app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
 
 // ✅ Serve static frontend files
 app.use('/css', express.static(path.join(__dirname, '../frontend/css')));
