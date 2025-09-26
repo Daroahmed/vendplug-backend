@@ -1,10 +1,16 @@
 const asyncHandler = require("express-async-handler");
 const Buyer = require("../models/Buyer");
 const generateToken = require("../utils/generateToken");
+const { mintRefreshToken, setRefreshCookie } = (()=>{
+  // Import from authController without creating circular HTTP deps
+  const auth = require('./authController');
+  return { mintRefreshToken: auth.__proto__?.mintRefreshToken || auth.mintRefreshToken, setRefreshCookie: auth.__proto__?.setRefreshCookie || auth.setRefreshCookie };
+})();
 const bcrypt = require("bcryptjs");
 const { createWalletIfNotExists } = require("../controllers/walletHelper");
 const { notifyUser, handleError } = require('../utils/orderHelpers');
 const { sendVerificationEmail } = require('../utils/emailService');
+const Token = require('../models/Token');
 
 // @desc    Register new buyer
 // @desc    Register new buyer
@@ -44,6 +50,16 @@ const registerBuyer = asyncHandler(async (req, res) => {
   // Send verification email
   try {
     const verificationToken = generateToken(savedBuyer._id, "verification");
+    // Persist token so the verify endpoint can find it
+    try {
+      await Token.create({
+        userId: savedBuyer._id,
+        userModel: 'Buyer',
+        token: verificationToken,
+        type: 'verification',
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
+      });
+    } catch(e) { console.error('⚠️ Failed to persist buyer verification token:', e.message); }
     await sendVerificationEmail(email, verificationToken);
     console.log("✉️ Verification email sent to:", email);
   } catch (error) {
@@ -64,6 +80,22 @@ const loginBuyer = asyncHandler(async (req, res) => {
   const buyer = await Buyer.findOne({ email });
 
   if (buyer && (await bcrypt.compare(password, buyer.password))) {
+    if (!buyer.isEmailVerified) {
+      return res.status(403).json({
+        code: 'EMAIL_NOT_VERIFIED',
+        message: 'Please verify your email to continue.',
+        email: buyer.email,
+        userType: 'buyer'
+      });
+    }
+    // Issue refresh cookie (rolling session)
+    try {
+      if (mintRefreshToken && setRefreshCookie) {
+        const raw = await mintRefreshToken(buyer._id, 'Buyer');
+        setRefreshCookie(res, raw);
+      }
+    } catch(_){}
+
     res.status(200).json({
       _id: buyer._id,
       fullName: buyer.fullName,

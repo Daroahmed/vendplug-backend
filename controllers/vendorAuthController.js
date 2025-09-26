@@ -1,4 +1,5 @@
 const Vendor = require("../models/vendorModel");
+const Token = require('../models/Token');
 const Wallet = require("../models/walletModel");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -69,7 +70,19 @@ const registerVendor = asyncHandler(async (req, res) => {
       process.env.JWT_SECRET || 'vendplugSecret',
       { expiresIn: '24h' }
     );
-    
+    // Save verification token so verify endpoint can find it
+    try {
+      await Token.create({
+        userId: savedVendor._id,
+        userModel: 'Vendor',
+        token: verificationToken,
+        type: 'verification',
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
+      });
+    } catch (e) {
+      console.error('⚠️ Failed to persist vendor verification token:', e.message);
+    }
+
     await sendVerificationEmail(email, verificationToken);
 
     // Send new user registration notification to admins
@@ -93,7 +106,6 @@ const registerVendor = asyncHandler(async (req, res) => {
 
     res.status(201).json({
       message: "Vendor registered successfully. Please check your email to verify your account.",
-      token: generateToken(savedVendor._id, "vendor"),
       vendor: {
         _id: savedVendor._id,
         fullName: savedVendor.fullName,
@@ -102,7 +114,8 @@ const registerVendor = asyncHandler(async (req, res) => {
         phoneNumber: savedVendor.phoneNumber,
         virtualAccount: savedVendor.virtualAccount,
         category: savedVendor.category,
-        state: savedVendor.state
+        state: savedVendor.state,
+        isEmailVerified: savedVendor.isEmailVerified || false
       },
     });
   } catch (err) {
@@ -114,6 +127,11 @@ const registerVendor = asyncHandler(async (req, res) => {
 
 
 // ✅ Login Vendor
+const { mintRefreshToken, setRefreshCookie } = (()=>{
+  const auth = require('./authController');
+  return { mintRefreshToken: auth.__proto__?.mintRefreshToken || auth.mintRefreshToken, setRefreshCookie: auth.__proto__?.setRefreshCookie || auth.setRefreshCookie };
+})();
+
 const loginVendor = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
@@ -123,7 +141,18 @@ const loginVendor = asyncHandler(async (req, res) => {
     return res.status(401).json({ message: "Invalid credentials" });
   }
 
+  if (!vendor.isEmailVerified) {
+    return res.status(403).json({
+      code: 'EMAIL_NOT_VERIFIED',
+      message: 'Please verify your email to continue.',
+      email: vendor.email,
+      userType: 'vendor'
+    });
+  }
+
   const wallet = await Wallet.findOne({ user: vendor._id });
+
+  try { if (mintRefreshToken && setRefreshCookie) { const raw = await mintRefreshToken(vendor._id, 'Vendor'); setRefreshCookie(res, raw);} } catch(_){ }
 
   res.status(200).json({
     token: generateToken(vendor._id, "vendor"),

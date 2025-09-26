@@ -8,7 +8,7 @@ const transporter = nodemailer.createTransport({
   requireTLS: true,
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
+    pass: process.env.EMAIL_PASSWORD || process.env.EMAIL_PASS,
   },
   tls: {
     ciphers: 'SSLv3',
@@ -17,7 +17,7 @@ const transporter = nodemailer.createTransport({
 });
 
 // Validate email configuration
-if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+if (!process.env.EMAIL_USER || (!process.env.EMAIL_PASSWORD && !process.env.EMAIL_PASS)) {
   console.warn('⚠️ Email credentials not configured. Check your .env file.');
 }
 

@@ -31,6 +31,10 @@ const agentSchema = new mongoose.Schema(
     state: { type: String },
     role: { type: String, default: 'agent' },
 
+    // Email verification
+    isEmailVerified: { type: Boolean, default: false },
+    emailVerifiedAt: { type: Date, default: null },
+
     virtualAccount: { type: String, unique: true },
     walletBalance: { type: Number, default: 0 },
 

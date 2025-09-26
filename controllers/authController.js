@@ -5,6 +5,7 @@ const Vendor = require('../models/vendorModel');
 const Agent = require('../models/Agent');
 const Token = require('../models/Token');
 const { sendVerificationEmail, sendPasswordResetEmail } = require('../utils/emailService');
+const crypto = require('crypto');
 
 // Verify email
 const verifyEmail = async (req, res) => {
@@ -50,7 +51,7 @@ const verifyEmail = async (req, res) => {
     // Verify JWT token
     let decoded;
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET);
+      decoded = jwt.verify(token, process.env.JWT_SECRET || 'vendplugSecret');
       console.log('✅ JWT decoded:', { id: decoded.id, type: decoded.type });
     } catch (err) {
       console.log('❌ JWT verification failed:', err.message);
@@ -146,7 +147,7 @@ const sendVerification = async (req, res) => {
     // Generate verification token
     const token = jwt.sign(
       { id: user._id, type: 'verification' },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || 'vendplugSecret',
       { expiresIn: '24h' }
     );
 
@@ -463,3 +464,86 @@ module.exports = {
   testToken,
   debugTokens
 };
+
+// ===== Refresh Token (Rolling cookies) =====
+/**
+ * Issue a new refresh token (rotating) and set HttpOnly cookie
+ */
+function setRefreshCookie(res, token) {
+  const isProd = (process.env.NODE_ENV || 'production') === 'production';
+  res.cookie('vp_refresh', token, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: 'lax',
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    path: '/'
+  });
+}
+
+async function mintRefreshToken(userId, userModel) {
+  const raw = crypto.randomBytes(48).toString('hex');
+  const tokenDoc = await Token.create({
+    userId,
+    userModel,
+    token: crypto.createHash('sha256').update(raw).digest('hex'),
+    type: 'refresh',
+    expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+  });
+  return raw;
+}
+
+async function rotateRefreshToken(oldRaw, userId, userModel) {
+  const oldHash = crypto.createHash('sha256').update(oldRaw).digest('hex');
+  await Token.deleteOne({ token: oldHash, type: 'refresh' });
+  return mintRefreshToken(userId, userModel);
+}
+
+// POST /api/auth/refresh
+async function refreshSession(req, res) {
+  try {
+    const raw = req.cookies?.vp_refresh;
+    if (!raw) return res.status(401).json({ message: 'No refresh cookie' });
+    const hash = crypto.createHash('sha256').update(raw).digest('hex');
+    const doc = await Token.findOne({ token: hash, type: 'refresh', expires: { $gt: new Date() } });
+    if (!doc) return res.status(401).json({ message: 'Refresh invalid' });
+
+    // Find user and role
+    let user = await Buyer.findById(doc.userId);
+    let role = 'buyer';
+    if (!user) { user = await Vendor.findById(doc.userId); role = user ? 'vendor' : role; }
+    if (!user) { user = await Agent.findById(doc.userId); role = user ? 'agent' : role; }
+    if (!user) return res.status(401).json({ message: 'User not found' });
+
+    // Rotate refresh
+    const newRaw = await rotateRefreshToken(raw, doc.userId, doc.userModel);
+    setRefreshCookie(res, newRaw);
+
+    // Issue short access token
+    const accessToken = jwt.sign({ id: user._id, role }, process.env.JWT_SECRET || 'vendplugSecret', { expiresIn: '20m' });
+    res.json({ token: accessToken, role });
+  } catch (e) {
+    console.error('refreshSession error:', e);
+    res.status(500).json({ message: 'Refresh failed' });
+  }
+}
+
+// POST /api/auth/logout
+async function logout(req, res) {
+  try {
+    const raw = req.cookies?.vp_refresh;
+    if (raw) {
+      const hash = crypto.createHash('sha256').update(raw).digest('hex');
+      await Token.deleteOne({ token: hash, type: 'refresh' });
+    }
+    res.clearCookie('vp_refresh', { path: '/' });
+    res.json({ success: true });
+  } catch (e) {
+    res.clearCookie('vp_refresh', { path: '/' });
+    res.json({ success: true });
+  }
+}
+
+module.exports.refreshSession = refreshSession;
+module.exports.logout = logout;
+module.exports.setRefreshCookie = setRefreshCookie;
+module.exports.mintRefreshToken = mintRefreshToken;
