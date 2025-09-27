@@ -1,6 +1,7 @@
 // agentController.js
 
 const Agent = require("../models/Agent");
+const Token = require('../models/Token');
 const bcrypt = require("bcryptjs");
 const generateToken = require("../utils/generateToken");
 const Wallet = require("../models/walletModel");
@@ -58,7 +59,19 @@ const registerAgent = async (req, res) => {
       process.env.JWT_SECRET || 'vendplugSecret',
       { expiresIn: '24h' }
     );
-    
+    // Save verification token so verify endpoint can find it
+    try {
+      await Token.create({
+        userId: savedAgent._id,
+        userModel: 'Agent',
+        token: verificationToken,
+        type: 'verification',
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
+      });
+    } catch (e) {
+      console.error('⚠️ Failed to persist agent verification token:', e.message);
+    }
+
     await sendVerificationEmail(email, verificationToken);
 
     // Send new user registration notification to admins
@@ -82,7 +95,6 @@ const registerAgent = async (req, res) => {
 
     res.status(201).json({
       message: "Agent registered successfully. Please check your email to verify your account.",
-      token: generateToken(savedAgent._id, "agent"),
       agent: {
         _id: savedAgent._id,
         fullName: savedAgent.fullName,
@@ -91,7 +103,8 @@ const registerAgent = async (req, res) => {
         phoneNumber: savedAgent.phoneNumber,
         virtualAccount: savedAgent.virtualAccount,
         category: savedAgent.category,
-        state: savedAgent.state
+        state: savedAgent.state,
+        isEmailVerified: savedAgent.isEmailVerified || false
       },
     });
   } catch (err) {
@@ -102,6 +115,11 @@ const registerAgent = async (req, res) => {
 
 
 // ✅ Login Agent 
+const { mintRefreshToken, setRefreshCookie } = (()=>{
+  const auth = require('./authController');
+  return { mintRefreshToken: auth.__proto__?.mintRefreshToken || auth.mintRefreshToken, setRefreshCookie: auth.__proto__?.setRefreshCookie || auth.setRefreshCookie };
+})();
+
 const loginAgent = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -112,9 +130,20 @@ const loginAgent = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
+    if (!agent.isEmailVerified) {
+      return res.status(403).json({
+        code: 'EMAIL_NOT_VERIFIED',
+        message: 'Please verify your email to continue.',
+        email: agent.email,
+        userType: 'agent'
+      });
+    }
+
     const wallet = await Wallet.findOne({ user: agent._id });
 
-    res.status(200).json({
+  try { if (mintRefreshToken && setRefreshCookie) { const raw = await mintRefreshToken(agent._id, 'Agent'); setRefreshCookie(res, raw);} } catch(_){ }
+
+  res.status(200).json({
       token: generateToken(agent._id, "agent"),
       agent: {
         _id: agent._id,
