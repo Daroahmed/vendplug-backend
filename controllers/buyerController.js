@@ -1,5 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const Buyer = require("../models/Buyer");
+const VendorOrder = require('../models/vendorOrderModel');
+const AgentOrder = require('../models/AgentOrder');
 const generateToken = require("../utils/generateToken");
 const { mintRefreshToken, setRefreshCookie } = (()=>{
   // Import from authController without creating circular HTTP deps
@@ -127,26 +129,31 @@ const getBuyerProfile = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Get order stats for buyer
+// @desc    Get order stats for buyer (combines Vendor and Agent orders)
 // @route   GET /api/buyers/order-stats
 // @access  Private
 const getBuyerOrderStats = asyncHandler(async (req, res) => {
   const buyerId = req.buyer._id;
 
-  const totalOrders = await Order.countDocuments({ buyer: buyerId });
-  const completedOrders = await Order.countDocuments({
-    buyer: buyerId,
-    status: "completed",
-  });
-  const pendingOrders = await Order.countDocuments({
-    buyer: buyerId,
-    status: "pending",
-  });
+  const [
+    vendorTotal, agentTotal,
+    vendorCompleted, agentCompleted,
+    vendorPending, agentPending
+  ] = await Promise.all([
+    VendorOrder.countDocuments({ buyer: buyerId }),
+    AgentOrder.countDocuments({ buyer: buyerId }),
+
+    VendorOrder.countDocuments({ buyer: buyerId, status: 'completed' }),
+    AgentOrder.countDocuments({ buyer: buyerId, status: 'completed' }),
+
+    VendorOrder.countDocuments({ buyer: buyerId, status: 'pending' }),
+    AgentOrder.countDocuments({ buyer: buyerId, status: 'pending' })
+  ]);
 
   res.status(200).json({
-    totalOrders,
-    completedOrders,
-    pendingOrders,
+    totalOrders: vendorTotal + agentTotal,
+    completedOrders: vendorCompleted + agentCompleted,
+    pendingOrders: vendorPending + agentPending
   });
 });
 
