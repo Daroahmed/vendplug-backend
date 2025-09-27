@@ -2,8 +2,9 @@ const jwt = require ('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
 const Buyer = require('../models/Buyer');
 const Agent = require('../models/Agent');
-const Product = require('../models/Product');
 const Vendor = require('../models/vendorModel');
+const Admin = require('../models/Admin');
+const VendorProduct = require('../models/vendorProductModel');
 
 // 🔍 Helper: Extract token from Authorization header
 const extractToken = (req) => {
@@ -20,7 +21,7 @@ const protectBuyer = asyncHandler(async (req, res, next) => {
   if (!token) return res.status(401).json({ message: 'Not authorized, no token' });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'vendplugSecret');
     const buyer = await Buyer.findById(decoded.id).select('-password');
     if (!buyer) return res.status(401).json({ message: 'Buyer not found' });
 
@@ -41,9 +42,11 @@ const protectAgent = asyncHandler(async (req, res, next) => {
   if (!token) return res.status(401).json({ message: 'Not authorized, no token' });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'vendplugSecret');
     const agent = await Agent.findById(decoded.id).select('-password');
     if (!agent) return res.status(401).json({ message: 'Agent not found' });
+
+    req.agent = agent; // <-- CHANGE HERE
 
     req.user = { ...agent.toObject(), role: 'agent' };
 
@@ -63,12 +66,15 @@ const protectVendor = asyncHandler(async (req, res, next) => {
     try {
       token = req.headers.authorization.split(' ')[1];
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'vendplugSecret');
       const vendor = await Vendor.findById(decoded.id).select('-password');
 
       if (!vendor) {
         return res.status(401).json({ message: 'Vendor not found' });
       }
+
+    
+      req.user = { ...vendor.toObject(), role: 'vendor' }; // keep if other code relies on req.user
 
       req.vendor = vendor;
       next();
@@ -84,43 +90,43 @@ const protectVendor = asyncHandler(async (req, res, next) => {
   }
 });
 
-// 🗑️ Delete Product by Agent
-const deleteProduct = async (req, res) => {
-  try {
-    const product = await Product.findById(req.params.id);
-    if (!product) return res.status(404).json({ message: 'Product not found' });
-
-    const agent = req.user;
-    console.log(`🗑️ Agent ${agent.fullName} (${agent._id}) is deleting: ${product.name}`);
-
-    await product.deleteOne();
-    res.status(200).json({ message: 'Product deleted successfully' });
-  } catch (err) {
-    console.error('❌ Delete error:', err.message);
-    res.status(500).json({ message: 'Server error', error: err.message });
-  }
-};
+// (Removed legacy deleteProduct handler for old Product model)
 
 
 const protectAnyUser = asyncHandler(async (req, res, next) => {
   const token = extractToken(req);
+  
+  console.log('protectAnyUser - Token received:', token ? 'present' : 'missing');
+  console.log('protectAnyUser - Authorization header:', req.headers.authorization);
 
   if (!token) {
     return res.status(401).json({ message: 'Not authorized, no token' });
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.id;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'vendplugSecret');
+    const userId = decoded.id || decoded.staffId; // Handle both regular users and staff
 
     const buyer = await Buyer.findById(userId).select('-password');
     const agent = await Agent.findById(userId).select('-password');
     const vendor = await Vendor.findById(userId).select('-password');
+    const admin = await Admin.findById(userId).select('-password');
+
+    console.log('protectAnyUser - User lookup results:', {
+      userId,
+      buyer: buyer ? 'found' : 'not found',
+      agent: agent ? 'found' : 'not found', 
+      vendor: vendor ? 'found' : 'not found',
+      admin: admin ? 'found' : 'not found'
+    });
 
     let user = null;
     let role = null;
 
-    if (vendor) {
+    if (admin) {
+      user = admin;
+      role = 'staff';
+    } else if (vendor) {
       user = vendor;
       role = 'vendor';
     } else if (agent) {
@@ -130,6 +136,7 @@ const protectAnyUser = asyncHandler(async (req, res, next) => {
       user = buyer;
       role = 'buyer';
     } else {
+      console.log('protectAnyUser - No user found for userId:', userId);
       return res.status(401).json({ message: 'User not found' });
     }
 
@@ -165,7 +172,6 @@ module.exports = {
   protectBuyer,
   protectAgent,
   protectVendor,
-  deleteProduct,
   protectAnyUser,
   deleteVendorProduct
 };

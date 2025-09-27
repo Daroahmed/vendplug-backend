@@ -44,18 +44,28 @@
       box-shadow: 0 2px 10px rgba(0,0,0,0.3);
     }
 
-    .back-button {
-      background: none;
-      border: none;
-      color: var(--text-light);
-      font-size: 1.2rem;
-      margin-right: 15px;
-      cursor: pointer;
-    }
 
     .header-title {
       font-size: 1.2rem;
       color: var(--primary);
+    }
+
+    /* Notification badge style to match dark theme */
+    .notification-icon { position: relative; }
+    .notification-badge {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background-color: var(--primary);
+      color: #000;
+      font-size: 0.7rem;
+      font-weight: bold;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: none;
+      align-items: center;
+      justify-content: center;
     }
 
     /* Main Container */
@@ -134,6 +144,40 @@
 
     .add-to-cart-btn:hover {
       opacity: 0.9;
+    }
+
+    /* Button styles for public users */
+    .btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-block;
+      text-align: center;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: var(--text-light);
+    }
+
+    .btn-primary:hover {
+      background: #00b894;
+      transform: translateY(-2px);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--primary);
+      border: 2px solid var(--primary);
+    }
+
+    .btn-outline:hover {
+      background: var(--primary);
+      color: var(--text-light);
     }
 
     /* Account Number Section */
@@ -354,12 +398,15 @@
   </style>
 </head>
 <body>
-  <!-- Header with Back Button -->
+  <!-- Header with Back + quick actions -->
   <div class="header">
-    <button class="back-button" onclick="window.location.href='view-shop.html'">
-      <i class="fas fa-arrow-left"></i>
-    </button>
-    <div class="header-title">Vendor Shop</div>
+  
+    <div class="header-title" style="flex:1;color:#00cc99;">Vendor Product</div>
+    <div class="header-actions" style="margin-left:auto;display:flex;align-items:center;gap:12px;">
+      <a href="chat.html" title="Messages" style="color:#fff;"><i class="fas fa-comments"></i></a>
+      <!-- Notification icon injected by notifications.js -->
+      <a href="buyer-vendor-checkout.html" title="Cart" style="color:#fff;"><i class="fas fa-shopping-cart"></i></a>
+    </div>
   </div>
 
   <div class="container">
@@ -380,6 +427,9 @@
       <button id="addToCartBtn" class="add-to-cart-btn">
         <i class="fas fa-shopping-cart"></i> Add to Cart
       </button>
+      <div style="margin-top:10px;text-align:right;">
+        <a href="buyer-vendor-checkout.html" class="btn btn-outline">Go to Cart</a>
+      </div>
     </div>
 
     <!-- Account Number Section -->
@@ -429,34 +479,63 @@
       <button id="submitReviewBtn" class="submit-review-btn">Submit Review</button>
     </div>
   </div>
-
+  
+  <script src="/js/auth-utils.js"></script>
+  <script src="/js/back-button.js"></script>
   <script>
-    // Back button functionality
-    document.querySelector('.back-button').addEventListener('click', function() {
-      window.location.href = 'vendor-shop.html';
-    });
+
 
     // Copy account number function
     function copyAccountNumber() {
       const accountNumber = document.getElementById('accountNumber').textContent;
       navigator.clipboard.writeText(accountNumber).then(() => {
-        alert('Account number copied to clipboard!');
+        window.showOverlay && showOverlay({ type:'success', title:'Copied', message:'Account number copied to clipboard!' });
       }).catch(err => {
         console.error('Failed to copy: ', err);
+        window.showOverlay && showOverlay({ type:'error', title:'Clipboard', message:'Failed to copy account number' });
       });
+    }
+
+    // Check if user is logged in
+    function checkUserStatus() {
+      const buyerToken = localStorage.getItem('vendplug-buyer-token');
+      const publicActions = document.getElementById('publicActions');
+      
+      if (buyerToken) {
+        // User is logged in - hide login buttons
+        publicActions.style.display = 'none';
+      } else {
+        // User is not logged in - show login buttons
+        publicActions.style.display = 'flex';
+      }
     }
 
     // Add to cart functionality
     document.getElementById('addToCartBtn').addEventListener('click', function() {
-      // This would be implemented with your actual cart logic
-      alert('Product added to cart!');
+      const buyerToken = localStorage.getItem('vendplug-buyer-token');
+      
+      if (!buyerToken) {
+        // User is not logged in - show login prompt
+        window.showOverlay && showOverlay({ type:'info', title:'Sign in required', message:'Please sign in to add items to your cart.' });
+        return;
+      }
+      
+      // User is logged in - add to cart
+      window.showOverlay && showOverlay({ type:'success', title:'Added', message:'Product added to cart!' });
+      // Add your actual cart logic here
     });
+
+    // Initialize user status check
+    document.addEventListener('DOMContentLoaded', checkUserStatus);
         
         // Load reviews
         const reviewsContainer = document.getElementById('reviewsContainer');
   </script>
-
   <script src="js/config.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="/js/notifications.js"></script>
   <script src="js/view-shop-view.js"></script>
+  <script src="/js/cart-badge.js"></script>
+ 
 </body>
 </html>

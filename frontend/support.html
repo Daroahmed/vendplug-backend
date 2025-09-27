@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support - Vendplug</title>
+    <link rel="stylesheet" href="css/chat.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .support-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        .support-header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .support-header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+
+        .support-header p {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .support-actions {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn-create-ticket {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-create-ticket:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-select {
+            padding: 10px 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            background: white;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: border-color 0.3s ease;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .tickets-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .tickets-header {
+            padding: 25px 30px;
+            border-bottom: 1px solid #e1e8ed;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+        }
+
+        .tickets-header h2 {
+            color: var(--text-light);
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        .tickets-count {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .tickets-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .ticket-item {
+            padding: 20px 30px;
+            border-bottom: 1px solid #e1e8ed;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ticket-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .ticket-item:last-child {
+            border-bottom: none;
+        }
+
+        .ticket-info { flex: 1; }
+
+        .ticket-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .ticket-meta {
+            display: flex;
+            gap: 20px;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+
+        .ticket-description {
+            color: #5a6c7d;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            max-width: 500px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .ticket-status {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-open { background: #e3f2fd; color: #1976d2; }
+        .status-in_progress { background: #fff3e0; color: #f57c00; }
+        .status-resolved { background: #e8f5e8; color: #388e3c; }
+        .status-closed { background: #f3e5f5; color: #7b1fa2; }
+
+        .priority-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .priority-low { background: #e8f5e8; color: #388e3c; }
+        .priority-medium { background: #fff3e0; color: #f57c00; }
+        .priority-high { background: #ffebee; color: #d32f2f; }
+        .priority-urgent { background: #fce4ec; color: #c2185b; }
+
+        .ticket-date {
+            color: var(--muted);
+            font-size: 0.8rem;
+        }
+
+        .empty-state { text-align: center; padding: 60px 30px; color: var(--muted); }
+        .empty-state i { font-size: 4rem; margin-bottom: 20px; color: var(--bg-secondary); }
+        .empty-state h3 { margin-bottom: 10px; color: var(--text-light); }
+        .empty-state p { margin-bottom: 30px; }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+
+        .loading i {
+            font-size: 2rem;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 25px 30px;
+            border-bottom: 1px solid #e1e8ed;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #2c3e50;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #7f8c8d;
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .modal-footer {
+            padding: 25px 30px;
+            border-top: 1px solid #e1e8ed;
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+        }
+
+        /* Chat Interface Styles */
+        .ticket-detail-modal {
+            max-width: 1000px;
+            width: 95%;
+            height: 90vh;
+        }
+
+        .ticket-detail-content {
+            display: flex;
+            height: 100%;
+        }
+
+        .ticket-info-panel {
+            width: 300px;
+            border-right: 1px solid #e1e8ed;
+            padding: 20px;
+            background: #f8f9fa;
+            overflow-y: auto;
+        }
+
+        .ticket-chat-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ticket-header {
+            padding: 20px;
+            border-bottom: 1px solid #e1e8ed;
+            background: white;
+        }
+
+        .ticket-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .ticket-meta-info {
+            display: flex;
+            gap: 15px;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            max-height: 400px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .message.sent {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: white;
+        }
+
+        .message.sent .message-avatar {
+            background: #667eea;
+        }
+
+        .message.received .message-avatar {
+            background: #28a745;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            position: relative;
+        }
+
+        .message.sent .message-content {
+            background: #667eea;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.received .message-content {
+            background: white;
+            color: #2c3e50;
+            border: 1px solid #e1e8ed;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-time {
+            font-size: 0.7rem;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        .message.sent .message-time {
+            text-align: right;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            border-top: 1px solid #e1e8ed;
+            background: white;
+        }
+
+        .chat-input-form {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e1e8ed;
+            border-radius: 25px;
+            resize: none;
+            max-height: 100px;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .send-button {
+            width: 45px;
+            height: 45px;
+            border: none;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s ease;
+        }
+
+        .send-button:hover {
+            background: #5a6fd8;
+        }
+
+        .send-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .ticket-info-item {
+            margin-bottom: 15px;
+        }
+
+        .ticket-info-label {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        .ticket-info-value {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .priority-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .no-messages {
+            text-align: center;
+            color: #7f8c8d;
+            padding: 40px 20px;
+        }
+
+        .no-messages i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #bdc3c7;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        @media (max-width: 768px) {
+            .support-container {
+                padding: 10px;
+            }
+
+            .support-actions {
+                flex-direction: column;
+            }
+
+            .filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .ticket-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .ticket-status {
+                align-items: flex-start;
+            }
+        }
+        /* Dark theme overrides */
+        :root {
+            --primary: #00cc99;
+            --bg-dark: #121212;
+            --bg-card: #1e1e1e;
+            --bg-secondary: #2c2c2c;
+            --text-light: #fff;
+            --muted: #aaa;
+        }
+
+        body { background: var(--bg-dark); color: var(--text-light); font-family: 'Segoe UI', sans-serif; }
+
+        .navbar { background: var(--bg-card) !important; border-bottom: 1px solid var(--bg-secondary); }
+        .nav-link { color: var(--text-light) !important; }
+        .btn-logout { background: var(--primary); color: #000; border:none; padding:8px 14px; border-radius:6px; cursor:pointer; }
+
+        .support-container { background: transparent !important; }
+        .support-header { background: var(--bg-card) !important; border: 1px solid var(--bg-secondary); }
+        .support-header h1 { color: var(--primary) !important; }
+        .support-header p { color: var(--muted) !important; }
+
+        .btn-create-ticket { background: var(--primary) !important; color: #000 !important; }
+        .filter-select { background: var(--bg-secondary) !important; color: var(--text-light) !important; border: 1px solid var(--bg-secondary) !important; }
+        .filter-select:focus { border-color: var(--primary) !important; }
+
+        .tickets-container { background: var(--bg-card) !important; border: 1px solid var(--bg-secondary) !important; }
+        .tickets-header { background: var(--bg-card) !important; border-bottom: 1px solid var(--bg-secondary) !important; }
+        .tickets-header h2 { color: var(--text-light) !important; }
+        .tickets-count { color: var(--muted) !important; }
+        .ticket-item { border-bottom: 1px solid var(--bg-secondary) !important; }
+        .ticket-item:hover { background: var(--bg-secondary) !important; }
+        .ticket-title { color: var(--text-light) !important; }
+        .ticket-meta, .ticket-description, .ticket-date { color: var(--muted) !important; }
+
+        /* Modals and chat */
+        .modal-content { background: var(--bg-card) !important; color: var(--text-light); border: 1px solid var(--bg-secondary); }
+        .modal-header, .modal-footer { border-color: var(--bg-secondary) !important; }
+        .modal-header h3 { color: var(--text-light) !important; }
+
+        .form-group label { color: var(--text-light) !important; }
+        .form-group input, .form-group select, .form-group textarea {
+            background: var(--bg-secondary) !important;
+            color: var(--text-light) !important;
+            border: 1px solid var(--bg-secondary) !important;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--primary) !important; }
+
+        .ticket-info-panel { background: var(--bg-card) !important; border-right: 1px solid var(--bg-secondary) !important; }
+        .ticket-info-label { color: var(--muted) !important; }
+        .ticket-info-value { color: var(--text-light) !important; }
+
+        .ticket-header { background: var(--bg-card) !important; border-bottom: 1px solid var(--bg-secondary) !important; }
+        .ticket-title { color: var(--text-light) !important; }
+        .ticket-meta-info { color: var(--muted) !important; }
+
+        .chat-messages { background: var(--bg-card) !important; }
+        .message.sent .message-avatar { background: var(--primary) !important; color: #000 !important; }
+        .message.received .message-avatar { background: var(--bg-secondary) !important; color: var(--text-light) !important; }
+        .message.sent .message-content { background: var(--primary) !important; color: #000 !important; }
+        .message.received .message-content { background: var(--bg-secondary) !important; color: var(--text-light) !important; border: 1px solid var(--bg-secondary) !important; }
+        .message-time { color: var(--muted) !important; }
+
+        .chat-input-container { background: var(--bg-card) !important; border-top: 1px solid var(--bg-secondary) !important; }
+        .chat-input { background: var(--bg-secondary) !important; color: var(--text-light) !important; border: 1px solid var(--bg-secondary) !important; }
+        .chat-input:focus { border-color: var(--primary) !important; }
+        .send-button { background: var(--primary) !important; color: #000 !important; }
+        .send-button:disabled { background: var(--bg-secondary) !important; color: var(--muted) !important; }
+
+        .empty-state { color: var(--muted) !important; }
+        .empty-state i { color: var(--bg-secondary) !important; }
+        .empty-state h3 { color: var(--text-light) !important; }
+    </style>
+</head>
+<body>
+    <!-- Navigation (logo removed) -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-menu" style="margin-left:auto;">
+                <a href="#" class="nav-link" onclick="goBack()">← Back</a>
+                <button class="btn-logout" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Support Container -->
+    <div class="support-container">
+        <!-- Header -->
+        <div class="support-header">
+            <h1><i class="fas fa-headset"></i> Support Center</h1>
+            <p>Get help with your account, orders, and any issues you may have</p>
+        </div>
+
+        <!-- Actions -->
+        <div class="support-actions">
+            <button class="btn-create-ticket" onclick="showCreateTicketModal()">
+                <i class="fas fa-plus"></i>
+                Create New Ticket
+            </button>
+            
+            <div class="filters">
+                <select class="filter-select" id="statusFilter" onchange="filterTickets()">
+                    <option value="">All Status</option>
+                    <option value="open">Open</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="closed">Closed</option>
+                </select>
+                
+                <select class="filter-select" id="priorityFilter" onchange="filterTickets()">
+                    <option value="">All Priority</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                </select>
+                
+                <select class="filter-select" id="categoryFilter" onchange="filterTickets()">
+                    <option value="">All Categories</option>
+                    <option value="technical">Technical</option>
+                    <option value="billing">Billing</option>
+                    <option value="order">Order</option>
+                    <option value="dispute">Dispute</option>
+                    <option value="account">Account</option>
+                    <option value="payment">Payment</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Tickets Container -->
+        <div class="tickets-container">
+            <div class="tickets-header">
+                <h2>My Support Tickets</h2>
+                <div class="tickets-count" id="ticketsCount">0 tickets</div>
+            </div>
+            
+            <div class="tickets-list" id="ticketsList">
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <p>Loading tickets...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Ticket Modal -->
+    <div class="modal" id="createTicketModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create Support Ticket</h3>
+                <button class="modal-close" onclick="closeCreateTicketModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="createTicketForm">
+                    <div class="form-group">
+                        <label for="ticketCategory">Category *</label>
+                        <select id="ticketCategory" name="ticketCategory" required>
+                            <option value="">Select category</option>
+                            <option value="technical">Technical</option>
+                            <option value="billing">Billing</option>
+                            <option value="order">Order</option>
+                            <option value="dispute">Dispute</option>
+                            <option value="account">Account</option>
+                            <option value="payment">Payment</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="ticketSubcategory">Subcategory</label>
+                        <select id="ticketSubcategory" name="ticketSubcategory">
+                            <option value="">Select subcategory (optional)</option>
+                            <option value="login_issue">Login Issue</option>
+                            <option value="payment_failed">Payment Failed</option>
+                            <option value="order_delayed">Order Delayed</option>
+                            <option value="refund_request">Refund Request</option>
+                            <option value="account_suspension">Account Suspension</option>
+                            <option value="feature_request">Feature Request</option>
+                            <option value="bug_report">Bug Report</option>
+                            <option value="general_inquiry">General Inquiry</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="ticketSubject">Subject *</label>
+                        <input type="text" id="ticketSubject" name="ticketSubject" placeholder="Brief description of your issue" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="ticketDescription">Description *</label>
+                        <textarea id="ticketDescription" name="ticketDescription" placeholder="Please provide detailed information about your issue" required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="ticketPriority">Priority</label>
+                        <select id="ticketPriority" name="ticketPriority">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeCreateTicketModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="createTicket()">Create Ticket</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ticket Detail Modal with Chat -->
+    <div class="modal" id="ticketDetailModal">
+        <div class="modal-content ticket-detail-modal">
+            <div class="modal-header">
+                <h3 id="ticketDetailTitle">Support Ticket</h3>
+                <button class="modal-close" onclick="closeTicketDetailModal()">&times;</button>
+            </div>
+            <div class="ticket-detail-content">
+                <!-- Ticket Info Panel -->
+                <div class="ticket-info-panel">
+                    <div class="ticket-info-item">
+                        <div class="ticket-info-label">Status</div>
+                        <div class="ticket-info-value">
+                            <span class="status-badge" id="ticketDetailStatus">Open</span>
+                        </div>
+                    </div>
+                    <div class="ticket-info-item">
+                        <div class="ticket-info-label">Priority</div>
+                        <div class="ticket-info-value">
+                            <span class="priority-badge" id="ticketDetailPriority">Medium</span>
+                        </div>
+                    </div>
+                    <div class="ticket-info-item">
+                        <div class="ticket-info-label">Category</div>
+                        <div class="ticket-info-value" id="ticketDetailCategory">Technical</div>
+                    </div>
+                    <div class="ticket-info-item">
+                        <div class="ticket-info-label">Created</div>
+                        <div class="ticket-info-value" id="ticketDetailCreated">-</div>
+                    </div>
+                    <div class="ticket-info-item">
+                        <div class="ticket-info-label">Last Updated</div>
+                        <div class="ticket-info-value" id="ticketDetailUpdated">-</div>
+                    </div>
+                    <div class="ticket-info-item">
+                        <div class="ticket-info-label">Assigned To</div>
+                        <div class="ticket-info-value" id="ticketDetailAssigned">Not assigned</div>
+                    </div>
+                    <div class="ticket-info-item">
+                        <div class="ticket-info-label">Description</div>
+                        <div class="ticket-info-value" id="ticketDetailDescription" style="font-size: 0.8rem; line-height: 1.4;">-</div>
+                    </div>
+                </div>
+
+                <!-- Chat Panel -->
+                <div class="ticket-chat-panel">
+                    <div class="ticket-header">
+                        <div class="ticket-title" id="ticketChatTitle">Support Ticket</div>
+                        <div class="ticket-meta-info">
+                            <span id="ticketChatMeta">Ticket #-</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Messages Container -->
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="no-messages">
+                            <i class="fas fa-comments"></i>
+                            <p>No messages yet. Start the conversation!</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Chat Input -->
+                    <div class="chat-input-container">
+                        <form class="chat-input-form" id="chatInputForm" onsubmit="sendSupportMessage(event)">
+                            <textarea 
+                                class="chat-input" 
+                                id="chatMessageInput" 
+                                placeholder="Type your message here..."
+                                rows="1"
+                                required
+                            ></textarea>
+                            <button type="submit" class="send-button" id="sendMessageBtn">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/auth-utils.js"></script>
+    <script src="/js/back-button.js"></script>
+    <script src="js/support.js"></script>
+</body>
+</html>

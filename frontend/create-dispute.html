@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Dispute - Vendplug</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .form-container {
+            padding: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .file-upload {
+            border: 2px dashed #e1e5e9;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            transition: border-color 0.3s ease;
+            cursor: pointer;
+        }
+
+        .file-upload:hover {
+            border-color: #667eea;
+        }
+
+        .file-upload.dragover {
+            border-color: #667eea;
+            background-color: #f8f9ff;
+        }
+
+        .file-upload input[type="file"] {
+            display: none;
+        }
+
+        .file-upload-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .file-list {
+            margin-top: 15px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .file-item .file-name {
+            font-weight: 500;
+        }
+
+        .file-item .remove-file {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .back-btn {
+            background: #6c757d;
+            margin-bottom: 20px;
+            width: auto;
+            padding: 10px 20px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .form-container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚨 Create Dispute</h1>
+            <p>Report an issue with your order and we'll help resolve it</p>
+        </div>
+
+        <div class="form-container">
+            <button class="btn back-btn" onclick="goBack()">← Back to Dashboard</button>
+            
+            <div id="alertContainer"></div>
+            <div id="loadingContainer" class="loading">
+                <div class="spinner"></div>
+                <p>Creating dispute...</p>
+            </div>
+
+            <form id="disputeForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="orderId">Order ID *</label>
+                        <input type="text" id="orderId" name="orderId" required 
+                               placeholder="Enter the order ID you want to dispute">
+                    </div>
+                    <div class="form-group">
+                        <label for="orderType">Order Type *</label>
+                        <select id="orderType" name="orderType" required>
+                            <option value="">Select order type</option>
+                            <option value="AgentOrder">Agent Order</option>
+                            <option value="VendorOrder">Vendor Order</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="respondentUserId">Respondent User ID *</label>
+                        <input type="text" id="respondentUserId" name="respondentUserId" required 
+                               placeholder="User ID of the person you're disputing">
+                    </div>
+                    <div class="form-group">
+                        <label for="respondentUserType">Respondent Type *</label>
+                        <select id="respondentUserType" name="respondentUserType" required>
+                            <option value="">Select respondent type</option>
+                            <option value="Vendor">Vendor</option>
+                            <option value="Agent">Agent</option>
+                            <option value="Buyer">Buyer</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="title">Dispute Title *</label>
+                    <input type="text" id="title" name="title" required 
+                           placeholder="Brief description of the issue">
+                </div>
+
+                <div class="form-group">
+                    <label for="category">Category *</label>
+                    <select id="category" name="category" required>
+                        <option value="">Select a category</option>
+                        <option value="product_not_received">Product Not Received</option>
+                        <option value="product_damaged">Product Damaged</option>
+                        <option value="product_not_as_described">Product Not As Described</option>
+                        <option value="wrong_product">Wrong Product</option>
+                        <option value="delivery_issues">Delivery Issues</option>
+                        <option value="payment_issues">Payment Issues</option>
+                        <option value="communication_issues">Communication Issues</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description *</label>
+                    <textarea id="description" name="description" required 
+                              placeholder="Please provide detailed information about the issue..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Evidence (Optional)</label>
+                    <div class="file-upload" id="fileUpload">
+                        <div class="file-upload-icon">📎</div>
+                        <p>Click to upload or drag and drop files</p>
+                        <p style="font-size: 0.9rem; color: #666;">Images, documents, screenshots</p>
+                        <input type="file" id="evidenceFiles" multiple accept="image/*,.pdf,.doc,.docx">
+                    </div>
+                    <div id="fileList" class="file-list"></div>
+                </div>
+
+                <button type="submit" class="btn" id="submitBtn">
+                    🚨 Create Dispute
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/auth-utils.js"></script>
+    <script src="/js/back-button.js"></script>
+    <script>
+        // Get user token and role using smart utility
+        const userToken = getAuthToken();
+        const userData = getCurrentUser();
+        const userRole = getCurrentUserType() || 'buyer';
+
+        // Check authentication
+        if (!userToken) {
+            redirectToLogin();
+        }
+
+        // File upload handling
+        const fileUpload = document.getElementById('fileUpload');
+        const evidenceFiles = document.getElementById('evidenceFiles');
+        const fileList = document.getElementById('fileList');
+        const uploadedFiles = [];
+
+        fileUpload.addEventListener('click', () => evidenceFiles.click());
+        fileUpload.addEventListener('dragover', handleDragOver);
+        fileUpload.addEventListener('dragleave', handleDragLeave);
+        fileUpload.addEventListener('drop', handleDrop);
+        evidenceFiles.addEventListener('change', handleFileSelect);
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            fileUpload.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            fileUpload.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            fileUpload.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files);
+            addFiles(files);
+        }
+
+        function handleFileSelect(e) {
+            const files = Array.from(e.target.files);
+            addFiles(files);
+        }
+
+        function addFiles(files) {
+            files.forEach(file => {
+                if (file.size > 10 * 1024 * 1024) { // 10MB limit
+                    showAlert('File too large: ' + file.name + '. Maximum size is 10MB.', 'error');
+                    return;
+                }
+                
+                uploadedFiles.push(file);
+                displayFile(file);
+            });
+        }
+
+        function displayFile(file) {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+            fileItem.innerHTML = `
+                <span class="file-name">${file.name}</span>
+                <button type="button" class="remove-file" onclick="removeFile('${file.name}')">Remove</button>
+            `;
+            fileList.appendChild(fileItem);
+        }
+
+        function removeFile(fileName) {
+            const index = uploadedFiles.findIndex(file => file.name === fileName);
+            if (index > -1) {
+                uploadedFiles.splice(index, 1);
+            }
+            
+            // Remove from display
+            const fileItems = fileList.querySelectorAll('.file-item');
+            fileItems.forEach(item => {
+                if (item.querySelector('.file-name').textContent === fileName) {
+                    item.remove();
+                }
+            });
+        }
+
+        // Form submission
+        document.getElementById('disputeForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            const disputeData = {
+                orderId: document.getElementById('orderId').value,
+                orderType: document.getElementById('orderType').value,
+                respondentUserId: document.getElementById('respondentUserId').value,
+                respondentUserType: document.getElementById('respondentUserType').value,
+                title: document.getElementById('title').value,
+                description: document.getElementById('description').value,
+                category: document.getElementById('category').value
+            };
+
+            // Add dispute data
+            formData.append('disputeData', JSON.stringify(disputeData));
+            
+            // Add evidence files
+            uploadedFiles.forEach((file, index) => {
+                formData.append('evidence', file);
+            });
+
+            try {
+                showLoading(true);
+                
+                const response = await fetch('/api/disputes/create', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${userToken}`
+                    },
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showAlert('Dispute created successfully! You will be notified of updates.', 'success');
+                    setTimeout(() => {
+                        goBack();
+                    }, 2000);
+                } else {
+                    showAlert(result.error || 'Failed to create dispute', 'error');
+                }
+            } catch (error) {
+                console.error('❌ Create dispute error:', error);
+                showAlert('Network error. Please try again.', 'error');
+            } finally {
+                showLoading(false);
+            }
+        });
+
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            alertContainer.innerHTML = '';
+            alertContainer.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        function showLoading(show) {
+            const loadingContainer = document.getElementById('loadingContainer');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            if (show) {
+                loadingContainer.style.display = 'block';
+                submitBtn.disabled = true;
+            } else {
+                loadingContainer.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        }
+
+        function goBack() {
+            // Determine which dashboard to go back to
+            if (userRole === 'vendor') {
+                window.location.href = '/vendor-dashboard.html';
+            } else if (userRole === 'agent') {
+                window.location.href = '/agent-dashboard.html';
+            } else {
+                window.location.href = '/buyer-dashboard.html';
+            }
+        }
+    </script>
+     
+</body>
+</html>

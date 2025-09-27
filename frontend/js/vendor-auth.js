@@ -16,6 +16,7 @@ document.getElementById("showVendorRegisterBtn").addEventListener("click", () =>
 // 🔐 LOGIN
 document.getElementById("vendorLoginForm").addEventListener("submit", async (e) => {
   e.preventDefault();
+  showLoading && showLoading();
   const email = document.getElementById("vendorLoginEmail").value;
   const password = document.getElementById("vendorLoginPassword").value;
 
@@ -33,19 +34,23 @@ document.getElementById("vendorLoginForm").addEventListener("submit", async (e) 
       return;
     }
 
-    localStorage.setItem("vendplug-token", data.token);
-    localStorage.setItem("vendplugVendor", JSON.stringify(data.vendor));
+    localStorage.setItem("vendplug-vendor-token", data.token);
+    // Remove token from vendor object before storing
+    const vendorData = { ...data.vendor };
+    delete vendorData.token; // Remove token from user object
+    localStorage.setItem("vendplugVendor", JSON.stringify(vendorData));
     window.location.href = "vendor-dashboard.html";
 
   } catch (err) {
     console.error("❌ Vendor login error:", err);
     alert("Login failed. Try again.");
-  }
+  } finally { hideLoading && hideLoading(); }
 });
 
 // 📝 REGISTER
 document.getElementById("vendorRegisterForm").addEventListener("submit", async (e) => {
   e.preventDefault();
+  showLoading && showLoading();
 
   const fullName = document.getElementById("vendorFullName").value;
   const email = document.getElementById("vendorEmail").value;
@@ -55,7 +60,20 @@ document.getElementById("vendorRegisterForm").addEventListener("submit", async (
   const businessName = document.getElementById("vendorBusinessName").value;
   const businessAddress = document.getElementById("vendorBusinessAddress").value;
   const cacNumber = document.getElementById("vendorCacNumber").value;
-  const category = document.getElementById("vendorCategory").value;
+
+    // Collect multiple selected categories
+    const categorySelect = document.getElementById("vendorCategory");
+    const selectedCategories = Array.from(categorySelect.selectedOptions).map(opt => opt.value);
+  
+    // If "Other" is included, replace it with the custom input
+    const otherCategoryInput = document.getElementById("otherCategory").value.trim();
+    let finalCategories = selectedCategories;
+  
+    if (selectedCategories.includes("Other") && otherCategoryInput) {
+      finalCategories = selectedCategories.filter(cat => cat !== "Other");
+      finalCategories.push(otherCategoryInput);
+    }
+  
   const state = document.getElementById("vendorState").value;
   const shopDescription = document.getElementById("vendorShopDescription").value;
 
@@ -68,7 +86,7 @@ document.getElementById("vendorRegisterForm").addEventListener("submit", async (
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         fullName, email, shopName, phoneNumber,
-        password, businessName, businessAddress, cacNumber, category,
+        password, businessName, businessAddress, cacNumber, category: finalCategory,
         state,
         shopDescription
       }),
@@ -80,12 +98,42 @@ document.getElementById("vendorRegisterForm").addEventListener("submit", async (
       throw new Error(data.message || "Vendor registration failed");
     }
 
-    localStorage.setItem("vendplug-token", data.token);
-    localStorage.setItem("vendplugVendor", JSON.stringify(data.vendor));
-    window.location.href = "vendor-dashboard.html";
+    // Store email for verification
+    localStorage.setItem('pendingVerificationEmail', email);
+    localStorage.setItem('pendingVerificationRole', 'vendor');
+
+    // Send verification email
+    try {
+              const verifyRes = await fetch(`${BACKEND}/api/auth/send-verification`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, userType: 'vendor' })
+        });
+
+      if (verifyRes.ok) {
+        alert("Registration successful! Please check your email to verify your account.");
+        window.location.href = "verify-email.html";
+      } else {
+        alert("Registration successful but couldn't send verification email. Please try again.");
+      }
+    } catch (verifyErr) {
+      console.error("❌ Verification email error:", verifyErr);
+      alert("Registration successful but couldn't send verification email. Please try again.");
+    }
 
   } catch (error) {
     errorMsg.textContent = error.message;
     errorMsg.style.display = "block";
+  } finally { hideLoading && hideLoading(); }
+});
+// 🔄 Show "Other Category" input when "Other" is selected
+document.getElementById("vendorCategory").addEventListener("change", function() {
+  const otherDiv = document.getElementById("otherCategoryDiv");
+  if (this.value === "Other") {
+    otherDiv.style.display = "block";
+  } else {
+    otherDiv.style.display = "none";
+    document.getElementById("otherCategory").value = ""; // reset if not needed
   }
 });
+

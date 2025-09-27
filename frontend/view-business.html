@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Agent Business - VendPlug</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/ads.css">
+  
+  <style>
+    :root {
+      --primary: #00cc99;
+      --bg-dark: #121212;
+      --bg-card: #1e1e1e;
+      --bg-secondary: #2c2c2c;
+      --text-light: #fff;
+      --muted: #aaa;
+      --accent: #00cc99;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-light);
+      margin: 0;
+    }
+
+    /* Header Styles */
+    .header {
+      background-color: var(--bg-card);
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+
+    .header h1 {
+      font-size: 1.5rem;
+      color: var(--primary);
+      margin: 0;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    /* Share Section Styles */
+    .share-section {
+      background: var(--bg-secondary);
+      padding: 1rem;
+      margin: 1rem 0;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .share-title {
+      color: var(--primary);
+      margin-bottom: 1rem;
+      font-size: 1.1rem;
+    }
+
+    .share-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .share-btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .share-btn.whatsapp {
+      background-color: #25D366;
+      color: white;
+    }
+
+    .share-btn.facebook {
+      background-color: #1877F2;
+      color: white;
+    }
+
+    .share-btn.twitter {
+      background-color: #1DA1F2;
+      color: white;
+    }
+
+    .share-btn.copy {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .share-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .share-btn i {
+      font-size: 1rem;
+    }
+
+    /* Message Button Styles */
+    .message-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .message-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .message-btn i {
+      font-size: 1.1rem;
+    }
+
+    .qr-section {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: var(--bg-card);
+      border-radius: 8px;
+    }
+
+    .qr-code {
+      display: block;
+      margin: 0 auto;
+      max-width: 200px;
+      height: auto;
+    }
+
+    .copy-success {
+      background: var(--primary);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 4px;
+      margin-top: 10px;
+      display: none;
+    }
+
+    .home-button, .cart-icon {
+      color: var(--text-light);
+      font-size: 1.2rem;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+    }
+
+    .cart-icon {
+      position: relative;
+    }
+
+    .cart-count {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background-color: var(--primary);
+      color: #000;
+      font-size: 0.7rem;
+      font-weight: bold;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Button styles for public users */
+    .btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-block;
+      text-align: center;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: var(--text-light);
+    }
+
+    .btn-primary:hover {
+      background: #00b894;
+      transform: translateY(-2px);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--primary);
+      border: 2px solid var(--primary);
+    }
+
+    .btn-outline:hover {
+      background: var(--primary);
+      color: var(--text-light);
+    }
+
+    /* Agent Profile */
+    .agent-profile {
+      background: rgba(30, 30, 30, 0.6);
+      padding: 1rem;
+      position: sticky;
+      top: 68px;
+      z-index: 90;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    .agent-details {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .agent-image {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--primary);
+    }
+
+    .agent-info h2 {
+      color: var(--primary);
+      margin-bottom: 0.4rem;
+      font-size: 1.25rem;
+    }
+
+    .agent-info p {
+      color: var(--muted);
+      margin-bottom: 0.25rem;
+      font-size: 0.85rem;
+    }
+
+    .whatsapp-link {
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .copy-btn {
+      background: var(--primary);
+      color: #000;
+      border: none;
+      padding: 0.3rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      margin-left: 0.5rem;
+      cursor: pointer;
+    }
+
+    /* Products Grid */
+    .products {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 1.2rem;
+      padding: 1.5rem;
+    }
+
+    .product-card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      transition: transform 0.3s;
+      cursor: pointer;
+    }
+
+    .product-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .product-image {
+      width: 100%;
+      height: 140px;
+      object-fit: cover;
+    }
+
+    .product-info {
+      padding: 1rem;
+    }
+
+    .product-info h4 {
+      margin: 0 0 0.3rem;
+      font-size: 0.95rem;
+      color: var(--text-light);
+    }
+
+    .product-info p {
+      font-size: 0.85rem;
+      color: var(--primary);
+      font-weight: bold;
+      margin: 0;
+    }
+
+    /* Loading Spinner */
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 3rem;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      border-top: 4px solid var(--primary);
+      animation: spin 1s linear infinite;
+    }
+
+    .error-message, .no-products {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .products {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 1rem;
+        padding: 1rem;
+      }
+      
+      .agent-details {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      .agent-image {
+        width: 70px;
+        height: 70px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .header h1 {
+        font-size: 1.2rem;
+      }
+      
+      .products {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <h1>Agent Business</h1>
+    <div class="header-actions">
+      <a href="public-buyer-home.html" class="home-button">
+        <i class="fas fa-home"></i>
+      </a>
+      
+      <!-- Public user actions -->
+      <div id="publicActions" style="display: none;">
+        <a href="buyer-login.html" class="btn btn-outline" style="padding: 0.5rem 1rem; margin-right: 0.5rem;">Sign In</a>
+        <a href="buyer-register.html" class="btn btn-primary" style="padding: 0.5rem 1rem;">Sign Up</a>
+      </div>
+      
+      <!-- Logged in user actions -->
+      <div id="loggedInActions" style="display: none;">
+        <a href="buyer-agent-checkout.html" class="cart-icon">
+          <i class="fas fa-shopping-cart"></i>
+          <span class="cart-count" id="cartCount">0</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Agent Profile -->
+  <section id="agentProfile" class="agent-profile">
+    <!-- Agent details will be loaded here -->
+  </section>
+
+  <!-- Share Section -->
+  <section class="share-section">
+    <h3 class="share-title">Share This Business</h3>
+    <div class="share-buttons">
+      <button class="share-btn whatsapp" onclick="shareToWhatsApp()">
+        <i class="fab fa-whatsapp"></i>
+        WhatsApp
+      </button>
+      <button class="share-btn facebook" onclick="shareToFacebook()">
+        <i class="fab fa-facebook"></i>
+        Facebook
+      </button>
+      <button class="share-btn twitter" onclick="shareToTwitter()">
+        <i class="fab fa-twitter"></i>
+        Twitter
+      </button>
+      <button class="share-btn copy" onclick="copyBusinessLink()">
+        <i class="fas fa-copy"></i>
+        Copy Link
+      </button>
+    </div>
+    <div class="copy-success" id="copySuccess">Link copied to clipboard!</div>
+    
+    
+  </section>
+
+  <!-- Loading Spinner -->
+  <div class="loading">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Products Grid -->
+  <section id="agentProducts" class="products">
+    <!-- Products will be loaded here -->
+  </section>
+
+  <script>
+    function isBuyer(){
+      try{
+        if (localStorage.getItem('vendplug-buyer-token')) return true;
+        return !!localStorage.getItem('vendplugBuyer');
+      }catch(_){ return false; }
+    }
+
+    function ensureMessageButton(){
+      const el = document.getElementById('messageButtonContainer');
+      if (!el) return;
+      const agentId = new URLSearchParams(window.location.search).get('agent');
+      if (isBuyer()){
+        el.innerHTML = `
+          <button class="message-btn" onclick="startChat('${agentId}', 'Agent', 'Agent')">
+            <i class="fas fa-comments"></i>
+            Message Agent
+          </button>
+        `;
+      } else {
+        el.innerHTML = '';
+      }
+    }
+    document.addEventListener('DOMContentLoaded', async () => {
+      const agentId = new URLSearchParams(window.location.search).get('agent');
+
+      if (!agentId) {
+        alert('Agent ID is missing from the URL');
+        return;
+      }
+
+      const agentProfileEl = document.getElementById('agentProfile');
+      const agentProductsEl = document.getElementById('agentProducts');
+      const loadingEl = document.querySelector('.loading');
+
+      try {
+        // Fetch agent profile
+        const agentRes = await fetch(`/api/agents/${agentId}`);
+        const agent = await agentRes.json();
+
+        if (!agent || !agent.fullName) {
+          agentProfileEl.innerHTML = '<p class="error-message">Agent not found.</p>';
+          loadingEl.style.display = 'none';
+          return;
+        }
+
+        agentProfileEl.innerHTML = `
+          <div class="agent-details">
+            <div class="agent-info">
+              <h2>${agent.fullName}</h2>
+              <p><strong>Phone:</strong> <span>${agent.phoneNumber || 'Not provided'}</span></p>
+              <p><strong>Address:</strong> ${agent.businessAddress || 'Not provided'}</p>
+              <p><strong>State:</strong> ${agent.state || 'Not specified'}</p>
+              <p><strong>Total Transactions:</strong> ${agent.totalTransactions || 0}</p>
+              <div style="margin-top: 15px;" id="messageButtonContainer"></div>
+            </div>
+          </div>
+        `;
+
+        // After profile render, ensure message button state
+        ensureMessageButton();
+
+        // Fetch agent products
+        console.log("Loading business for agent:", agentId);
+        const productsRes = await fetch(`/api/agent-products/agent/${agentId}`);
+        const products = await productsRes.json();
+
+        // Hide loading spinner
+        loadingEl.style.display = 'none';
+
+        if (!products || products.length === 0) {
+          agentProductsEl.innerHTML = '<p class="no-products">No products for this agent yet.</p>';
+          return;
+        }
+
+        agentProductsEl.innerHTML = products.map(product => `
+          <div class="product-card" onclick="window.location.href='/view-business-view.html?product=${product._id}'">
+            <img src="${product.image || '/placeholder.png'}" alt="${product.name}" class="product-image" />
+            <div class="product-info">
+              <h4>${product.name}</h4>
+              <p>₦${product.price.toLocaleString()}</p>
+              <p style="margin-top:6px;color:${(() => { const a=Math.max(0, Number(product.stock||0)-Number(product.reserved||0)); return a<=0?'#ff7675':'var(--muted)'; })()}">
+                ${(() => { const a=Math.max(0, Number(product.stock||0)-Number(product.reserved||0)); if(a<=0) return 'Out of Stock'; const hint = a<=5?` <span style=\"margin-left:6px;\">Only ${a} available</span>`:''; return `Stock: ${a}${hint}`; })()}
+              </p>
+            </div>
+          </div>
+        `).join('');
+
+      } catch (error) {
+        console.error('Error loading agent data:', error);
+        loadingEl.style.display = 'none';
+        agentProfileEl.innerHTML = '<p class="error-message">Error loading agent data.</p>';
+        agentProductsEl.innerHTML = '';
+      }
+    });
+
+    // Copy account number function
+    function copyAccount() {
+      const accountNumber = document.getElementById('agentAccount').innerText;
+      navigator.clipboard.writeText(accountNumber).then(() => {
+        alert('Account number copied to clipboard!');
+      }).catch(err => {
+        console.error('Failed to copy: ', err);
+      });
+    }
+
+    // Update cart count from localStorage
+    function updateCartCount() {
+      const cart = JSON.parse(localStorage.getItem('cart')) || [];
+      const totalItems = cart.reduce((total, item) => total + (item.quantity || 1), 0);
+      document.getElementById('cartCount').textContent = totalItems;
+    }
+
+    // Check if user is logged in and show appropriate actions
+    function checkUserStatus() {
+      const buyerToken = localStorage.getItem('vendplug-buyer-token');
+      const publicActions = document.getElementById('publicActions');
+      const loggedInActions = document.getElementById('loggedInActions');
+      
+      if (buyerToken) {
+        // User is logged in
+        publicActions.style.display = 'none';
+        loggedInActions.style.display = 'flex';
+      } else {
+        // User is not logged in (public user)
+        publicActions.style.display = 'flex';
+        loggedInActions.style.display = 'none';
+      }
+    }
+
+    // Initialize cart count and user status
+    document.addEventListener('DOMContentLoaded', () => {
+      checkUserStatus();
+      updateCartCount();
+    });
+
+    // Global variables for sharing
+    let currentAgent = null;
+    let businessUrl = '';
+
+    // Initialize sharing functionality
+    function initializeSharing(agent) {
+      currentAgent = agent;
+      const SHARE_BASE = window.SHARE_BASE_URL || (window.location.hostname === 'localhost'
+        ? (window.PUBLIC_BASE_URL || window.DEPLOY_BASE_URL || 'https://your-domain.com')
+        : window.location.origin);
+      businessUrl = `${SHARE_BASE}/view-business.html?agent=${agent._id}`;
+      
+      
+    }
+
+    
+
+    // Share to WhatsApp
+    function shareToWhatsApp() {
+      if (!currentAgent) return;
+      
+      const message = `Check out this amazing business on Vendplug!\n\n🏪 ${currentAgent.businessName || currentAgent.fullName}\n📍 ${currentAgent.businessAddress || currentAgent.state || 'Nigeria'}\n📱 ${currentAgent.phoneNumber}\n\n${businessUrl}`;
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank');
+      
+      // Track sharing
+      trackShare('whatsapp');
+    }
+
+    // Share to Facebook
+    function shareToFacebook() {
+      if (!businessUrl) return;
+      
+      const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(businessUrl)}`;
+      window.open(facebookUrl, '_blank', 'width=600,height=400');
+      
+      // Track sharing
+      trackShare('facebook');
+    }
+
+    // Share to Twitter
+    function shareToTwitter() {
+      if (!currentAgent || !businessUrl) return;
+      
+      const message = `Check out ${currentAgent.businessName || currentAgent.fullName} on Vendplug! 🏪✨\n\n${businessUrl}`;
+      const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`;
+      window.open(twitterUrl, '_blank', 'width=600,height=400');
+      
+      // Track sharing
+      trackShare('twitter');
+    }
+
+    // Copy business link
+    function copyBusinessLink() {
+      if (!businessUrl) return;
+      
+      navigator.clipboard.writeText(businessUrl).then(() => {
+        const copySuccess = document.getElementById('copySuccess');
+        copySuccess.style.display = 'block';
+        
+        setTimeout(() => {
+          copySuccess.style.display = 'none';
+        }, 3000);
+      }).catch(err => {
+        console.error('Failed to copy:', err);
+        alert('Failed to copy link. Please try again.');
+      });
+      
+      // Track sharing
+      trackShare('copy');
+    }
+
+    // Track sharing analytics
+    function trackShare(platform) {
+      try {
+        // Send analytics to backend
+        fetch('/api/analytics/share', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            platform,
+            agentId: currentAgent?._id,
+            businessUrl,
+            timestamp: new Date().toISOString()
+          })
+        }).catch(err => console.log('Analytics error:', err));
+        
+        // Log locally
+        console.log(`Business shared via ${platform}`);
+      } catch (error) {
+        console.log('Analytics tracking failed:', error);
+      }
+    }
+
+    // Start chat with agent (same flow as agent cards)
+    async function startChat(participantId, participantType, participantName) {
+      const buyerToken = localStorage.getItem('vendplug-buyer-token');
+      if (!buyerToken) {
+        const login = confirm('Please sign in to start a chat. Would you like to sign in now?');
+        if (login) {
+          window.location.href = 'buyer-login.html';
+        }
+        return;
+      }
+
+      if (typeof showToast === 'function') {
+        try { showToast('Opening chat...'); } catch (_) {}
+      }
+      if (typeof showLoading === 'function') {
+        try { showLoading(); } catch (_) {}
+      }
+
+      try {
+        const response = await fetch('/api/chats', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${buyerToken}`
+          },
+          body: JSON.stringify({
+            participantId: participantId,
+            participantType: participantType
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Chat created/found:', data);
+          window.location.href = 'chat.html';
+        } else {
+          const error = await response.json();
+          console.error('Failed to create chat:', error);
+          alert('Failed to start chat. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error creating chat:', error);
+        alert('Error starting chat. Please try again.');
+      } finally {
+        if (typeof hideLoading === 'function') {
+          try { hideLoading(); } catch (_) {}
+        }
+      }
+    }
+
+    // Update the existing DOMContentLoaded to initialize sharing
+    const originalDOMContentLoaded = document.addEventListener;
+    document.addEventListener('DOMContentLoaded', async () => {
+      const agentId = new URLSearchParams(window.location.search).get('agent');
+
+      if (!agentId) {
+        alert('Agent ID is missing from the URL');
+        return;
+      }
+
+      const agentProfileEl = document.getElementById('agentProfile');
+      const agentProductsEl = document.getElementById('agentProducts');
+      const loadingEl = document.querySelector('.loading');
+
+      try {
+        // Fetch agent profile
+        const agentRes = await fetch(`/api/agents/${agentId}`);
+        const agent = await agentRes.json();
+
+        if (!agent || !agent.fullName) {
+          agentProfileEl.innerHTML = '<p class="error-message">Agent not found.</p>';
+          loadingEl.style.display = 'none';
+          return;
+        }
+
+        // Initialize sharing functionality
+        initializeSharing(agent);
+
+        agentProfileEl.innerHTML = `
+          <div class="agent-details">
+            <div class="agent-info">
+              <h2>${agent.fullName}</h2>
+              <p><strong>Phone:</strong> <span>${agent.phoneNumber || 'Not provided'}</span></p>
+              <p><strong>Address:</strong> ${agent.businessAddress || 'Not provided'}</p>
+              <p><strong>State:</strong> ${agent.state || 'Not specified'}</p>
+              <p><strong>Total Transactions:</strong> ${agent.totalTransactions || 0}</p>
+              <div style="margin-top: 15px;" id="messageButtonContainer">
+                <!-- Message button will be added here by JavaScript if user is a buyer -->
+              </div>
+            </div>
+          </div>
+        `;
+
+        // Fetch agent products
+        console.log("Loading business for agent:", agentId);
+        const productsRes = await fetch(`/api/agent-products/agent/${agentId}`);
+        const products = await productsRes.json();
+
+        // Hide loading spinner
+        loadingEl.style.display = 'none';
+
+        if (!products || products.length === 0) {
+          agentProductsEl.innerHTML = '<p class="no-products">No products for this agent yet.</p>';
+          return;
+        }
+
+        agentProductsEl.innerHTML = products.map(product => `
+          <div class="product-card" onclick="window.location.href='/view-business-view.html?product=${product._id}'">
+            <img src="${product.image || '/placeholder.png'}" alt="${product.name}" class="product-image" />
+            <div class="product-info">
+              <h4>${product.name}</h4>
+              <p>₦${product.price.toLocaleString()}</p>
+              <p style="margin-top:6px;color:${(() => { const a=Math.max(0, Number(product.stock||0)-Number(product.reserved||0)); return a<=0?'#ff7675':'var(--muted)'; })()}">
+                ${(() => { const a=Math.max(0, Number(product.stock||0)-Number(product.reserved||0)); if(a<=0) return 'Out of Stock'; const hint = a<=5?` <span style=\"margin-left:6px;\">Only ${a} available</span>`:''; return `Stock: ${a}${hint}`; })()}
+              </p>
+            </div>
+          </div>
+        `).join('');
+
+      } catch (error) {
+        console.error('Error loading agent data:', error);
+        loadingEl.style.display = 'none';
+        agentProfileEl.innerHTML = '<p class="error-message">Error loading agent data.</p>';
+        agentProductsEl.innerHTML = '';
+      }
+    });
+
+    // Show message button only for buyers
+    function showMessageButtonIfBuyer() {
+      const currentUser = JSON.parse(localStorage.getItem('vendplugBuyer'));
+      if (currentUser && currentUser.role === 'buyer') {
+        const messageButtonContainer = document.getElementById('messageButtonContainer');
+        if (messageButtonContainer) {
+          const agentId = new URLSearchParams(window.location.search).get('agent');
+          messageButtonContainer.innerHTML = `
+            <button class="message-btn" onclick="startChat('${agentId}', 'Agent', 'Agent')">
+              <i class="fas fa-comments"></i>
+              Message Agent
+            </button>
+          `;
+        }
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(ensureMessageButton, 300);
+    });
+    window.addEventListener('storage', (e)=>{
+      if (e.key === 'vendplug-buyer-token' || e.key === 'vendplugBuyer') ensureMessageButton();
+    });
+  </script>
+    <script src="/js/auth-utils.js"></script>
+    <script src="/js/back-button.js"></script>
+    <script src="/js/adManager.js"></script>
+  <script src="/js/cart-badge.js"></script>
+</body>
+</html>

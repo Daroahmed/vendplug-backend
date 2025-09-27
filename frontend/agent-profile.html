@@ -2,145 +2,201 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Agent Profile | VendPlug</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <title>VendPlug | Agent Profile</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    :root {
-      --primary-green: #3BA935;
-      --dark-green: #002b18;
-      --light-bg: #f4fff8;
-    }
-
     body {
-      margin: 0;
       font-family: 'Segoe UI', sans-serif;
-      background-color: var(--light-bg);
-    }
-
-    header {
-      background-color: var(--dark-green);
+      background-color: #121212;
       color: white;
-      padding: 1rem;
-      text-align: center;
-    }
-
-    .container {
-      max-width: 600px;
-      margin: 2rem auto;
-      background: white;
-      padding: 2rem;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      padding: 20px;
     }
 
     h2 {
-      color: var(--primary-green);
+      color: #00cc99;
+      margin-bottom: 20px;
       text-align: center;
-      margin-bottom: 1.5rem;
     }
 
-    .profile-item {
-      margin-bottom: 1.2rem;
+    .profile-container {
+      background: #1e1e1e;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 600px;
+      margin: 0 auto;
     }
 
-    .profile-item label {
+    label {
       display: block;
+      margin-top: 14px;
       font-weight: bold;
-      margin-bottom: 0.3rem;
-      color: #333;
     }
 
-    .profile-item input {
+    input {
       width: 100%;
-      padding: 0.7rem;
-      border: 1px solid #ccc;
+      padding: 10px;
+      margin-top: 6px;
       border-radius: 5px;
-    }
-
-    .profile-actions {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 2rem;
-    }
-
-    .btn {
-      padding: 0.6rem 1.2rem;
       border: none;
-      border-radius: 5px;
-      font-size: 1rem;
+      background: #2c2c2c;
+      color: white;
+    }
+
+    input[type="file"] {
+      padding: 6px;
+      background: #2c2c2c;
+      color: #bbb;
+    }
+
+    #brandPreview {
+      display: block;
+      margin-top: 10px;
+      max-width: 120px;
+      border-radius: 8px;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 10px;
+      width: 100%;
+      background-color: #00cc99;
+      color: black;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
       cursor: pointer;
     }
 
-    .btn-primary {
-      background-color: var(--primary-green);
-      color: white;
+    button:hover {
+      background-color: #01b488;
     }
 
-    .btn-logout {
-      background-color: #dc3545;
-      color: white;
+    .msg {
+      margin-top: 12px;
+      font-size: 0.95em;
+    }
+
+    .msg.success {
+      color: #00ff88;
+    }
+
+    .msg.error {
+      color: #ff5555;
     }
   </style>
 </head>
 <body>
+  <h2>Agent Profile</h2>
 
-<header>
-  <h2>My Profile</h2>
-</header>
-
-<div class="container">
-  <h2>Agent Details</h2>
-
-  <div class="profile-item">
+  <div class="profile-container">
     <label for="fullName">Full Name</label>
     <input type="text" id="fullName" disabled />
-  </div>
 
-  <div class="profile-item">
     <label for="email">Email</label>
     <input type="email" id="email" disabled />
+
+    <label for="businessName">Business Name</label>
+    <input type="text" id="businessName" />
+
+    <label for="businessAddress">Business Address</label>
+    <input type="text" id="businessAddress" />
+
+    <label for="phoneNumber">Phone Number</label>
+    <input type="text" id="phoneNumber" />
+
+    <label for="cacNumber">CAC Number</label>
+    <input type="text" id="cacNumber" />
+
+    <label for="businessDescription">Business Description</label>
+    <input type="text" id="businessDescription" />
+
+    <label for="brandImage">Brand Image</label>
+    <input type="file" id="brandImage" accept="image/*" />
+    <img id="brandPreview" alt="Brand Preview" />
+
+    <button onclick="updateProfile()">Save Changes</button>
+
+    <div id="statusMsg" class="msg"></div>
   </div>
 
-  <div class="profile-item">
-    <label for="phone">Phone Number</label>
-    <input type="text" id="phone" disabled />
-  </div>
+  <script src="/js/config.js"></script>
+  <script src="/js/auth-utils.js"></script>
+  <script src="/js/back-button.js"></script>
+  <script>
+    const agent = JSON.parse(localStorage.getItem("vendplugAgent"));
+    const token = getAuthToken();
+    const BACKEND = window.BACKEND_URL || "";
 
-  <div class="profile-actions">
-    <button class="btn btn-logout" onclick="logout()">Logout</button>
-  </div>
-</div>
-
-<script>
-  const token = localStorage.getItem('vendplug-token');
-  if (!token) {
-    window.location.href = 'agent-login.html';
-  }
-
-  fetch('/api/agents/profile', {
-    headers: {
-      Authorization: `Bearer ${token}`
+    if (!agent || !token) {
+      alert("Unauthorized. Please log in again.");
+      window.location.href = "/agent-auth.html";
     }
-  })
-  .then(res => res.json())
-  .then(agent => {
-    document.getElementById('fullName').value = agent.fullName || '';
-    document.getElementById('email').value = agent.email || '';
-    document.getElementById('phone').value = agent.phoneNumber || '';
-  })
-  .catch(err => {
-    alert("Session expired or server error.");
-    localStorage.removeItem('vendplug-token');
-    window.location.href = 'agent-login.html';
-  });
 
-  function logout() {
-    localStorage.removeItem('vendplug-token');
-    window.location.href = 'agent-login.html';
-  }
-</script>
+    document.addEventListener("DOMContentLoaded", () => {
+      loadProfile();
 
+      // Preview uploaded brand image
+      document.getElementById("brandImage").addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            document.getElementById("brandPreview").src = reader.result;
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    });
+
+    function loadProfile() {
+      document.getElementById("fullName").value = agent.fullName || "";
+      document.getElementById("email").value = agent.email || "";
+      document.getElementById("businessName").value = agent.businessName || "";
+      document.getElementById("businessAddress").value = agent.businessAddress || "";
+      document.getElementById("phoneNumber").value = agent.phoneNumber || "";
+      document.getElementById("cacNumber").value = agent.cacNumber || "";
+      document.getElementById("businessDescription").value = agent.businessDescription || "";
+      if (agent.brandImage) {
+        document.getElementById("brandPreview").src = agent.brandImage;
+      }
+    }
+
+    async function updateProfile() {
+      const formData = new FormData();
+      formData.append("businessName", document.getElementById("businessName").value);
+      formData.append("businessAddress", document.getElementById("businessAddress").value);
+      formData.append("phoneNumber", document.getElementById("phoneNumber").value);
+      formData.append("cacNumber", document.getElementById("cacNumber").value);
+      formData.append("businessDescription", document.getElementById("businessDescription").value);
+
+      const brandFile = document.getElementById("brandImage").files[0];
+      if (brandFile) {
+        formData.append("brandImage", brandFile);
+      }
+
+      try {
+        const res = await fetch(`${BACKEND}/api/agents/profile`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        });
+
+        const data = await res.json();
+        const msg = document.getElementById("statusMsg");
+
+        if (!res.ok) throw new Error(data.message || "Update failed");
+
+        localStorage.setItem("vendplugAgent", JSON.stringify(data.agent));
+        msg.textContent = "✅ Profile updated successfully";
+        msg.className = "msg success";
+      } catch (err) {
+        document.getElementById("statusMsg").textContent = err.message;
+        document.getElementById("statusMsg").className = "msg error";
+      }
+    }
+  </script>
+  
 </body>
 </html>

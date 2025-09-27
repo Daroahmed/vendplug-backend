@@ -35,16 +35,16 @@ const transferFunds = async (req, res) => {
     const ref = `TX-${uuidv4()}`;
     const description = `Transfer from ${fromAccountNumber} to ${toAccountNumber}${orderId ? ` for Order ${orderId}` : ''}`;
 
-    const txn = await Transaction.create({
-      type: 'transfer',
-      from: fromAccountNumber,
-      to: toAccountNumber,
-      amount,
-      description,
-      ref,
-      initiatorType: userRole,
-      initiatedBy: userId,
-    });
+const txn = await Transaction.create({
+  type: 'transfer',
+  from: fromAccountNumber,
+  to: toAccountNumber,
+  amount,
+  description,
+  ref,
+  initiatorType: req.user.role.charAt(0).toUpperCase() + req.user.role.slice(1), // Buyer/Agent/Vendor
+  initiatedBy: userId,
+});
 
     // Populate and attach readable initiator name
     await txn.populate('initiatedBy', 'fullName name businessName');

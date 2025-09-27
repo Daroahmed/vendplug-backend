@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear localStorage</title>
+</head>
+<body>
+    <h1>Clear localStorage</h1>
+    <button onclick="clearAll()">Clear All localStorage</button>
+    <button onclick="clearVendor()">Clear Vendor Data Only</button>
+    <button onclick="clearBuyer()">Clear Buyer Data Only</button>
+    <button onclick="clearAgent()">Clear Agent Data Only</button>
+    <div id="status"></div>
+    
+    <script>
+        function clearAll() {
+            localStorage.clear();
+            document.getElementById('status').innerHTML = '<p style="color: green;">All localStorage cleared!</p>';
+        }
+        
+        function clearVendor() {
+            localStorage.removeItem('vendplugVendor');
+            localStorage.removeItem('vendplug-vendor-token');
+            document.getElementById('status').innerHTML = '<p style="color: green;">Vendor data cleared!</p>';
+        }
+        
+        function clearBuyer() {
+            localStorage.removeItem('vendplugBuyer');
+            localStorage.removeItem('vendplug-buyer-token');
+            document.getElementById('status').innerHTML = '<p style="color: green;">Buyer data cleared!</p>';
+        }
+        
+        function clearAgent() {
+            localStorage.removeItem('vendplugAgent');
+            localStorage.removeItem('vendplug-agent-token');
+            document.getElementById('status').innerHTML = '<p style="color: green;">Agent data cleared!</p>';
+        }
+    </script>
+</body>
+</html>

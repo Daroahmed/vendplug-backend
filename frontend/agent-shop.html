@@ -1,0 +1,1458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VendPlug | Agent Businesses</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/ads.css">
+  <style>
+    /* Your CSS remains the same */
+    :root {
+      --primary: #00cc99;
+      --bg-dark: #121212;
+      --bg-card: #1e1e1e;
+      --bg-secondary: #2c2c2c;
+      --text-light: #fff;
+      --muted: #aaa;
+      --accent: #00cc99;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-light);
+      margin: 0;
+      padding-top: 70px;
+    }
+
+    /* Header Styles */
+    .header {
+      background-color: var(--bg-card);
+      padding: 1rem;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .menu-toggle {
+      background: none;
+      border: none;
+      color: var(--text-light);
+      font-size: 1.5rem;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+
+    .logo {
+      width: 40px;
+      height: 40px;
+      background-color: var(--primary);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 20px;
+    }
+
+    .header h1 {
+      font-size: 1.5rem;
+      color: var(--primary);
+      margin: 0;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .cart-icon {
+      color: var(--text-light);
+      font-size: 1.2rem;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+
+    .cart-count {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background-color: var(--primary);
+      color: #000;
+      font-size: 0.7rem;
+      font-weight: bold;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Button styles for public users */
+    .btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-block;
+      text-align: center;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: var(--text-light);
+    }
+
+    .btn-primary:hover {
+      background: #00b894;
+      transform: translateY(-2px);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--primary);
+      border: 2px solid var(--primary);
+    }
+
+    .btn-outline:hover {
+      background: var(--primary);
+      color: var(--text-light);
+    }
+
+    /* Hamburger Menu */
+    .menu-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 999;
+      display: none;
+    }
+
+    .side-menu {
+      position: fixed;
+      top: 0;
+      left: -300px;
+      width: 300px;
+      height: 100%;
+      background: var(--bg-card);
+      z-index: 1000;
+      padding: 1.5rem;
+      overflow-y: auto;
+      transition: left 0.3s ease;
+    }
+
+    .side-menu.active {
+      left: 0;
+    }
+
+    .menu-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .menu-header h3 {
+      color: var(--primary);
+    }
+
+    .close-menu {
+      background: none;
+      border: none;
+      color: var(--text-light);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .menu-section {
+      margin-bottom: 1.5rem;
+    }
+
+    .menu-section h4 {
+      color: var(--primary);
+      margin-bottom: 0.8rem;
+      font-size: 1rem;
+    }
+
+    .menu-links {
+      list-style: none;
+    }
+
+    .menu-links li {
+      margin-bottom: 0.5rem;
+    }
+
+    .menu-links a {
+      display: block;
+      padding: 0.8rem 1rem;
+      color: var(--text-light);
+      text-decoration: none;
+      border-radius: 8px;
+      transition: all 0.3s;
+    }
+
+    .menu-links a:hover {
+      background: var(--bg-secondary);
+      color: var(--primary);
+    }
+
+    /* Main Content */
+    .business-page {
+      padding: 1.5rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Sticky Filters */
+    .sticky-filters {
+      position: sticky;
+      top: 70px;
+      z-index: 90;
+      background: var(--bg-dark);
+      padding: 10px 0;
+      margin-bottom: 1rem;
+    }
+
+    /* Search and Filters */
+    .search-container {
+      background: var(--bg-card);
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+
+    .search-box {
+      width: 100%;
+      padding: 0.9rem 1rem;
+      border-radius: 8px;
+      border: none;
+      font-size: 1rem;
+      background-color: var(--bg-secondary);
+      color: var(--text-light);
+      margin-bottom: 1rem;
+    }
+
+    .filters {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .filter-label {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .filter-select {
+      padding: 0.6rem;
+      border-radius: 6px;
+      border: none;
+      background-color: var(--bg-secondary);
+      color: var(--text-light);
+    }
+
+    /* View Toggle */
+    .view-toggle {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 1rem;
+      gap: 10px;
+    }
+
+    .view-btn {
+      background: var(--bg-secondary);
+      border: none;
+      color: var(--muted);
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .view-btn.active {
+      background: var(--primary);
+      color: #000;
+    }
+
+    /* Agent Sections */
+    .section-title {
+      color: var(--primary);
+      margin: 2rem 0 1rem;
+      font-size: 1.5rem;
+    }
+
+    .horizontal-carousel {
+      display: flex;
+      overflow-x: auto;
+      gap: 1.2rem;
+      padding: 0.5rem 0.5rem 1.5rem;
+      scroll-snap-type: x mandatory;
+      margin-bottom: 2rem;
+    }
+
+    .horizontal-carousel::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    .horizontal-carousel::-webkit-scrollbar-thumb {
+      background-color: var(--primary);
+      border-radius: 4px;
+    }
+
+    /* Combined horizontal and vertical layout */
+    .agent-combined-layout {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .agent-combined-layout::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .agent-combined-layout::-webkit-scrollbar-thumb {
+      background-color: var(--primary);
+      border-radius: 4px;
+    }
+
+    .agent-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .agent-card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      transition: transform 0.3s;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .agent-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .agent-image {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+    }
+
+    .agent-info {
+      padding: 1.2rem;
+    }
+
+    .agent-info h3 {
+      margin: 0 0 0.5rem;
+      color: var(--primary);
+      font-size: 1.1rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .agent-details {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .transaction-count {
+      color: var(--primary);
+      font-weight: bold;
+      margin-bottom: 1rem;
+    }
+
+    .view-business-btn {
+      display: block;
+      width: 100%;
+      padding: 0.7rem;
+      background-color: var(--primary);
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .view-business-btn:hover {
+      background-color: var(--accent);
+    }
+
+    /* Quick Actions */
+    .quick-actions {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      gap: 5px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .agent-card:hover .quick-actions {
+      opacity: 1;
+    }
+
+    .quick-btn {
+      background: rgba(0, 0, 0, 0.7);
+      border: none;
+      color: white;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+
+    .quick-btn:hover {
+      background: var(--primary);
+      color: black;
+    }
+
+    /* Loading Spinner */
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 3rem;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      border-top: 4px solid var(--primary);
+      animation: spin 1s linear infinite;
+    }
+
+    .no-results, .error {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+    }
+
+    .load-more {
+      display: block;
+      width: 200px;
+      margin: 2rem auto;
+      padding: 1rem;
+      background: var(--primary);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Back to top button */
+    .back-to-top {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 99;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+
+    .back-to-top.visible {
+      opacity: 1;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .agent-grid, .agent-combined-layout {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+      }
+      
+      .filters {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .filter-group {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .view-toggle {
+        justify-content: center;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .header h1 {
+        font-size: 1.2rem;
+      }
+      
+      .agent-grid, .agent-combined-layout {
+        grid-template-columns: 1fr;
+      }
+      
+      .business-page {
+        padding: 1rem;
+      }
+
+      .sticky-filters {
+        top: 60px;
+      }
+    }
+
+    /* Share Modal Styles */
+    .share-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .share-modal-content {
+      background: var(--bg-card);
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+    }
+
+    .share-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .share-modal-header h3 {
+      color: var(--primary);
+      margin: 0;
+    }
+
+    .close-modal {
+      background: none;
+      border: none;
+      color: var(--text-light);
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 5px;
+    }
+
+    .share-options {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+    }
+
+    .share-option {
+      background: var(--bg-secondary);
+      border: none;
+      border-radius: 8px;
+      padding: 1rem;
+      color: var(--text-light);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .share-option:hover {
+      background: var(--primary);
+      color: var(--bg-dark);
+      transform: translateY(-2px);
+    }
+
+    .share-option i {
+      font-size: 1.5rem;
+    }
+
+    /* Toast Styles */
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--bg-card);
+      color: var(--text-light);
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 1001;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+    }
+
+    .toast.show {
+      transform: translateX(0);
+    }
+
+    .toast-success {
+      border-left: 4px solid var(--primary);
+    }
+
+    .toast-error {
+      border-left: 4px solid #ff4444;
+    }
+
+    .toast-info {
+      border-left: 4px solid #1DA1F2;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-container">
+      <button class="menu-toggle" id="menuToggle">
+        <i class="fas fa-bars"></i>
+      </button>
+      <h1>Agent Businesses</h1>
+    </div>
+    
+    <div class="header-actions">
+      <!-- Public user actions -->
+      <div id="publicActions" style="display: none;">
+        <a href="buyer-login.html" class="btn btn-outline" style="padding: 0.5rem 1rem; margin-right: 0.5rem;">Sign In</a>
+        <a href="buyer-register.html" class="btn btn-primary" style="padding: 0.5rem 1rem;">Sign Up</a>
+      </div>
+      
+      <!-- Logged in user actions -->
+      <div id="loggedInActions" style="display: none;">
+        <a href="buyer-agent-checkout.html" class="cart-icon">
+          <i class="fas fa-shopping-cart"></i>
+          <span class="cart-count" id="cartCount">0</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+ <!-- Hamburger Menu -->
+ <div class="menu-overlay" id="menuOverlay"></div>
+ <div class="side-menu" id="sideMenu">
+   <div class="menu-header">
+     <h3>Menu</h3>
+     <button class="close-menu" id="closeMenu">
+       <i class="fas fa-times"></i>
+     </button>
+   </div>
+
+   <div class="menu-section">
+     <h4>VENDORS</h4>
+     <ul class="menu-links">
+       <li><a href="buyer-vendor-checkout.html"><i class="fas fa-shopping-cart"></i> Cart</a></li>
+       <li><a href="buyer-vendor-orders.html"><i class="fas fa-clipboard-list"></i> Orders</a></li>
+     </ul>
+   </div>
+
+   <div class="menu-section">
+     <h4>AGENTS</h4>
+     <ul class="menu-links">
+       <li><a href="buyer-agent-checkout.html"><i class="fas fa-shopping-cart"></i> Cart</a></li>
+       <li><a href="buyer-agent-orders.html"><i class="fas fa-clipboard-list"></i> Orders</a></li>
+       <li><a href="buyer-list.html"><i class="fas fa-list"></i> Custom List</a></li>
+     </ul>
+   </div>
+
+
+
+   <div class="menu-section">
+     <ul class="menu-links">
+       <li><a href="buyer-wallet.html"><i class="fas fa-wallet"></i> Wallet</a></li>
+       <li><a href="buyer-profile.html"><i class="fas fa-user"></i> Profile</a></li>
+       
+       <li><a href="my-disputes.html"><i class="fas fa-clipboard-list"></i> My Disputes</a></li>
+       <li><a href="support.html"><i class="fas fa-headset"></i> Support</a></li>
+       <li><a href="#" onclick="buyerLogout(event)"><i class="fas fa-sign-out-alt"></i> Sign Out</a></li>
+     </ul>
+   </div>
+ </div>
+  <!-- Main Content -->
+  <div class="business-page">
+    <!-- Sticky Filters -->
+    <div class="sticky-filters">
+      <div class="view-toggle">
+        <button class="view-btn active" id="gridViewBtn">
+          <i class="fas fa-th"></i> Grid View
+        </button>
+        <button class="view-btn" id="combinedViewBtn">
+          <i class="fas fa-th-large"></i> Combined View
+        </button>
+      </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="search-container">
+      <input type="search" class="search-box" id="searchBox" placeholder="Search agents..." />
+      
+      <div class="filters">
+        <div class="filter-group">
+          <span class="filter-label">State:</span>
+          <select class="filter-select" id="stateFilter">
+            <option value="">-- All States --</option>
+            <option value="Abia">Abia</option>
+            <option value="Adamawa">Adamawa</option>
+            <option value="Akwa Ibom">Akwa Ibom</option>
+            <option value="Anambra">Anambra</option>
+            <option value="Bauchi">Bauchi</option>
+            <option value="Bayelsa">Bayelsa</option>
+            <option value="Benue">Benue</option>
+            <option value="Borno">Borno</option>
+            <option value="Cross River">Cross River</option>
+            <option value="Delta">Delta</option>
+            <option value="Ebonyi">Ebonyi</option>
+            <option value="Edo">Edo</option>
+            <option value="Ekiti">Ekiti</option>
+            <option value="Enugu">Enugu</option>
+            <option value="FCT">FCT</option>
+            <option value="Gombe">Gombe</option>
+            <option value="Imo">Imo</option>
+            <option value="Jigawa">Jigawa</option>
+            <option value="Kaduna">Kaduna</option>
+            <option value="Kano">Kano</option>
+            <option value="Katsina">Katsina</option>
+            <option value="Kebbi">Kebbi</option>
+            <option value="Kogi">Kogi</option>
+            <option value="Kwara">Kwara</option>
+            <option value="Lagos">Lagos</option>
+            <option value="Nasarawa">Nasarawa</option>
+            <option value="Niger">Niger</option>
+            <option value="Ogun">Ogun</option>
+            <option value="Ondo">Ondo</option>
+            <option value="Osun">Osun</option>
+            <option value="Oyo">Oyo</option>
+            <option value="Plateau">Plateau</option>
+            <option value="Rivers">Rivers</option>
+            <option value="Sokoto">Sokoto</option>
+            <option value="Taraba">Taraba</option>
+            <option value="Yobe">Yobe</option>
+            <option value="Zamfara">Zamfara</option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <span class="filter-label">Category:</span>
+          <select class="filter-select" id="categoryFilter">
+            <option value="">-- All Categories --</option>
+            <!-- Everyday Essentials -->
+            <option value="Supermarkets/Groceries and Provisions">Supermarkets/Groceries and Provisions</option>
+            <option value="Soft Drinks & Water">Soft Drinks & Water</option>
+            <option value="Kitchen Utensils & Plastics">Kitchen Utensils & Plastics</option>
+            <option value="Gas Plants">Gas Plants</option>
+            <option value="Fruits & Vegetables">Fruits & Vegetables</option>
+            <option value="Grains">Grains</option>
+          
+            <!-- Meat & Animal Products -->
+            <option value="Suya & Balango">Suya & Balango</option>
+            <option value="Raw Meat Sellers">Raw Meat Sellers</option>
+            <option value="Poultry (Chicken, Eggs, Turkey)">Poultry (Chicken, Eggs, Turkey)</option>
+            <option value="Livestock (Goat, Ram, Cow)">Livestock (Goat, Ram, Cow)</option>
+            <option value="Fish & Seafood">Fish & Seafood</option>
+          
+            <!-- Food & Hospitality -->
+            <option value="Restaurants">Restaurants</option>
+            <option value="Catering & Small Chops">Catering & Small Chops</option>
+            <option value="Hotels & Apartments">Hotels & Apartments</option>
+            <option value="Event Rentals (Canopies, Chairs)">Event Rentals (Canopies, Chairs)</option>
+          
+            <!-- Fashion & Lifestyle -->
+            <option value="Boutiques">Boutiques</option>
+            <option value="Thrift / Okrika / Gongo">Thrift / Okrika / Gongo</option>
+            <option value="Tokunbo / Belgium Products">Tokunbo / Belgium Products</option>
+            <option value="Shoes and Bags">Shoes and Bags</option>
+            <option value="Jewelry & Accessories">Jewelry & Accessories</option>
+            <option value="Tailoring & Fashion Design">Tailoring & Fashion Design</option>
+            <option value="Textiles & Fabrics">Textiles & Fabrics</option>
+            <option value="Wigs & Hair">Wigs & Hair</option>
+            <option value="Cosmetics & Skincare">Cosmetics & Skincare</option>
+            <option value="Perfumes & Fragrances">Perfumes & Fragrances</option>
+            <option value="Nigerian Caps e.g. Zana">Nigerian Caps e.g. Zana</option>
+          
+            <!-- Home & Living -->
+            <option value="Furniture">Furniture</option>
+            <option value="Home Appliances">Home Appliances</option>
+            <option value="Interior Decor & Curtains">Interior Decor & Curtains</option>
+            <option value="Cleaning Services">Cleaning Services</option>
+            <option value="Flowers & Gardens">Flowers & Gardens</option>
+          
+            <!-- Building & Construction -->
+            <option value="Building Materials">Building Materials</option>
+            <option value="Aluminium & Roofing">Aluminium & Roofing</option>
+            <option value="Cement, Blocks & Interlock">Cement, Blocks & Interlock</option>
+            <option value="Gravel, Sharp Sand & Quarry">Gravel, Sharp Sand & Quarry</option>
+            <option value="Electrical Supplies">Electrical Supplies</option>
+            <option value="Plumbing Materials">Plumbing Materials</option>
+            <option value="Tiles & Paints">Tiles & Paints</option>
+            <option value="Metal & Iron Works">Metal & Iron Works</option>
+            <option value="Carpenters & Artisans">Carpenters & Artisans</option>
+          
+            <!-- Health & Beauty -->
+            <option value="Pharmacy & Patent Stores">Pharmacy & Patent Stores</option>
+            <option value="Hospital & Medical Equipment">Hospital & Medical Equipment</option>
+            <option value="Herbal Medicine">Herbal Medicine</option>
+            <option value="Maternity & Clinics">Maternity & Clinics</option>
+            <option value="Fitness & Supplements">Fitness & Supplements</option>
+          
+            <!-- Electronics & Gadgets -->
+            <option value="Phones & Accessories / Laptops & Computers">Phones & Accessories / Laptops & Computers</option>
+            <option value="Solar & Inverters">Solar & Inverters</option>
+            <option value="CCTV & Security Devices">CCTV & Security Devices</option>
+            <option value="Game Consoles & Accessories">Game Consoles & Accessories</option>
+          
+            <!-- Office & Services -->
+            <option value="Printing Press">Printing Press</option>
+            <option value="Stationery & Office Supplies">Stationery & Office Supplies</option>
+            <option value="Internet & Data Services">Internet & Data Services</option>
+            <option value="Freelancers & Digital Services">Freelancers & Digital Services</option>
+          
+            <!-- Auto & Transport -->
+            <option value="Car Dealers / Tokunbo Cars">Car Dealers / Tokunbo Cars</option>
+            <option value="Car Spare Parts">Car Spare Parts</option>
+            <option value="Auto Mechanics">Auto Mechanics</option>
+            <option value="Tyres, Batteries & Accessories">Tyres, Batteries & Accessories</option>
+            <option value="Car Wash & Detailing">Car Wash & Detaging</option>
+          
+            <!-- Laundry & Cleaning -->
+            <option value="Laundry Services">Laundry Services</option>
+            <option value="Dry Cleaning">Dry Cleaning</option>
+            <option value="House Cleaning">House Cleaning</option>
+          
+            <!-- Agriculture -->
+            <option value="Animal Feed & Supplements">Animal Feed & Supplements</option>
+            <option value="Fish Farming">Fish Farming</option>
+          
+            <!-- Pets -->
+            <option value="Pets (Dogs, Cats, Birds)">Pets (Dogs, Cats, Birds)</option>
+            <option value="Pet Food & Accessories">Pet Food & Accessories</option>
+            <option value="Veterinary Clinics">Veterinary Clinics</option>
+            <option value="Pet Grooming">Pet Grooming</option>
+          
+            <!-- Real Estate -->
+            <option value="Real Estate Agents">Real Estate Agents</option>
+            <option value="Rentals & Sales">Rentals & Sales</option>
+            <option value="Facility Management">Facility Management</option>
+            <option value="Movers & Packers">Movers & Packers</option>
+          
+            <!-- Professional -->
+            <option value="Legal Services">Legal Services</option>
+            <option value="Accounting & Tax">Accounting & Tax</option>
+            <option value="Private Tutors">Private Tutors</option>
+            <option value="Event Planners">Event Planners</option>
+            <option value="Photography & Videography">Photography & Videography</option>
+            <option value="Tech Repairs">Tech Repairs</option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <span class="filter-label">Min Transactions:</span>
+          <select class="filter-select" id="transactionFilter">
+            <option value="0">All</option>
+            <option value="10">10+</option>
+            <option value="50">50+</option>
+            <option value="100">100+</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- All Agents Section -->
+    <h2 class="section-title">All Agents</h2>
+    
+    <!-- Grid View -->
+    <div class="agent-grid" id="agentGrid">
+      <!-- All agents will be loaded here -->
+    </div>
+    
+    <!-- Combined View (Hidden by default) -->
+    <div class="agent-combined-layout" id="agentCombined" style="display: none;">
+      <!-- Agents in combined layout -->
+    </div>
+
+    <!-- Loading Spinner -->
+    <div class="loading" id="loadingSpinner">
+      <div class="spinner"></div>
+    </div>
+  </div>
+
+  <!-- Back to Top Button -->
+  <div class="back-to-top" id="backToTop">
+    <i class="fas fa-arrow-up"></i>
+  </div>
+
+  <script>
+    // Menu functionality
+    const menuToggle = document.getElementById('menuToggle');
+    const closeMenu = document.getElementById('closeMenu');
+    const menuOverlay = document.getElementById('menuOverlay');
+    const sideMenu = document.getElementById('sideMenu');
+
+    function openMenu() {
+      sideMenu.classList.add('active');
+      menuOverlay.style.display = 'block';
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeMenuFunc() {
+      sideMenu.classList.remove('active');
+      menuOverlay.style.display = 'none';
+      document.body.style.overflow = 'auto';
+    }
+
+    menuToggle.addEventListener('click', openMenu);
+    closeMenu.addEventListener('click', closeMenuFunc);
+    menuOverlay.addEventListener('click', closeMenuFunc);
+
+    // Update cart count from localStorage
+    function updateCartCount() {
+      const cart = JSON.parse(localStorage.getItem('cart')) || [];
+      const totalItems = cart.reduce((total, item) => total + (item.quantity || 1), 0);
+      document.getElementById('cartCount').textContent = totalItems;
+    }
+
+    // Check if user is logged in and show appropriate actions
+    function checkUserStatus() {
+      const buyerToken = localStorage.getItem('vendplug-buyer-token');
+      const publicActions = document.getElementById('publicActions');
+      const loggedInActions = document.getElementById('loggedInActions');
+      
+      if (buyerToken) {
+        // User is logged in
+        publicActions.style.display = 'none';
+        loggedInActions.style.display = 'flex';
+      } else {
+        // User is not logged in (public user)
+        publicActions.style.display = 'flex';
+        loggedInActions.style.display = 'none';
+      }
+    }
+
+    // Agent data loading functionality
+    document.addEventListener('DOMContentLoaded', () => {
+      // Check if user is logged in
+      checkUserStatus();
+      updateCartCount();
+      
+      // Get state & category from URL first, then localStorage, then default
+      const urlParams = new URLSearchParams(window.location.search);
+      let state = urlParams.get("state") || localStorage.getItem("vendplug-buyer-state") || "";
+      let category = urlParams.get("category") || localStorage.getItem("vendplug-category") || "";
+      
+      // Set the filter values
+      const stateFilter = document.getElementById('stateFilter');
+      const categoryFilter = document.getElementById('categoryFilter');
+      
+      stateFilter.value = state;
+      categoryFilter.value = category;
+      
+      // Save to localStorage
+      localStorage.setItem("vendplug-buyer-state", state);
+      localStorage.setItem("vendplug-category", category);
+      
+      console.log(`📍 State: ${state}, 📦 Category: ${category}`);
+      
+      // Load agents after a short delay to ensure DOM is fully ready
+      setTimeout(() => loadAgents(true), 100);
+    });
+
+    // Backend URL configuration 
+    const API_BASE = window.location.hostname === "localhost" 
+      ? `${window.BACKEND_URL || "http://localhost:5000"}/api` 
+      : "/api";
+    // Share base URL (use deployed URL when on localhost)
+    const SHARE_BASE = window.SHARE_BASE_URL || (window.location.hostname === 'localhost' 
+      ? (window.PUBLIC_BASE_URL || window.DEPLOY_BASE_URL || 'https://your-domain.com') 
+      : window.location.origin);
+
+    // Event listeners for filters
+    let debounceTimeout;
+    let currentPage = 1;
+    let isLoading = false;
+    let hasMore = true;
+    document.getElementById("searchBox").addEventListener("input", e => {
+      clearTimeout(debounceTimeout);
+      debounceTimeout = setTimeout(() => {
+        loadAgents(true);
+      }, 500);
+    });
+
+    document.getElementById("transactionFilter").addEventListener("change", e => {
+      loadAgents(true);
+    });
+
+    document.getElementById("stateFilter").addEventListener("change", e => {
+      const state = e.target.value;
+      localStorage.setItem("vendplug-buyer-state", state);
+      // Update URL (remove state when All States)
+      try {
+        const url = new URL(window.location.href);
+        if (state) {
+          url.searchParams.set('state', state);
+        } else {
+          url.searchParams.delete('state');
+        }
+        const qs = url.searchParams.toString();
+        history.replaceState(null, '', url.pathname + (qs ? ('?' + qs) : '') + window.location.hash);
+      } catch(_) {}
+      loadAgents(true);
+    });
+
+    document.getElementById("categoryFilter").addEventListener("change", e => {
+      const category = e.target.value;
+      localStorage.setItem("vendplug-category", category);
+      loadAgents(true);
+    });
+
+    // Back to top functionality
+    window.addEventListener('scroll', () => {
+      const backToTop = document.getElementById("backToTop");
+      if (window.pageYOffset > 300) {
+        backToTop.classList.add('visible');
+      } else {
+        backToTop.classList.remove('visible');
+      }
+    });
+
+    document.getElementById("backToTop").addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // View toggle functionality
+    document.getElementById("gridViewBtn").addEventListener('click', () => {
+      const currentView = 'grid';
+      document.getElementById("gridViewBtn").classList.add('active');
+      document.getElementById("combinedViewBtn").classList.remove('active');
+      document.getElementById("agentGrid").style.display = 'grid';
+      document.getElementById("agentCombined").style.display = 'none';
+    });
+
+    document.getElementById("combinedViewBtn").addEventListener('click', () => {
+      const currentView = 'combined';
+      document.getElementById("combinedViewBtn").classList.add('active');
+      document.getElementById("gridViewBtn").classList.remove('active');
+      document.getElementById("agentGrid").style.display = 'none';
+      document.getElementById("agentCombined").style.display = 'grid';
+    });
+
+    // Build query parameters properly
+    function buildQueryParams(params) {
+      const queryParams = new URLSearchParams();
+      
+      for (const key in params) {
+        if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+          queryParams.append(key, params[key]);
+        }
+      }
+      
+      return queryParams.toString();
+    }
+
+    async function loadAgents(reset = true) {
+      try {
+        if (isLoading) return;
+        isLoading = true;
+        const loadingSpinner = document.getElementById("loadingSpinner");
+        const agentGrid = document.getElementById("agentGrid");
+        const agentCombined = document.getElementById("agentCombined");
+
+        if (reset) {
+          currentPage = 1;
+          hasMore = true;
+          agentGrid.innerHTML = "";
+          agentCombined.innerHTML = "";
+        }
+        loadingSpinner.style.display = "flex";
+
+        // Get current filter values
+        const state = document.getElementById("stateFilter").value;
+        const category = document.getElementById("categoryFilter").value;
+        const search = document.getElementById("searchBox").value.trim();
+        const minTransactions = document.getElementById("transactionFilter").value;
+
+        const queryParams = buildQueryParams({
+          state: state,
+          category: category,
+          search: search,
+          minTransactions: minTransactions,
+          page: currentPage,
+          limit: 24
+        });
+
+        console.log("Fetching from:", `${API_BASE}/agents/shop-agents?${queryParams}`);
+        
+        const res = await fetch(`${API_BASE}/agents/shop-agents?${queryParams}`);
+        
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        
+        const data = await res.json();
+        const agents = data.agents || [];
+        hasMore = !!data.hasMore;
+
+        if (reset && agents.length === 0) {
+          agentGrid.innerHTML = `<p class=\"no-results\">No agents found for ${category || 'this category'} in ${state || 'this state'}.</p>`;
+          agentCombined.innerHTML = `<p class=\"no-results\">No agents found for ${category || 'this category'} in ${state || 'this state'}.</p>`;
+        } else if (agents.length > 0) {
+          appendAgents(agents);
+        }
+
+      } catch (err) {
+        console.error("❌ Error fetching agents:", err);
+        const agentGrid = document.getElementById("agentGrid");
+        const agentCombined = document.getElementById("agentCombined");
+        if (currentPage === 1) {
+          agentGrid.innerHTML = `<p class=\"error\">Error loading agents. Please try again later.</p>`;
+          agentCombined.innerHTML = `<p class=\"error\">Error loading agents. Please try again later.</p>`;
+        }
+      } finally {
+        const loadingSpinner = document.getElementById("loadingSpinner");
+        loadingSpinner.style.display = "none";
+        isLoading = false;
+      }
+    }
+
+    function appendAgents(agents) {
+      const agentGrid = document.getElementById("agentGrid");
+      const agentCombined = document.getElementById("agentCombined");
+      const html = agents.map(agent => agentCardHTML(agent)).join("");
+      agentGrid.insertAdjacentHTML('beforeend', html);
+      agentCombined.insertAdjacentHTML('beforeend', html);
+    }
+
+    function agentCardHTML(agent) {
+      return `
+        <div class="agent-card" onclick="viewBusiness('${agent._id}')">
+          <div class="quick-actions">
+            <button class="quick-btn" onclick="event.stopPropagation(); startChat('${agent._id}', 'Agent', '${agent.businessName || agent.businessName}')" title="Start Chat">
+              <i class="fas fa-comments"></i>
+            </button>
+            <button class="quick-btn" onclick="event.stopPropagation(); addToFavorites('${agent._id}')" title="Add to Favorites">
+              <i class="fas fa-heart"></i>
+            </button>
+            <button class="quick-btn" onclick="event.stopPropagation(); shareAgent('${agent._id}', '${agent.businessName || agent.businessName}', '${agent.state}', '${agent.category}')" title="Share">
+              <i class="fas fa-share-alt"></i>
+            </button>
+          </div>
+          <img src="${agent.image || agent.brandImage || 'https://placehold.co/400x300/2c2c2c/00cc99/png?text=Agent'}" alt="${agent.businessName || agent.businessName}" class="agent-image" />
+          <div class="agent-info">
+            <h3>${agent.businessName || agent.businessName}</h3>
+            <p class="agent-details">${agent.state} • ${agent.category}</p>
+            <p class="transaction-count">${agent.totalTransactions || 0} transactions</p>
+            <button class="view-business-btn">View Business</button>
+          </div>
+        </div>
+      `;
+    }
+
+    
+
+    function viewBusiness(id) {
+      window.location.href = `/view-business.html?agent=${id}`;
+    }
+
+    // Infinite scroll
+    window.addEventListener('scroll', () => {
+      if (!hasMore || isLoading) return;
+      const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 600;
+      if (nearBottom) {
+        currentPage += 1;
+        loadAgents(false);
+      }
+    });
+
+    // Start chat with agent
+    async function startChat(participantId, participantType, participantName) {
+      const buyerToken = localStorage.getItem('vendplug-buyer-token');
+      if (!buyerToken) {
+        window.showOverlay && showOverlay({ type:'info', title:'Sign in required', message:'Please sign in to start a chat.' });
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/chats', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${buyerToken}`
+          },
+          body: JSON.stringify({
+            participantId: participantId,
+            participantType: participantType
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Chat created/found:', data);
+          // Redirect to chat page
+          window.location.href = 'chat.html';
+        } else {
+          const error = await response.json();
+          console.error('Failed to create chat:', error);
+          window.showOverlay && showOverlay({ type:'error', title:'Chat', message:'Failed to start chat. Please try again.' });
+        }
+      } catch (error) {
+        console.error('Error creating chat:', error);
+        window.showOverlay && showOverlay({ type:'error', title:'Chat', message:'Error starting chat. Please try again.' });
+      }
+    }
+    function addToFavorites(id) {
+      // Implement favorite functionality
+      console.log("Added to favorites:", id);
+      // You would typically make an API call here
+    }
+
+    function shareAgent(id, businessName, state, category) {
+      const businessUrl = `${SHARE_BASE}/view-business.html?agent=${id}`;
+      // Store context globally for handlers
+      window.currentShare = { businessName, state, category, businessUrl };
+      // Create and show share modal
+      showShareModal(businessName);
+    }
+
+    // Show share modal
+    function showShareModal(businessName) {
+      // Remove existing modal if any
+      const existingModal = document.querySelector('.share-modal');
+      if (existingModal) existingModal.remove();
+
+      const modal = document.createElement('div');
+      modal.className = 'share-modal';
+      modal.innerHTML = `
+        <div class="share-modal-content">
+          <div class="share-modal-header">
+            <h3>Share ${businessName}</h3>
+            <button class="close-modal" onclick="this.closest('.share-modal').remove()">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div class="share-options">
+              <button class="share-option" onclick="this.closest('.share-modal').remove(); handleShare('whatsapp')">
+                <i class="fab fa-whatsapp" style="color: #25D366"></i>
+                <span>WhatsApp</span>
+              </button>
+              <button class="share-option" onclick="this.closest('.share-modal').remove(); handleShare('facebook')">
+                <i class="fab fa-facebook" style="color: #1877F2"></i>
+                <span>Facebook</span>
+              </button>
+              <button class="share-option" onclick="this.closest('.share-modal').remove(); handleShare('twitter')">
+                <i class="fab fa-twitter" style="color: #1DA1F2"></i>
+                <span>Twitter</span>
+              </button>
+              <button class="share-option" onclick="this.closest('.share-modal').remove(); handleShare('copy')">
+                <i class="fas fa-copy" style="color: #00cc99"></i>
+                <span>Copy Link</span>
+              </button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+      
+      // Close modal when clicking outside
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+      });
+    }
+
+    // Handle share actions using stored context
+    function handleShare(platform) {
+      const ctx = window.currentShare || {};
+      if (!ctx.businessUrl && !ctx.shopUrl) return;
+      const url = ctx.businessUrl || ctx.shopUrl;
+      switch (platform) {
+        case 'whatsapp':
+          return shareToWhatsApp(ctx.businessName, ctx.state, ctx.category, url);
+        case 'facebook':
+          return shareToFacebook(url);
+        case 'twitter':
+          return shareToTwitter(ctx.businessName, url);
+        case 'copy':
+          return copyBusinessLink(url);
+        default:
+          break;
+      }
+    }
+
+    // Share to WhatsApp
+    function shareToWhatsApp(businessName, state, category, businessUrl) {
+      const message = `Check out this amazing business on Vendplug!\n\n🏪 ${businessName}\n📍 ${state} • ${category}\n\n${businessUrl}`;
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank');
+      
+      // Track sharing
+      trackShare('whatsapp', businessUrl);
+    }
+
+    // Share to Facebook
+    function shareToFacebook(businessUrl) {
+      const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(businessUrl)}`;
+      window.open(facebookUrl, '_blank', 'width=600,height=400');
+      
+      // Track sharing
+      trackShare('facebook', businessUrl);
+    }
+
+    // Share to Twitter
+    function shareToTwitter(businessName, businessUrl) {
+      const message = `Check out ${businessName} on Vendplug! 🏪✨\n\n${businessUrl}`;
+      const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`;
+      window.open(twitterUrl, '_blank', 'width=600,height=400');
+      
+      // Track sharing
+      trackShare('twitter', businessUrl);
+    }
+
+    // Copy business link
+    function copyBusinessLink(businessUrl) {
+      navigator.clipboard.writeText(businessUrl).then(() => {
+        // Show success message
+        showToast('Link copied to clipboard!', 'success');
+      }).catch(err => {
+        console.error('Failed to copy:', err);
+        showToast('Failed to copy link', 'error');
+      });
+      
+      // Track sharing
+      trackShare('copy', businessUrl);
+    }
+
+    // Track sharing analytics
+    function trackShare(platform, businessUrl) {
+      try {
+        // Send analytics to backend
+        fetch('/api/analytics/share', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            platform,
+            businessUrl,
+            timestamp: new Date().toISOString()
+          })
+        }).catch(err => console.log('Analytics error:', err));
+        
+        // Log locally
+        console.log(`Business shared via ${platform}`);
+      } catch (error) {
+        console.log('Analytics tracking failed:', error);
+      }
+    }
+
+    // Show toast message
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.textContent = message;
+      
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.classList.add('show');
+      }, 100);
+      
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+  </script>
+    <script src="/js/auth-utils.js"></script>
+    <script src="/js/back-button.js"></script>
+    <script src="/js/adManager.js"></script>
+    <script src="/js/cart-badge.js"></script>
+    <script>
+      function buyerLogout(e){
+        if (e && e.preventDefault) e.preventDefault();
+        try {
+          localStorage.removeItem('vendplug-buyer-token');
+          localStorage.removeItem('vendplugBuyer');
+          localStorage.removeItem('cart');
+          localStorage.removeItem('vendorCart');
+          localStorage.removeItem('agentCart');
+          localStorage.removeItem('vendplug-category');
+          localStorage.removeItem('vendplug-buyer-state');
+        } catch(_) {}
+        window.location.href = 'auth-selection.html';
+      }
+    </script>
+</body>
+</html>

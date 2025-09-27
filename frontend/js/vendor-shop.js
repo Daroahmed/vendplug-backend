@@ -2,7 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const vendorGrid = document.getElementById("vendorGrid");
   const loadingSpinner = document.getElementById("loadingSpinner");
 
-  const API_BASE = "/api"; // Change this if your API base is different
+  const BACKEND_URL = "/api"; // Change this if your API base is different
 
   // ✅ Get state & category from URL first, then localStorage, then default
   const urlParams = new URLSearchParams(window.location.search);
@@ -22,7 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
       vendorGrid.innerHTML = "";
 
       const res = await fetch(
-        `${API_BASE}/vendors/shop-vendors?state=${encodeURIComponent(state)}&category=${encodeURIComponent(category)}`
+        `${BACKEND_URL}/vendors/shop-vendors?state=${encodeURIComponent(state)}&category=${encodeURIComponent(category)}`
       );
       const data = await res.json();
 

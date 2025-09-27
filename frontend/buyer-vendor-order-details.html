@@ -3,38 +3,147 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>VendPlug | Order Details</title>
+  <title>VendPlug | Order Status</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
+    .header { background:#1e1e1e; padding:1rem; position:sticky; top:0; z-index:100; display:flex; align-items:center; box-shadow:0 2px 10px rgba(0,0,0,0.3); margin:-1rem -1rem 1rem -1rem; }
+    .back-button { background:none; border:none; color:#fff; font-size:1.2rem; margin-right:15px; cursor:pointer; }
+    .header-title { font-size:1.2rem; color:#00cc99; }
+    .header-actions { margin-left:auto; display:flex; align-items:center; gap:12px; }
+    .header-actions a { color:#fff; text-decoration:none; }
+    .notification-icon { position: relative; }
+    .notification-badge {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background-color: #00cc99;
+      color: #000;
+      font-size: 0.7rem;
+      font-weight: bold;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
     body {
       background: #121212;
       color: #fff;
       font-family: 'Segoe UI', sans-serif;
       padding: 1rem;
+      margin: 0;
     }
-    h2 { color: #00cc99; text-align: center; }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    h1 {
+      color: #00cc99;
+      margin: 0;
+      font-size: 1.8rem;
+    }
+    .last-updated {
+      color: #888;
+      font-size: 0.9rem;
+    }
     .details-card {
       background: #1e1e1e;
       padding: 1.5rem;
       border-radius: 12px;
       box-shadow: 0 0 10px rgba(0,0,0,0.4);
-      max-width: 600px;
-      margin: auto;
+      margin-bottom: 1.5rem;
     }
-    .status-timeline {
-      margin: 1rem 0;
-      padding: 0;
-      list-style: none;
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid #333;
     }
-    .status-timeline li {
-      margin: 6px 0;
-      padding: 6px;
-      border-left: 3px solid #444;
-      padding-left: 10px;
-    }
-    .status-active {
-      border-color: #00cc99;
+    .order-id {
       font-weight: bold;
       color: #00cc99;
+    }
+    .current-status {
+      background: #00cc99;
+      color: #121212;
+      padding: 0.3rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: bold;
+    }
+    .status-timeline {
+      margin: 1.5rem 0;
+      padding: 0;
+      list-style: none;
+      position: relative;
+    }
+    .status-timeline:before {
+      content: '';
+      position: absolute;
+      left: 10px;
+      top: 0;
+      height: 100%;
+      width: 2px;
+      background: #333;
+    }
+    .status-timeline li {
+      margin: 12px 0;
+      padding-left: 30px;
+      position: relative;
+      min-height: 24px;
+      display: flex;
+      flex-direction: column;
+    }
+    .status-timeline li:before {
+      content: '';
+      position: absolute;
+      left: 4px;
+      top: 4px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #333;
+      z-index: 1;
+    }
+    .status-active {
+      color: #00cc99;
+    }
+    .status-active:before {
+      background: #00cc99 !important;
+      box-shadow: 0 0 5px #00cc99;
+    }
+    .status-time {
+      font-size: 0.8rem;
+      color: #888;
+      margin-top: 2px;
+    }
+    .progress-container {
+      height: 6px;
+      background: #333;
+      border-radius: 3px;
+      overflow: hidden;
+      margin: 1rem 0;
+    }
+    .progress-bar {
+      height: 100%;
+      background: #00cc99;
+      width: 0%;
+      transition: width 0.5s ease;
+    }
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1.5rem;
     }
     button {
       background: #00cc99;
@@ -44,19 +153,240 @@
       border-radius: 6px;
       cursor: pointer;
       font-weight: bold;
-      margin-top: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
     button:disabled {
-      background: gray;
+      background: #444;
+      color: #777;
       cursor: not-allowed;
+    }
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(0,0,0,0.3);
+      border-radius: 50%;
+      border-top-color: #000;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .auto-update-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      color: #aaa;
+    }
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 20px;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #333;
+      transition: .4s;
+      border-radius: 34px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #00cc99;
+    }
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+    
+    /* Copy button styles */
+    .copy-btn {
+      background: #00cc99;
+      color: #000;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      margin-left: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .copy-btn:hover {
+      background: #00b386;
+    }
+    
+    .copy-btn i {
+      font-size: 10px;
+    }
+    
+    .info-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
+    .info-row strong {
+      min-width: 120px;
     }
   </style>
 </head>
 <body>
-  <h2>Order Details</h2>
-  <div id="orderDetails" class="details-card">Loading...</div>
-
+  <div class="container">
+    <div class="header">
+      <button class="back-button" onclick="goBackToVendorOrders()"><i class="fas fa-arrow-left"></i></button>
+      <div class="header-title" style="flex:1;">Vendor Order Details</div>
+      <div class="header-actions">
+        <a href="chat.html" title="Messages"><i class="fas fa-comments"></i></a>
+        <!-- Notification icon injected by notifications.js -->
+        <a href="buyer-vendor-checkout.html" title="Cart"><i class="fas fa-shopping-cart"></i></a>
+      </div>
+    </div>
+    <header>
+      <h1>Order Status</h1>
+      <div class="last-updated" id="lastUpdated">Last checked: Just now</div>
+    </header>
+    
+    <div id="orderDetails" class="details-card">
+      <div class="order-header">
+        <div class="order-id">Order #: <span id="orderNumber">Loading...</span></div>
+        <div class="current-status" id="currentStatus">Loading...</div>
+      </div>
+      
+      <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      
+      <ul class="status-timeline" id="statusTimeline">
+        <li>Loading status updates...</li>
+      </ul>
+      
+      <div class="actions">
+        <button id="refreshBtn">Refresh Status</button>
+        <div class="auto-update-toggle">
+          <label class="toggle-switch">
+            <input type="checkbox" id="autoUpdateToggle" checked>
+            <span class="slider"></span>
+          </label>
+          Auto-update
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="/js/auth-utils.js"></script>
+  <script src="/js/back-button.js"></script>
   <script src="js/config.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="/js/notifications.js"></script>
   <script src="js/buyer-vendor-order-details.js"></script>
+  
+  <script>
+    function goBackToVendorOrders(){
+      try {
+        if (document.referrer && new URL(document.referrer).origin === window.location.origin) {
+          history.back();
+          return;
+        }
+      } catch(e) {}
+      window.location.href = 'buyer-vendor-orders.html';
+    }
+    // Enhanced functionality for automatic status updates
+    document.addEventListener('DOMContentLoaded', function() {
+      const refreshBtn = document.getElementById('refreshBtn');
+      const autoUpdateToggle = document.getElementById('autoUpdateToggle');
+      const lastUpdatedEl = document.getElementById('lastUpdated');
+      let autoUpdateInterval;
+      
+      // Start with auto-update enabled (every 30 seconds)
+      function startAutoUpdate() {
+        autoUpdateInterval = setInterval(() => {
+          refreshStatus();
+        }, 30000);
+      }
+      
+      // Stop auto-update
+      function stopAutoUpdate() {
+        clearInterval(autoUpdateInterval);
+      }
+      
+      // Update the last checked time
+      function updateLastChecked() {
+        const now = new Date();
+        lastUpdatedEl.textContent = `Last checked: ${now.toLocaleTimeString()}`;
+      }
+      
+      // Refresh status function
+      function refreshStatus() {
+        // Show loading state
+        refreshBtn.innerHTML = '<span class="loading-spinner"></span> Checking...';
+        refreshBtn.disabled = true;
+        
+        // This would call your existing functions from buyer-vendor-order-details.js
+        // For demonstration, we'll simulate an AJAX call
+        simulateStatusCheck();
+      }
+      
+      // Simulate checking for status updates (replace with your actual implementation)
+      function simulateStatusCheck() {
+        setTimeout(() => {
+          // In a real implementation, this would parse the response
+          // and update the status timeline accordingly
+          
+          // For demo purposes, we'll just update the time and enable the button
+          updateLastChecked();
+          refreshBtn.innerHTML = 'Refresh Status';
+          refreshBtn.disabled = false;
+          
+          // If we found updates, we would update the UI here
+          console.log('Status checked at ' + new Date().toLocaleTimeString());
+        }, 1000);
+      }
+      
+      // Set up event listeners
+      refreshBtn.addEventListener('click', function() {
+        refreshStatus();
+      });
+      
+      autoUpdateToggle.addEventListener('change', function() {
+        if (this.checked) {
+          startAutoUpdate();
+        } else {
+          stopAutoUpdate();
+        }
+      });
+      
+      // Initialize auto-update
+      startAutoUpdate();
+      updateLastChecked();
+      
+      // Initial status check
+      refreshStatus();
+    });
+  </script>
+   
 </body>
 </html>

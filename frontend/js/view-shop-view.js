@@ -33,7 +33,23 @@ function loadProductDetails(product) {
   document.getElementById('productImage').src = product.image || '';
   document.getElementById('productName').textContent = product.name;
   document.getElementById('productPrice').textContent = `₦${product.price}`;
-  document.getElementById('soldCount').textContent = `${product.sold || 0} sold`;
+  const stock = Number(product.stock || 0);
+  const reserved = Number(product.reserved || 0);
+  const available = Math.max(0, stock - reserved);
+  const soldEl = document.getElementById('soldCount');
+  if (available <= 0) {
+    soldEl.textContent = 'Out of Stock';
+  } else {
+    const hint = available <= 5 ? `<span style="margin-left:8px;color: var(--muted);font-size:0.9rem;">Only ${available} available</span>` : '';
+    soldEl.innerHTML = `Stock: ${available} ${hint}`;
+  }
+  const addBtn = document.getElementById('addToCartBtn');
+  if (available <= 0) {
+    addBtn.disabled = true;
+    addBtn.style.opacity = '0.6';
+    addBtn.style.cursor = 'not-allowed';
+    addBtn.innerHTML = '<i class="fas fa-ban"></i> Out of Stock';
+  }
   document.getElementById('productDescription').textContent = product.description;
   document.getElementById('accountNumber').textContent = product.vendor?.virtualAccount || '';
 }
@@ -67,13 +83,13 @@ async function loadVendorDetails(vendorId) {
       const comment = document.getElementById('reviewComment').value;
 
       if (!rating || !comment) {
-        return alert("Please enter both a rating and a comment.");
+        return (window.showOverlay && showOverlay({ type:'error', title:'Incomplete', message:'Please enter both a rating and a comment.' }));
       }
 
       try {
-        const token = localStorage.getItem('vendplug-token');
+        const token = getAuthToken();
         if (!token) {
-          return alert("You must be logged in to leave a review.");
+          return (window.showOverlay && showOverlay({ type:'error', title:'Login required', message:'You must be logged in to leave a review.' }));
         }
 
         const reviewRes = await fetch(`/api/vendors/${vendorId}/reviews`, {
@@ -90,10 +106,10 @@ async function loadVendorDetails(vendorId) {
           throw new Error(errData.message || "Failed to submit review");
         }
 
-        alert("Review submitted successfully!");
+        window.showOverlay && showOverlay({ type:'success', title:'Thank you!', message:'Review submitted successfully!' });
         location.reload();
       } catch (err) {
-        alert(err.message);
+        window.showOverlay && showOverlay({ type:'error', title:'Error', message: err.message || 'Something went wrong' });
       }
     });
 
@@ -124,10 +140,10 @@ function displayMoreReviews() {
 // Add to Cart Logic
 // Assuming you have BACKEND_URL and token already
 async function addToCart(productId, quantity = 1) {
-  const token = localStorage.getItem('vendplug-token');
+  const token = getAuthToken();
 
   if (!token) {
-      alert("Please log in to add items to your cart.");
+      window.showOverlay && showOverlay({ type:'error', title:'Login required', message:'Please log in to add items to your cart.' });
       return;
   }
 
@@ -150,11 +166,11 @@ async function addToCart(productId, quantity = 1) {
           throw new Error(data.message || "Failed to add item to cart");
       }
 
-      alert("Item added to cart!");
+      window.showOverlay && showOverlay({ type:'success', title:'Added', message:'Item added to cart!' });
       // Optional: You could trigger a small cart badge update here
 
   } catch (error) {
       console.error("Error adding to cart:", error);
-      alert(error.message || "Something went wrong");
+      window.showOverlay && showOverlay({ type:'error', title:'Error', message: error.message || 'Something went wrong' });
   }
 }

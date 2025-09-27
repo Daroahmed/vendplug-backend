@@ -12,18 +12,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================
   // CONFIG & STATE
   // =========================
-  const token = localStorage.getItem('vendplug-token');
+  const token = getAuthToken();
   const baseURL = window.BACKEND_URL; // ✅ from config.js
 
   if (!baseURL) {
     console.error("❌ BACKEND_URL is not defined. Check config.js load order.");
-    alert('Configuration error: BACKEND_URL not set.');
+    window.showOverlay && showOverlay({ type:'error', title:'Configuration', message:'BACKEND_URL not set.' });
     return;
   }
 
   if (!token) {
-    alert('Please login first');
-    window.location.href = '/buyer-login.html';
+    window.showOverlay && showOverlay({ type:'error', title:'Login required', message:'Please login first' });
+    redirectToLogin();
     return;
   }
 
@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================
   async function loadCart() {
     try {
+      showLoading && showLoading();
       const [cartRes, walletRes] = await Promise.all([
         fetch(`${baseURL}/api/vendor-cart`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -56,11 +57,12 @@ document.addEventListener('DOMContentLoaded', () => {
       walletBalance = wallet.balance || 0;
 
       walletEl.textContent = `Wallet: ₦${walletBalance.toLocaleString()}`;
+      updateCartBadge(cart);
       displayCart();
     } catch (err) {
       console.error(err);
-      alert('Failed to load cart. Try again.');
-    }
+      window.showOverlay && showOverlay({ type:'error', title:'Error', message:'Failed to load cart. Try again.' });
+    } finally { hideLoading && hideLoading(); }
   }
 
   // =========================
@@ -73,6 +75,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!cart.length) {
       cartContainer.innerHTML = '<p>Your cart is empty.</p>';
       totalEl.textContent = 'Total: ₦0';
+      updateCartBadge(cart);
+      if (checkoutBtn) checkoutBtn.disabled = true;
       return;
     }
   
@@ -84,21 +88,45 @@ document.addEventListener('DOMContentLoaded', () => {
       const name = product?.name || 'Unnamed Product';
       const vendorName = vendor?.shopName || vendor?.fullName || 'Unknown Vendor'; // 👈 FIXED
       const subtotal = price * qty;
+      const stock = Number(product?.stock ?? NaN);
+      const reserved = Number(product?.reserved ?? 0);
+      const hasFiniteStock = Number.isFinite(stock);
+      const available = hasFiniteStock ? Math.max(0, stock - (Number.isFinite(reserved) ? reserved : 0)) : Infinity;
+      const reachedMax = hasFiniteStock && qty >= available;
+      const showHint = hasFiniteStock && (available <= 5 || reachedMax);
+      const hintText = hasFiniteStock ? (available <= 0 ? 'Out of Stock' : `Only ${available} available`) : '';
       total += subtotal;
   
       const div = document.createElement('div');
       div.className = 'cart-item';
       div.innerHTML = `
-        <span>${name} (${vendorName}) x ${qty}</span>
-        <span>₦${subtotal.toLocaleString()}</span>
+        <div class="item-info">
+          <div class="item-name">${name} (${vendorName}) x ${qty}</div>
+          ${showHint ? `<div class="item-price" style="color: var(--muted);">${hintText}</div>` : ''}
+        </div>
+        <span class="item-total">₦${subtotal.toLocaleString()}</span>
         <button class="remove-btn" data-id="${product?._id}">❌</button>
-        <button class="inc-btn" data-id="${product?._id}">+</button>
+        <button class="inc-btn" data-id="${product?._id}" ${reachedMax ? 'disabled' : ''}>+</button>
         <button class="dec-btn" data-id="${product?._id}">-</button>
       `;
       cartContainer.appendChild(div);
     });
   
     totalEl.textContent = `Total: ₦${total.toLocaleString()}`;
+    updateCartBadge(cart);
+
+    // Disable checkout if any item exceeds available stock
+    try {
+      const hasInsufficient = cart.some((item) => {
+        const qty = item.quantity || 1;
+        const stock = Number(item?.product?.stock ?? NaN);
+        const reserved = Number(item?.product?.reserved ?? 0);
+        const hasFiniteStock = Number.isFinite(stock);
+        const available = hasFiniteStock ? Math.max(0, stock - (Number.isFinite(reserved) ? reserved : 0)) : Infinity;
+        return hasFiniteStock && qty > available;
+      });
+      if (checkoutBtn) checkoutBtn.disabled = hasInsufficient === true;
+    } catch (_) { /* noop */ }
   }
   
 
@@ -119,6 +147,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (e.target.classList.contains('inc-btn')) {
         const item = cart.find((i) => i.product?._id === id);
+        const stock = Number(item?.product?.stock ?? NaN);
+        const reserved = Number(item?.product?.reserved ?? 0);
+        const hasFiniteStock = Number.isFinite(stock);
+        const available = hasFiniteStock ? Math.max(0, stock - (Number.isFinite(reserved) ? reserved : 0)) : Infinity;
+        const nextQty = (item.quantity || 1) + 1;
+        if (hasFiniteStock && nextQty > available) {
+          window.showOverlay && showOverlay({ type:'info', title:'Stock limit', message:`Only ${available} available` });
+          return;
+        }
         await fetch(`${baseURL}/api/vendor-cart`, {
           method: 'PUT',
           headers: {
@@ -156,16 +193,38 @@ document.addEventListener('DOMContentLoaded', () => {
       await loadCart();
     } catch (err) {
       console.error(err);
-      alert('Failed to update cart. Please try again.');
+      window.showOverlay && showOverlay({ type:'error', title:'Error', message:'Failed to update cart. Please try again.' });
     }
   });
+
+  // =========================
+  // CART BADGE UI
+  // =========================
+  function updateCartBadge(items) {
+    try {
+      const badge = document.getElementById('cart-badge');
+      if (!badge) return;
+
+      const totalItems = (items || []).reduce((sum, i) => sum + (i.quantity || 1), 0);
+      if (totalItems > 0) {
+        badge.textContent = totalItems;
+        badge.style.display = 'flex';
+      } else {
+        badge.textContent = '0';
+        badge.style.display = 'none';
+      }
+    } catch (err) {
+      console.warn('Cart badge update failed:', err);
+    }
+  }
 
   // =========================
   // CHECKOUT
   // =========================
   checkoutBtn.addEventListener('click', async () => {
+    if (checkoutBtn && checkoutBtn.disabled) return;
     const location = locationInput.value.trim();
-    if (!location) return alert('Please enter pickup location');
+    if (!location) return (window.showOverlay && showOverlay({ type:'error', title:'Pickup location', message:'Please enter pickup location' }));
 
     const totalAmount = cart.reduce((sum, item) => {
       const qty = item.quantity || 1;
@@ -174,9 +233,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 0);
 
     if (walletBalance < totalAmount)
-      return alert('Insufficient wallet balance');
+      return (window.showOverlay && showOverlay({ type:'error', title:'Wallet', message:'Insufficient wallet balance' }));
 
     try {
+      showLoading && showLoading();
       const res = await fetch(`${baseURL}/api/vendor-checkout`, {
         method: 'POST',
         headers: {
@@ -195,12 +255,18 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Checkout failed');
 
-      alert('Order placed successfully!');
+      window.showOverlay && showOverlay({ type:'success', title:'Success', message:'Order placed successfully!' });
       window.location.href = '/buyer-vendor-orders.html';
     } catch (err) {
       console.error(err);
-      alert(err.message);
-    }
+      const msg = String(err?.message || '').toLowerCase();
+      if (msg.includes('insufficient stock') || msg.includes('out of stock')) {
+        // Refresh cart to reflect latest availability; suppress alert
+        try { await loadCart(); } catch (_) {}
+      } else {
+        window.showOverlay && showOverlay({ type:'error', title:'Checkout', message:'Checkout failed. Please try again.' });
+      }
+    } finally { hideLoading && hideLoading(); }
   });
 
   // =========================

@@ -14,6 +14,8 @@
       align-items: center;
       min-height: 100vh;
       flex-direction: column;
+      margin: 0;
+      padding: 20px;
     }
 
     .auth-container {
@@ -21,13 +23,14 @@
       padding: 2rem;
       border-radius: 10px;
       width: 100%;
-      max-width: 400px;
+      max-width: 500px;
       box-shadow: 0 0 20px rgba(0,0,0,0.5);
     }
 
     h2 {
       text-align: center;
       color: #00cc99;
+      margin-top: 0;
     }
 
     form {
@@ -39,15 +42,16 @@
       display: block;
     }
 
-    input, button {
+    input, button, select, textarea {
       width: 100%;
-      padding: 10px;
-      margin: 10px 0;
+      padding: 12px;
+      margin: 8px 0;
       border: none;
       border-radius: 5px;
+      box-sizing: border-box;
     }
 
-    input {
+    input, select, textarea {
       background: #2c2c2c;
       color: white;
     }
@@ -57,6 +61,11 @@
       color: black;
       font-weight: bold;
       cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #00b386;
     }
 
     .toggle {
@@ -69,16 +78,73 @@
       color: #00cc99;
       border: none;
       font-size: 0.9rem;
+      text-decoration: underline;
+      width: auto;
+      padding: 5px;
+      margin: 0 5px;
+    }
+
+    .toggle button:hover {
+      background: transparent;
+      color: #00b386;
     }
 
     .message {
       text-align: center;
       margin-top: 10px;
       font-size: 0.9rem;
+      color: #ff5555;
+      display: none;
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      color: #ccc;
+    }
+
+    .category-hint {
+      font-size: 0.8rem;
+      color: #aaa;
+      margin-bottom: 10px;
+    }
+
+    .selected-category {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .category-tag {
+      background: #00cc99;
+      color: #000;
+      padding: 5px 10px;
+      border-radius: 15px;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+    }
+
+    .category-tag button {
+      background: transparent;
+      color: #000;
+      border: none;
+      margin-left: 5px;
+      padding: 0;
+      width: auto;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    #otherCategoryDiv {
+      margin-top: 10px;
+      transition: all 0.3s ease;
     }
   </style>
 </head>
 <body>
+  <div id="global-loading-overlay" class="loading-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:9999"><div class="loading-spinner" style="width:56px;height:56px;border:4px solid rgba(255,255,255,0.25);border-top-color:#00cc99;border-radius:50%;"></div></div>
   <div class="auth-container">
     <h2>Agent Portal</h2>
 
@@ -88,24 +154,416 @@
       <input id="agentLoginPassword" type="password" placeholder="Password" required />
       <button type="submit">Login</button>
       <div class="message" id="loginMessage"></div>
+      <div class="auth-links" style="margin-top: 15px; text-align: center;">
+        <a href="reset-password.html?role=agent" style="color: #00cc99; text-decoration: none; display: block; margin-bottom: 10px;">Forgot Password?</a>
+        <a href="verify-email.html" style="color: #00cc99; text-decoration: none; display: block;">Resend Verification Email</a>
+      </div>
     </form>
 
     <!-- Register Form -->
     <form id="agentRegisterForm">
       <input id="agentFullName" type="text" placeholder="Full Name" required />
       <input id="agentEmail" type="email" placeholder="Email" required />
+      <input id="agentBusinessName" type="text" placeholder="Business Name" required />
       <input id="agentPhoneNumber" type="text" placeholder="Phone Number" required />
       <input id="agentPassword" type="password" placeholder="Password" required />
+      <input id="agentBusinessAddress" type="text" placeholder="Business Address" required />
+      <input id="agentCacNumber" type="text" placeholder="CAC Number" required />
+
+      <!-- Category Selection -->
+      <label for="category">Business Categories (Select multiple)</label>
+      <div class="category-hint">Hold Ctrl/Cmd to select multiple categories</div>
+      <select id="category" name="category" multiple size="5" required>
+        <option value="">-- Select Category --</option>
+      
+        <!-- Everyday Essentials -->
+        <option value="Supermarkets/Groceries and Provisions">Supermarkets/Groceries and Provisions</option>
+        <option value="Soft Drinks & Water">Soft Drinks & Water</option>
+        <option value="Kitchen Utensils & Plastics">Kitchen Utensils & Plastics</option>
+        <option value="Gas Plants">Gas Plants</option>
+        <option value="Fruits & Vegetables">Fruits & Vegetables</option>
+        <option value="Grains">Grains</option>
+      
+        <!-- Meat & Animal Products -->
+        <option value="Suya & Balango">Suya & Balango</option>
+        <option value="Raw Meat Sellers">Raw Meat Sellers</option>
+        <option value="Poultry (Chicken, Eggs, Turkey)">Poultry (Chicken, Eggs, Turkey)</option>
+        <option value="Livestock (Goat, Ram, Cow)">Livestock (Goat, Ram, Cow)</option>
+        <option value="Fish & Seafood">Fish & Seafood</option>
+      
+        <!-- Food & Hospitality -->
+        <option value="Restaurants">Restaurants</option>
+        <option value="Catering & Small Chops">Catering & Small Chops</option>
+        <option value="Hotels & Apartments">Hotels & Apartments</option>
+        <option value="Event Rentals (Canopies, Chairs)">Event Rentals (Canopies, Chairs)</option>
+      
+        <!-- Fashion & Lifestyle -->
+        <option value="Boutiques">Boutiques</option>
+        <option value="Thrift / Okrika / Gongo">Thrift / Okrika / Gongo</option>
+        <option value="Tokunbo / Belgium Products">Tokunbo / Belgium Products</option>
+        <option value="Shoes and Bags">Shoes and Bags</option>
+        <option value="Jewelry & Accessories">Jewelry & Accessories</option>
+        <option value="Tailoring & Fashion Design">Tailoring & Fashion Design</option>
+        <option value="Textiles & Fabrics">Textiles & Fabrics</option>
+        <option value="Wigs & Hair">Wigs & Hair</option>
+        <option value="Cosmetics & Skincare">Cosmetics & Skincare</option>
+        <option value="Perfumes & Fragrances">Perfumes & Fragrances</option>
+        <option value="Nigerian Caps e.g. Zana">Nigerian Caps e.g. Zana</option>
+      
+        <!-- Home & Living -->
+        <option value="Furniture">Furniture</option>
+        <option value="Home Appliances">Home Appliances</option>
+        <option value="Interior Decor & Curtains">Interior Decor & Curtains</option>
+        <option value="Cleaning Services">Cleaning Services</option>
+        <option value="Flowers & Gardens">Flowers & Gardens</option>
+      
+        <!-- Building & Construction -->
+        <option value="Building Materials">Building Materials</option>
+        <option value="Aluminium & Roofing">Aluminium & Roofing</option>
+        <option value="Cement, Blocks & Interlock">Cement, Blocks & Interlock</option>
+        <option value="Gravel, Sharp Sand & Quarry">Gravel, Sharp Sand & Quarry</option>
+        <option value="Electrical Supplies">Electrical Supplies</option>
+        <option value="Plumbing Materials">Plumbing Materials</option>
+        <option value="Tiles & Paints">Tiles & Paints</option>
+        <option value="Metal & Iron Works">Metal & Iron Works</option>
+        <option value="Carpenters & Artisans">Carpenters & Artisans</option>
+      
+        <!-- Health & Beauty -->
+        <option value="Pharmacy & Patent Stores">Pharmacy & Patent Stores</option>
+        <option value="Hospital & Medical Equipment">Hospital & Medical Equipment</option>
+        <option value="Herbal Medicine">Herbal Medicine</option>
+        <option value="Maternity & Clinics">Maternity & Clinics</option>
+        <option value="Fitness & Supplements">Fitness & Supplements</option>
+      
+        <!-- Electronics & Gadgets -->
+        <option value="Phones & Accessories / Laptops & Computers">Phones & Accessories / Laptops & Computers</option>
+        <option value="Solar & Inverters">Solar & Inverters</option>
+        <option value="CCTV & Security Devices">CCTV & Security Devices</option>
+        <option value="Game Consoles & Accessories">Game Consoles & Accessories</option>
+      
+        <!-- Office & Services -->
+        <option value="Printing Press">Printing Press</option>
+        <option value="Stationery & Office Supplies">Stationery & Office Supplies</option>
+        <option value="Internet & Data Services">Internet & Data Services</option>
+        <option value="Freelancers & Digital Services">Freelancers & Digital Services</option>
+      
+        <!-- Auto & Transport -->
+        <option value="Car Dealers / Tokunbo Cars">Car Dealers / Tokunbo Cars</option>
+        <option value="Car Spare Parts">Car Spare Parts</option>
+        <option value="Auto Mechanics">Auto Mechanics</option>
+        <option value="Tyres, Batteries & Accessories">Tyres, Batteries & Accessories</option>
+        <option value="Car Wash & Detailing">Car Wash & Detailing</option>
+      
+        <!-- Laundry & Cleaning -->
+        <option value="Laundry Services">Laundry Services</option>
+        <option value="Dry Cleaning">Dry Cleaning</option>
+        <option value="House Cleaning">House Cleaning</option>
+      
+        <!-- Agriculture -->
+        <option value="Animal Feed & Supplements">Animal Feed & Supplements</option>
+        <option value="Fish Farming">Fish Farming</option>
+      
+        <!-- Pets -->
+        <option value="Pets (Dogs, Cats, Birds)">Pets (Dogs, Cats, Birds)</option>
+        <option value="Pet Food & Accessories">Pet Food & Accessories</option>
+        <option value="Veterinary Clinics">Veterinary Clinics</option>
+        <option value="Pet Grooming">Pet Grooming</option>
+      
+        <!-- Real Estate -->
+        <option value="Real Estate Agents">Real Estate Agents</option>
+        <option value="Rentals & Sales">Rentals & Sales</option>
+        <option value="Facility Management">Facility Management</option>
+        <option value="Movers & Packers">Movers & Packers</option>
+      
+        <!-- Professional -->
+        <option value="Legal Services">Legal Services</option>
+        <option value="Accounting & Tax">Accounting & Tax</option>
+        <option value="Private Tutors">Private Tutors</option>
+        <option value="Event Planners">Event Planners</option>
+        <option value="Photography & Videography">Photography & Videography</option>
+        <option value="Tech Repairs">Tech Repairs</option>
+        
+        <!-- Other option -->
+        <option value="Other">Other (Not Listed)</option>
+      </select>
+
+      <!-- Selected Categories Display -->
+      <div class="selected-category" id="selectedCategory"></div>
+
+      <!-- Other Category Input -->
+      <div id="otherCategoryDiv" style="display:none;">
+        <label for="otherCategory">Specify Category</label>
+        <input type="text" id="otherCategory" placeholder="Enter custom category" />
+      </div>
+
+      <!-- Location -->
+      <label for="agentState">State</label>
+      <select id="agentState" required>
+        <option value="">Select State</option>
+        <option value="Abia">Abia</option>
+        <option value="Adamawa">Adamawa</option>
+        <option value="Akwa Ibom">Akwa Ibom</option>
+        <option value="Anambra">Anambra</option>
+        <option value="Bauchi">Bauchi</option>
+        <option value="Bayelsa">Bayelsa</option>
+        <option value="Benue">Benue</option>
+        <option value="Borno">Borno</option>
+        <option value="Cross River">Cross River</option>
+        <option value="Delta">Delta</option>
+        <option value="Ebonyi">Ebonyi</option>
+        <option value="Edo">Edo</option>
+        <option value="Ekiti">Ekiti</option>
+        <option value="Enugu">Enugu</option>
+        <option value="FCT">FCT</option>
+        <option value="Gombe">Gombe</option>
+        <option value="Imo">Imo</option>
+        <option value="Jigawa">Jigawa</option>
+        <option value="Kaduna">Kaduna</option>
+        <option value="Kano">Kano</option>
+        <option value="Katsina">Katsina</option>
+        <option value="Kebbi">Kebbi</option>
+        <option value="Kogi">Kogi</option>
+        <option value="Kwara">Kwara</option>
+        <option value="Lagos">Lagos</option>
+        <option value="Nasarawa">Nasarawa</option>
+        <option value="Niger">Niger</option>
+        <option value="Ogun">Ogun</option>
+        <option value="Ondo">O Ondo</option>
+        <option value="Osun">Osun</option>
+        <option value="Oyo">Oyo</option>
+        <option value="Plateau">Plateau</option>
+        <option value="Rivers">Rivers</option>
+        <option value="Sokoto">Sokoto</option>
+        <option value="Taraba">Taraba</option>
+        <option value="Yobe">Yobe</option>
+        <option value="Zamfara">Zamfara</option>
+      </select>
+
+      <!-- Business Description -->
+      <label for="agentBusinessDescription">Business Description (Optional)</label>
+      <textarea id="agentBusinessDescription" rows="3" placeholder="Short Description of Your Business"></textarea>
+
       <button type="submit">Register</button>
-      <div class="message" id="registerMessage"></div>
+      <div class="message" id="registerError"></div>
     </form>
 
     <div class="toggle">
-      <button id="showAgentLoginBtn">Already have an account? Login</button> |
+      <button id="showAgentLoginBtn">Already have an account? Login</button>
       <button id="showAgentRegisterBtn">Register instead</button>
     </div>
   </div>
 
-  <script src="js/agent-auth.js"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/auth-utils.js"></script>
+  <script>
+    window.showLoading = window.showLoading || function(){ const el = document.getElementById('global-loading-overlay'); if (el) el.style.display='flex'; };
+    window.hideLoading = window.hideLoading || function(){ const el = document.getElementById('global-loading-overlay'); if (el) el.style.display='none'; };
+  </script>
+  <script src="/js/back-button.js"></script>
+  <script>
+    console.log("✅ agent-auth.js loaded");
+
+    const BACKEND = window.BACKEND_URL || "";
+
+    // Toggle login/register view
+    document.getElementById("showAgentLoginBtn").addEventListener("click", () => {
+      document.getElementById("agentLoginForm").classList.add("active");
+      document.getElementById("agentRegisterForm").classList.remove("active");
+    });
+
+    document.getElementById("showAgentRegisterBtn").addEventListener("click", () => {
+      document.getElementById("agentLoginForm").classList.remove("active");
+      document.getElementById("agentRegisterForm").classList.add("active");
+    });
+
+    // Category selection handling
+    const categorySelect = document.getElementById("category");
+    const selectedCategoryContainer = document.getElementById("selectedCategory");
+    const otherCategoryDiv = document.getElementById("otherCategoryDiv");
+    const otherCategoryInput = document.getElementById("otherCategory");
+    
+    // Track selected categories
+    let selectedCategory = [];
+    
+    // Update selected categories display
+    function updateSelectedCategory() {
+      selectedCategoryContainer.innerHTML = '';
+      
+      selectedCategory.forEach(category => {
+        const tag = document.createElement('div');
+        tag.className = 'category-tag';
+        tag.innerHTML = `${category} <button type="button" data-category="${category}">×</button>`;
+        selectedCategoryContainer.appendChild(tag);
+      });
+      
+      // Add event listeners to remove buttons
+      document.querySelectorAll('.category-tag button').forEach(button => {
+        button.addEventListener('click', (e) => {
+          const categoryToRemove = e.target.getAttribute('data-category');
+          selectedCategory = selectedCategory.filter(cat => cat !== categoryToRemove);
+          
+          // Also deselect in the select element
+          Array.from(categorySelect.options).forEach(option => {
+            if (option.value === categoryToRemove) {
+              option.selected = false;
+            }
+          });
+          
+          updateSelectedCategory();
+          checkOtherCategoryVisibility();
+        });
+      });
+    }
+    
+    // Check if we need to show the "Other" category input
+    function checkOtherCategoryVisibility() {
+      if (selectedCategory.includes("Other")) {
+        otherCategoryDiv.style.display = "block";
+      } else {
+        otherCategoryDiv.style.display = "none";
+        otherCategoryInput.value = "";
+      }
+    }
+    
+    // Handle category selection changes
+    categorySelect.addEventListener("change", function() {
+      selectedCategory = Array.from(this.selectedOptions)
+        .map(option => option.value)
+        .filter(value => value !== ""); // Exclude the placeholder
+      
+      updateSelectedCategory();
+      checkOtherCategoryVisibility();
+    });
+
+    // 🔐 LOGIN
+    document.getElementById("agentLoginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("agentLoginEmail").value;
+      const password = document.getElementById("agentLoginPassword").value;
+      const messageEl = document.getElementById("loginMessage");
+      try { showLoading && showLoading(); } catch(_) {}
+
+      try {
+        const res = await fetch(`${BACKEND}/api/agents/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          if (res.status === 403 && data && data.code === 'EMAIL_NOT_VERIFIED') {
+            try { hideLoading && hideLoading(); } catch(_) {}
+            window.location.href = `verify-email.html?prefill=${encodeURIComponent(data.email)}&userType=agent`;
+            return;
+          }
+          if (messageEl) {
+            messageEl.textContent = data.message || "Login failed";
+            messageEl.style.color = "#ff5555";
+            messageEl.style.display = "block";
+          }
+          return;
+        }
+
+        localStorage.setItem("vendplug-agent-token", data.token);
+        localStorage.setItem("vendplugAgent", JSON.stringify(data.agent));
+        if (messageEl) {
+          messageEl.textContent = "Login successful!";
+          messageEl.style.color = "#00cc99";
+          messageEl.style.display = "block";
+        }
+        setTimeout(() => { window.location.href = "agent-dashboard.html"; }, 600);
+
+      } catch (err) {
+        console.error("❌ Agent login error:", err);
+        if (messageEl) {
+          messageEl.textContent = "Login failed. Try again.";
+          messageEl.style.color = "#ff5555";
+          messageEl.style.display = "block";
+        }
+      } finally { try { hideLoading && hideLoading(); } catch(_) {} }
+    });
+
+    // 📝 REGISTER
+    document.getElementById("agentRegisterForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const fullName = document.getElementById("agentFullName").value;
+      const email = document.getElementById("agentEmail").value;
+      const phoneNumber = document.getElementById("agentPhoneNumber").value;
+      const password = document.getElementById("agentPassword").value;
+      const businessName = document.getElementById("agentBusinessName").value;
+      const businessAddress = document.getElementById("agentBusinessAddress").value;
+      const cacNumber = document.getElementById("agentCacNumber").value;
+      const state = document.getElementById("agentState").value;
+      const businessDescription = document.getElementById("agentBusinessDescription").value;
+
+      // Get the custom category if "Other" is selected
+      let finalCategory = [...selectedCategory];
+      
+      if (selectedCategory.includes("Other")) {
+        const customCategory = otherCategoryInput.value.trim();
+        if (customCategory) {
+          // Replace "Other" with the custom category
+          finalCategory = finalCategory.filter(cat => cat !== "Other");
+          finalCategory.push(customCategory);
+        } else {
+          document.getElementById("registerError").textContent = "Please specify your custom category";
+          document.getElementById("registerError").style.display = "block";
+          return;
+        }
+      }
+
+      // Validate that at least one category is selected
+      if (finalCategory.length === 0) {
+        document.getElementById("registerError").textContent = "Please select at least one category";
+        document.getElementById("registerError").style.display = "block";
+        return;
+      }
+
+      const errorMsg = document.getElementById("registerError");
+      errorMsg.style.display = "none";
+
+      try {
+        try { showLoading && showLoading(); } catch(_) {}
+        const res = await fetch(`${BACKEND}/api/agents/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fullName, 
+            email, 
+            phoneNumber,
+            password, 
+            businessName, 
+            businessAddress, 
+            cacNumber, 
+            category: finalCategory,
+            state,
+            businessDescription
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.message || "Agent registration failed");
+        }
+
+        errorMsg.textContent = 'Registration successful! Please check your email to verify your account.';
+        errorMsg.style.color = "#00cc99";
+        errorMsg.style.display = "block";
+        setTimeout(() => {
+          window.location.href = 'verify-email.html?prefill=' + encodeURIComponent(email) + '&userType=agent';
+        }, 700);
+
+      } catch (error) {
+        errorMsg.textContent = error.message;
+        errorMsg.style.display = "block";
+        errorMsg.style.color = "#ff5555";
+      } finally { try { hideLoading && hideLoading(); } catch(_) {} }
+    });
+  </script>
+
 </body>
 </html>

@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Disputes - Vendplug</title>
+    <style>
+        :root {
+            --primary: #00cc99;
+            --bg-dark: #121212;
+            --bg-card: #1e1e1e;
+            --bg-secondary: #2c2c2c;
+            --text-light: #fff;
+            --muted: #aaa;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-light);
+            min-height: 100vh;
+            padding-top: 70px;
+        }
+
+        .header-bar { background: var(--bg-card); padding:1rem; position:fixed; top:0; left:0; right:0; z-index:100; display:flex; align-items:center; box-shadow:0 2px 10px rgba(0,0,0,0.3); }
+        .back-button { background:none; border:none; color:var(--text-light); font-size:1.2rem; margin-right:15px; cursor:pointer; }
+        .header-title { font-size:1.2rem; color:var(--primary); }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header { background: var(--bg-card); color: var(--text-light); padding: 20px; border:1px solid var(--bg-secondary); border-radius: 8px; text-align:center; }
+        .header h1 { font-size: 2rem; margin-bottom: 10px; color: var(--primary); }
+        .header p { color: var(--muted); }
+
+        .content {
+            padding: 20px 0;
+        }
+
+        .back-btn {
+            background: var(--bg-secondary);
+            color: var(--text-light);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: transform 0.2s ease;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .create-dispute-btn {
+            background: var(--primary);
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 30px;
+            transition: transform 0.2s ease;
+        }
+
+        .create-dispute-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .disputes-grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .dispute-card {
+            border: 1px solid var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            background: var(--bg-card);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .dispute-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .dispute-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .dispute-id {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-light);
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-open { background: #fff3cd; color: #856404; }
+        .status-under_review { background: #d1ecf1; color: #0c5460; }
+        .status-resolved { background: #d4edda; color: #155724; }
+        .status-closed { background: #f8d7da; color: #721c24; }
+        .status-escalated { background: #e2e3e5; color: #383d41; }
+
+        .dispute-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-light);
+            margin-bottom: 10px;
+        }
+
+        .dispute-description {
+            color: var(--muted);
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .dispute-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .meta-label {
+            font-size: 0.85rem;
+            color: var(--muted);
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .meta-value {
+            font-weight: 600;
+            color: var(--text-light);
+        }
+
+        .dispute-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-light);
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid var(--bg-secondary);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-error {
+            background: #3a1e1f;
+            color: #f5b5b9;
+            border: 1px solid #5c2a2d;
+        }
+
+        @media (max-width: 768px) {
+            .dispute-header {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .dispute-meta {
+                grid-template-columns: 1fr;
+            }
+
+            .dispute-actions {
+                justify-content: center;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚨 My Disputes</h1>
+            <p>Track and manage your dispute cases</p>
+        </div>
+
+        <div class="content">
+            <button class="back-btn" onclick="goBack()">← Back to Dashboard</button>
+            <button class="create-dispute-btn" onclick="createDispute()">+ Create New Dispute</button>
+            
+            <div id="alertContainer"></div>
+            <div id="loadingContainer" class="loading">
+                <div class="spinner"></div>
+                <p>Loading disputes...</p>
+            </div>
+
+            <div id="disputesContainer" class="disputes-grid" style="display: none;">
+                <!-- Disputes will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth-utils.js"></script>
+    <script src="/js/back-button.js"></script>
+    <script>
+        // Get user token and role using smart utilities
+        const userToken = getAuthToken();
+        const userData = getCurrentUser();
+        const userRole = getCurrentUserType() || 'buyer';
+
+        // Check authentication
+        if (!userToken) {
+            redirectToLogin();
+        }
+
+        // Load disputes on page load
+        document.addEventListener('DOMContentLoaded', loadDisputes);
+
+        async function loadDisputes() {
+            try {
+                showLoading(true);
+                
+                const response = await fetch('/api/disputes/my-disputes', {
+                    headers: {
+                        'Authorization': `Bearer ${userToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    displayDisputes(result.disputes);
+                } else {
+                    showAlert(result.error || 'Failed to load disputes', 'error');
+                }
+            } catch (error) {
+                console.error('❌ Load disputes error:', error);
+                showAlert('Network error. Please try again.', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function displayDisputes(disputes) {
+            const container = document.getElementById('disputesContainer');
+            
+            if (!disputes || disputes.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <h3>No Disputes Found</h3>
+                        <p>You haven't created any disputes yet.</p>
+                        <button class="create-dispute-btn" onclick="createDispute()" style="margin-top: 20px;">
+                            Create Your First Dispute
+                        </button>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = disputes.map(dispute => `
+                    <div class="dispute-card">
+                        <div class="dispute-header">
+                            <div class="dispute-id">${dispute.disputeId}</div>
+                            <span class="status-badge status-${dispute.status}">${dispute.status.replace('_', ' ')}</span>
+                        </div>
+                        
+                        <div class="dispute-title">${dispute.title}</div>
+                        <div class="dispute-description">${dispute.description}</div>
+                        
+                        <div class="dispute-meta">
+                            <div class="meta-item">
+                                <div class="meta-label">Category</div>
+                                <div class="meta-value">${formatCategory(dispute.category)}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Order ID</div>
+                                <div class="meta-value">${dispute.orderId?._id || 'N/A'}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Order Amount</div>
+                                <div class="meta-value">₦${dispute.orderId?.totalAmount?.toLocaleString() || 'N/A'}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Created</div>
+                                <div class="meta-value">${formatDate(dispute.createdAt)}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Last Activity</div>
+                                <div class="meta-value">${formatDate(dispute.lastActivity)}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="dispute-actions">
+                            <button class="btn btn-primary" onclick="viewDispute('${dispute.disputeId}')">
+                                View Details
+                            </button>
+                            ${dispute.status === 'open' || dispute.status === 'under_review' ? `
+                                <button class="btn btn-secondary" onclick="addMessage('${dispute.disputeId}')">
+                                    Add Message
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            container.style.display = 'block';
+        }
+
+        function formatCategory(category) {
+            const categories = {
+                'product_not_received': 'Product Not Received',
+                'product_damaged': 'Product Damaged',
+                'product_not_as_described': 'Product Not As Described',
+                'wrong_product': 'Wrong Product',
+                'delivery_issues': 'Delivery Issues',
+                'payment_issues': 'Payment Issues',
+                'communication_issues': 'Communication Issues',
+                'other': 'Other'
+            };
+            return categories[category] || category;
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+
+        function viewDispute(disputeId) {
+            // For now, we'll just show an alert. In a real app, you'd navigate to a dispute details page
+            alert(`Viewing dispute: ${disputeId}\n\nThis would open a detailed view of the dispute with all messages and evidence.`);
+        }
+
+        function addMessage(disputeId) {
+            const message = prompt('Enter your message:');
+            if (message && message.trim()) {
+                // In a real app, you'd make an API call to add the message
+                alert(`Message added to dispute: ${disputeId}\n\nMessage: ${message}`);
+                // Reload disputes to show updated information
+                loadDisputes();
+            }
+        }
+
+        function createDispute() {
+            window.location.href = '/create-dispute.html';
+        }
+
+        function goBack() {
+            // Determine which dashboard to go back to
+            if (userRole === 'vendor') {
+                window.location.href = '/vendor-dashboard.html';
+            } else if (userRole === 'agent') {
+                window.location.href = '/agent-dashboard.html';
+            } else {
+                window.location.href = '/buyer-dashboard.html';
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            alertContainer.innerHTML = '';
+            alertContainer.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        function showLoading(show) {
+            const loadingContainer = document.getElementById('loadingContainer');
+            const disputesContainer = document.getElementById('disputesContainer');
+            
+            if (show) {
+                loadingContainer.style.display = 'block';
+                disputesContainer.style.display = 'none';
+            } else {
+                loadingContainer.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -44,19 +44,47 @@
       box-shadow: 0 2px 10px rgba(0,0,0,0.3);
     }
 
-    .back-button {
-      background: none;
-      border: none;
-      color: var(--text-light);
-      font-size: 1.2rem;
-      margin-right: 15px;
-      cursor: pointer;
-    }
 
     .header-title {
       font-size: 1.2rem;
       color: var(--primary);
     }
+
+/* Notification badge */
+.notification-icon { position: relative; }
+.notification-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: var(--primary);
+  color: #000;
+  font-size: 0.7rem;
+  font-weight: bold;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Cart badge */
+.cart-icon { position: relative; }
+.cart-badge {
+  position: absolute;
+  top: -8px;
+  right: -10px;
+  background-color: var(--primary);
+  color: #000;
+  font-size: 0.7rem;
+  font-weight: bold;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
 
     /* Main Container */
     .container {
@@ -215,12 +243,17 @@
   </style>
 </head>
 <body>
-  <!-- Header with Back Button -->
+  <!-- Header with Back + quick actions -->
   <div class="header">
-    <button class="back-button" onclick="window.location.href='vendor-shop.html'">
-      <i class="fas fa-arrow-left"></i>
-    </button>
-    <div class="header-title">Checkout</div>
+    <div class="header-title" style="flex:1;color:#00cc99;">Vendor Checkout</div>
+    <div class="header-actions" style="margin-left:auto;display:flex;align-items:center;gap:12px;">
+      <a href="chat.html" title="Messages" style="color:#fff;"><i class="fas fa-comments"></i></a>
+      <!-- Notification icon injected by notifications.js -->
+      <a href="buyer-vendor-checkout.html" title="Cart" class="cart-icon" style="color:#fff;position:relative;">
+        <i class="fas fa-shopping-cart"></i>
+        <span id="cart-badge" class="cart-badge">0</span>
+      </a>
+    </div>
   </div>
 
   <div class="container">
@@ -254,35 +287,19 @@
     <button id="checkout-btn" class="checkout-btn">
       <i class="fas fa-shopping-bag"></i> Place Order
     </button>
+    <div style="display:flex;justify-content:space-between;margin-top:12px;gap:10px;">
+      <a href="vendor-shop.html" class="btn btn-outline" style="flex:1;text-align:center;border:1px solid var(--primary);color:var(--primary);padding:10px;border-radius:8px;">Continue Shopping</a>
+      <a href="buyer-vendor-orders.html" class="btn btn-outline" style="flex:1;text-align:center;border:1px solid var(--primary);color:var(--primary);padding:10px;border-radius:8px;">View Orders</a>
+    </div>
   </div>
 
-  <script>
-    // Back button functionality
-    document.querySelector('.back-button').addEventListener('click', function() {
-      window.location.href = 'vendor-shop.html';
-    });
   
-        
-        
-   
-          
-      
-
-    // Checkout button functionality
-    document.getElementById('checkout-btn').addEventListener('click', function() {
-      const pickupLocation = document.getElementById('pickup-location').value;
-      
-      if (!pickupLocation) {
-        alert('Please enter a pickup location');
-        return;
-      }
-      
-      // This would be replaced with your actual checkout logic
-      alert('Order placed successfully!');
-    });
-  </script>
 
   <script src="/js/config.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="/js/notifications.js"></script>
+  <script src="/js/auth-utils.js"></script>
+  <script src="/js/back-button.js"></script>
   <script src="/js/buyer-vendor-checkout.js"></script>
 </body>
 </html>

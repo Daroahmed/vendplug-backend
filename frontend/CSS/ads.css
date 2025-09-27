@@ -1,0 +1,454 @@
+/* Ad Management Styles */
+
+/* ===============================
+   Ad Container Styles
+=============================== */
+
+.ad-banner-container,
+.ad-carousel-container {
+  margin: 1rem 0;
+  width: 100%;
+}
+
+.ad-inline {
+  margin: 1rem 0;
+  width: 100%;
+}
+
+/* Position-based ad containers */
+.ad-hero-container {
+  width: 100vw;
+  margin: 0;
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
+  position: relative;
+  z-index: 10;
+  background: transparent;
+  overflow: hidden;
+}
+
+.ad-top-container {
+  width: 100%;
+  margin: 1rem 0;
+}
+
+.ad-middle-container {
+  width: 100%;
+  margin: 1rem 0;
+}
+
+.ad-bottom-container {
+  width: 100%;
+  margin: 2rem 0 0 0;
+}
+
+.ad-sidebar-container {
+  width: 100%;
+  max-width: 300px;
+}
+
+.ad-inline-category {
+  background: linear-gradient(135deg, #1e1e1e 0%, #2c2c2c 100%);
+  border: 2px solid #00cc99;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 2rem 0;
+  text-align: center;
+  width: 100%;
+  max-width: 100%;
+  box-shadow: 0 4px 15px rgba(0, 204, 153, 0.2);
+  transition: all 0.3s ease;
+}
+
+.ad-inline-category:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 204, 153, 0.3);
+  border-color: #00ffaa;
+}
+
+.ad-inline-category .ad-item {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.ad-inline-category .ad-item:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.ad-inline-product {
+  background: linear-gradient(135deg, #1e1e1e 0%, #2c2c2c 100%);
+  border: 2px solid #00cc99;
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 1rem 0;
+  text-align: center;
+}
+
+/* ===============================
+   Ad Item Styles
+=============================== */
+
+.ad-item {
+  background: #1e1e1e;
+  border: 2px solid #00cc99;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.ad-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 204, 153, 0.3);
+  border-color: #00ffaa;
+}
+
+.ad-image {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.ad-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.ad-item:hover .ad-image img {
+  transform: scale(1.05);
+}
+
+.ad-content {
+  padding: 1rem;
+}
+
+.ad-title {
+  color: #00cc99;
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin: 0 0 0.5rem 0;
+}
+
+.ad-description {
+  color: #ccc;
+  font-size: 0.9rem;
+  margin: 0 0 1rem 0;
+  line-height: 1.4;
+}
+
+.ad-link {
+  display: inline-block;
+  background: #00cc99;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.ad-link:hover {
+  background: #00ffaa;
+  transform: translateY(-1px);
+}
+
+/* ===============================
+   Carousel Styles
+=============================== */
+
+.ad-carousel {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.ad-carousel-track {
+  display: flex;
+  transition: transform 0.5s ease;
+  width: 100%;
+}
+
+.ad-carousel .ad-item {
+  min-width: 100%;
+  flex-shrink: 0;
+}
+
+.ad-carousel-controls {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 1rem;
+  pointer-events: none;
+}
+
+.ad-carousel-prev,
+.ad-carousel-next {
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  cursor: pointer;
+  pointer-events: all;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ad-carousel-prev:hover,
+.ad-carousel-next:hover {
+  background: rgba(0, 204, 153, 0.8);
+  transform: scale(1.1);
+}
+
+.ad-carousel-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
+}
+
+.ad-carousel-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.ad-carousel-dot.active {
+  background: #00cc99;
+  transform: scale(1.2);
+}
+
+/* ===============================
+   Popup Styles
+=============================== */
+
+.ad-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.ad-popup {
+  background: #1e1e1e;
+  border: 2px solid #00cc99;
+  border-radius: 12px;
+  max-width: 90%;
+  max-height: 90%;
+  position: relative;
+  overflow: hidden;
+}
+
+.ad-popup-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  cursor: pointer;
+  z-index: 1;
+  transition: all 0.3s ease;
+}
+
+.ad-popup-close:hover {
+  background: rgba(255, 0, 0, 0.8);
+  transform: scale(1.1);
+}
+
+.ad-popup-content {
+  padding: 2rem;
+}
+
+.ad-popup .ad-image {
+  height: 300px;
+  margin-bottom: 1rem;
+}
+
+.ad-popup .ad-title {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.ad-popup .ad-description {
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ===============================
+   Responsive Design
+=============================== */
+
+@media (max-width: 768px) {
+  .ad-image {
+    height: 150px;
+  }
+  
+  .ad-title {
+    font-size: 1rem;
+  }
+  
+  .ad-description {
+    font-size: 0.8rem;
+  }
+  
+  .ad-carousel-controls {
+    padding: 0 0.5rem;
+  }
+  
+  .ad-carousel-prev,
+  .ad-carousel-next {
+    width: 35px;
+    height: 35px;
+    font-size: 1.2rem;
+  }
+  
+  .ad-popup {
+    max-width: 95%;
+    margin: 1rem;
+  }
+  
+  .ad-popup .ad-image {
+    height: 200px;
+  }
+  
+  .ad-popup .ad-title {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .ad-content {
+    padding: 0.75rem;
+  }
+  
+  .ad-link {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
+  }
+  
+  .ad-popup-content {
+    padding: 1.5rem;
+  }
+  
+  .ad-popup .ad-image {
+    height: 150px;
+  }
+}
+
+/* ===============================
+   Ad Type Specific Styles
+=============================== */
+
+.ad-banner .ad-image {
+  height: 250px;
+}
+
+.ad-inline .ad-image {
+  height: 180px;
+}
+
+.ad-popup .ad-image {
+  height: 300px;
+}
+
+/* ===============================
+   Animation Effects
+=============================== */
+
+@keyframes adSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ad-item {
+  animation: adSlideIn 0.5s ease;
+}
+
+/* ===============================
+   Loading States
+=============================== */
+
+.ad-image img {
+  background: #2a2a2a;
+}
+
+.ad-image img[src=""] {
+  background: linear-gradient(45deg, #2a2a2a 25%, #3a3a3a 25%, #3a3a3a 50%, #2a2a2a 50%, #2a2a2a 75%, #3a3a3a 75%);
+  background-size: 20px 20px;
+  animation: adLoading 1s linear infinite;
+}
+
+@keyframes adLoading {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 20px 20px;
+  }
+}
+
+/* ===============================
+   Accessibility
+=============================== */
+
+.ad-item:focus {
+  outline: 2px solid #00cc99;
+  outline-offset: 2px;
+}
+
+.ad-link:focus {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
+/* ===============================
+   Dark Mode Adjustments
+=============================== */
+
+@media (prefers-color-scheme: dark) {
+  .ad-item {
+    background: #1a1a1a;
+    border-color: #00cc99;
+  }
+  
+  .ad-popup {
+    background: #1a1a1a;
+  }
+}

@@ -1,7 +1,9 @@
 // backend/controllers/productController.js
-
+const asyncHandler = require('express-async-handler');
 const Product = require('../models/Product');
 const Agent = require('../models/Agent');
+const cloudinary = require('cloudinary').v2;
+const fs = require('fs');
 
 // ✅ Get all products
 const getAllProducts = async (req, res) => {
@@ -18,15 +20,27 @@ const getAllProducts = async (req, res) => {
 // ✅ Create product (for agent or admin)
 const createProduct = async (req, res) => {
   try {
-    const { name, description, price, category, image } = req.body;
+    const { name, description, price, category, } = req.body;
+
+    // 📷 Upload product image if provided
+    let imageUrl = '';
+    if (req.file) {
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: 'vendplug/products',
+      });
+      imageUrl = result.secure_url;
+
+      // Clean up local temp file
+      fs.unlinkSync(req.file.path);
+    }
 
     const newProduct = new Product({
       name,
       description,
       price,
       category,
-      image,
-      addedBy: req.user.id
+      image: imageUrl || null,
+      addedBy: req.agent.id
     });
 
     await newProduct.save();
@@ -39,11 +53,23 @@ const createProduct = async (req, res) => {
 
 const uploadProduct = async (req, res) => {
   try {
-    const { name, description, price, category, imageUrl } = req.body;
-    const agentId = req.user.id;
+    const { name, description, price, category } = req.body;
+    const agentId =   req.agent._id;
+  
+
+    let imageUrl = '';
+    if (req.file) {
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: 'vendplug/products',
+      });
+      imageUrl = result.secure_url;
+
+      // Clean up local file
+      fs.unlinkSync(req.file.path);
+    }
 
     console.log("➡️ Uploading Product with data:", {
-      name, description, price, category, imageUrl, agentId
+      name, description, price, category, image: imageUrl, agentId
     });
 
     if (!name || !price || !imageUrl) {
@@ -55,7 +81,7 @@ const uploadProduct = async (req, res) => {
       description,
       price,
       category,
-      imageUrl,
+      image: imageUrl,
       agent: agentId
     });
 
@@ -69,6 +95,7 @@ const uploadProduct = async (req, res) => {
 };
 
 
+
   // backend/controllers/productController.js
 
   const deleteProduct = async (req, res) => {
@@ -76,10 +103,22 @@ const uploadProduct = async (req, res) => {
       const product = await Product.findById(req.params.id);
       if (!product) return res.status(404).json({ message: "Product not found" });
   
-      const agent = await Agent.findById(req.user.id);
+      // Optional: log which agent deleted
+      const agent = await Agent.findById(req.agent.id);
       console.log(`🗑️ Product "${product.name}" deleted by agent: ${agent?.fullName || 'Unknown Agent'} (${agent?._id})`);
   
-      await Product.deleteOne({ _id: product._id });
+      // If you want to also remove from Cloudinary:
+      if (product.image) {
+        const publicId = product.image.split('/').pop().split('.')[0]; 
+        try {
+          await cloudinary.uploader.destroy(`vendplug/products/${publicId}`);
+          console.log(`🗑️ Cloudinary image deleted: ${product.image}`);
+        } catch (err) {
+          console.warn("⚠️ Cloudinary delete failed:", err.message);
+        }
+      }
+  
+      await product.deleteOne();
   
       res.json({ message: "Product deleted successfully" });
     } catch (err) {
@@ -88,35 +127,44 @@ const uploadProduct = async (req, res) => {
     }
   };
   
+  
 
   // ✅ Update Product
-const updateProduct = async (req, res) => {
-  try {
-    const product = await Product.findById(req.params.id);
-    if (!product) return res.status(404).json({ message: "Product not found" });
-
-    // Optional: Log who is updating
-    const agent = await Agent.findById(req.user.id);
-    console.log(`📝 Product "${product.name}" edited by agent: ${agent?.fullName || 'Unknown'} (${agent?._id})`);
-
-    const { name, description, price, category, imageUrl } = req.body;
-
-    product.name = name || product.name;
-    product.description = description || product.description;
-    product.price = price || product.price;
-    product.category = category || product.category;
-    product.imageUrl = imageUrl || product.imageUrl;
-
-    await product.save();
-
-    res.status(200).json({ message: "Product updated successfully", product });
-  } catch (err) {
-    console.error("Edit error:", err.message);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-
+  const updateProduct = async (req, res) => {
+    try {
+      const product = await Product.findById(req.params.id);
+      if (!product) return res.status(404).json({ message: "Product not found" });
+  
+      const agent = await Agent.findById(req.agent.id);
+      console.log(`📝 Product "${product.name}" edited by agent: ${agent?.fullName || 'Unknown'} (${agent?._id})`);
+  
+      const { name, description, price, category } = req.body;
+  
+      // Update fields if provided
+      if (name) product.name = name;
+      if (description) product.description = description;
+      if (price) product.price = price;
+      if (category) product.category = category;
+  
+      // 📷 Handle new image upload
+      if (req.file) {
+        const result = await cloudinary.uploader.upload(req.file.path, {
+          folder: 'vendplug/products',
+        });
+        product.image = result.secure_url;
+        fs.unlinkSync(req.file.path);
+      }
+  
+      await product.save();
+  
+      res.status(200).json({ message: "Product updated successfully", product });
+    } catch (err) {
+      console.error("Edit error:", err.message);
+      res.status(500).json({ message: "Server error", error: err.message });
+    }
+  };
+  
+  
 
 
 module.exports = {
@@ -126,10 +174,3 @@ module.exports = {
   deleteProduct,
   updateProduct,
 };
-
-
-
-
-
-
-

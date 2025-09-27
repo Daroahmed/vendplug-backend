@@ -7,13 +7,25 @@ const buyerSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true },
     phoneNumber: { type: String, required: true },
     password: { type: String, required: true },
-    state: { type: String, required: true },
     role: { type: String, default: 'buyer' },
     address: { type: String },
     virtualAccount: {
       type: String,
       unique: true,
       sparse: true
+    },
+    walletBalance: {
+      type: Number,
+      default: 0
+    },
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+      required: true
+    },
+    emailVerifiedAt: {
+      type: Date,
+      default: null
     }
   },
   { timestamps: true }

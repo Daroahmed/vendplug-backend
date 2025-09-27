@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug localStorage</title>
+</head>
+<body>
+    <h1>localStorage Debug</h1>
+    <div id="debug-info"></div>
+    
+    <script>
+        function debugLocalStorage() {
+            const debugDiv = document.getElementById('debug-info');
+            
+            const keys = ['vendplugUser', 'vendplugBuyer', 'vendplugVendor', 'vendplugAgent'];
+            const tokenKeys = ['vendplug-token', 'vendplug-buyer-token', 'vendplug-vendor-token', 'vendplug-agent-token'];
+            
+            let html = '<h2>User Data:</h2>';
+            keys.forEach(key => {
+                const data = localStorage.getItem(key);
+                html += `<h3>${key}:</h3>`;
+                if (data) {
+                    try {
+                        const parsed = JSON.parse(data);
+                        html += `<pre>${JSON.stringify(parsed, null, 2)}</pre>`;
+                    } catch (e) {
+                        html += `<p>Error parsing JSON: ${e.message}</p>`;
+                        html += `<p>Raw data: ${data}</p>`;
+                    }
+                } else {
+                    html += '<p>No data found</p>';
+                }
+            });
+            
+            html += '<h2>Tokens:</h2>';
+            tokenKeys.forEach(key => {
+                const token = localStorage.getItem(key);
+                html += `<h3>${key}:</h3>`;
+                if (token) {
+                    html += `<p>Token present: ${token.substring(0, 20)}...</p>`;
+                } else {
+                    html += '<p>No token found</p>';
+                }
+            });
+            
+            debugDiv.innerHTML = html;
+        }
+        
+        // Run debug on page load
+        debugLocalStorage();
+        
+        // Add refresh button
+        const refreshBtn = document.createElement('button');
+        refreshBtn.textContent = 'Refresh';
+        refreshBtn.onclick = debugLocalStorage;
+        document.body.appendChild(refreshBtn);
+    </script>
+</body>
+</html>

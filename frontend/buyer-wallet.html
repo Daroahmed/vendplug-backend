@@ -146,9 +146,116 @@
       display: block;
     }
 
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-content {
+      background-color: var(--card);
+      margin: 15% auto;
+      padding: 0;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      animation: modalSlide 0.3s ease-out;
+    }
+
+    @keyframes modalSlide {
+      from { transform: translateY(-20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-header {
+      padding: 1rem;
+      border-bottom: 1px solid #333;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      color: var(--primary);
+    }
+
+    .close {
+      color: var(--muted);
+      font-size: 1.5rem;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 0 0.5rem;
+    }
+
+    .close:hover {
+      color: var(--text-light);
+    }
+
+    .modal-body {
+      padding: 1rem;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .fund-btn {
+      background: var(--primary);
+      color: #000;
+      border: none;
+      padding: 0.8rem 1rem;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      transition: all 0.3s ease;
+    }
+
+    .fund-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 2px 8px rgba(0, 204, 153, 0.3);
+    }
+
+    /* Loading State */
+    .fund-btn.loading {
+      position: relative;
+      color: transparent;
+    }
+
+    .fund-btn.loading::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #000;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 1s linear infinite;
+      transform: translate(-50%, -50%);
+    }
+
+    @keyframes spin {
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
     @media (max-width: 600px) {
       .card {
         min-width: 100%;
+      }
+      .modal-content {
+        margin: 10% auto;
+        width: 95%;
       }
     }
   </style>
@@ -164,6 +271,9 @@
       <span id="accountNumber">Loading...</span>
       <button class="copy-btn" onclick="copyAccount()">Copy</button>
       <p style="margin-top: 1rem;">Balance: ₦<span id="balance">0</span></p>
+      <button class="fund-btn" onclick="showFundingModal()" style="margin-top: 1rem; background: var(--primary);">
+        Fund Wallet
+      </button>
     </div>
 
     <div class="card">
@@ -176,18 +286,7 @@
     </div>
   </div>
 
-  <!-- Transfer Section -->
-  <div class="form-section">
-    <h3>Transfer Funds</h3>
-    <label for="recipientAccount">Recipient Account No</label>
-    <input type="text" id="recipientAccount" onblur="resolveUser()" />
-    <div id="userNameResolved"></div>
-    <label for="resolvedName">Resolved Name</label>
-    <input type="text" id="resolvedName" disabled style="background-color:#222;" />
-    <label for="transferAmount">Amount</label>
-    <input type="number" id="transferAmount" placeholder="₦0.00" />
-    <button onclick="handleTransfer()">Transfer</button>
-  </div>
+  <!-- Transfer Section removed: wallet is debited during orders -->
 
   <!-- Transactions -->
   <div class="form-section">
@@ -199,7 +298,7 @@
     function copyAccount() {
       const acct = document.getElementById('accountNumber').textContent.trim();
       navigator.clipboard.writeText(acct).then(() => {
-        alert("✅ Account number copied!");
+        window.showOverlay && showOverlay({ type:'success', title:'Copied', message:'Account number copied!' });
       });
     }
 
@@ -213,7 +312,29 @@
     });
   </script>
 
+  <!-- Funding Modal -->
+  <div id="fundingModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Fund Your Wallet</h3>
+        <span class="close" onclick="closeFundingModal()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="fundingAmount">Amount (₦)</label>
+          <input type="number" id="fundingAmount" min="100" step="100" placeholder="Enter amount">
+        </div>
+        <button onclick="initiateFunding()" class="fund-btn">
+          Proceed to Payment
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://js.paystack.co/v1/inline.js"></script>
   <script src="/js/config.js"></script>
+  <script src="/js/auth-utils.js"></script>
+  <script src="/js/back-button.js"></script>
   <script src="/js/buyer-wallet.js"></script>
 </body>
 </html>

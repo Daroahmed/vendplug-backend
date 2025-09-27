@@ -2,318 +2,1221 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Agent Dashboard - VendPlug</title>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+  <title>VendPlug | Agent Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/ads.css">
+  <!-- QR Code Library -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <style>
     :root {
-      --primary-green: #3BA935;
-      --dark-green: #002b18;
-      --light-bg: #f4fff8;
-      --light-card: #ffffff;
-      --hover-bg: #eafaea;
+      --primary: #00cc99;
+      --bg-dark: #121212;
+      --bg-card: #1e1e1e;
+      --bg-secondary: #2c2c2c;
+      --text-light: #fff;
+      --muted: #aaa;
+      --accent: #00cc99;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
 
     body {
-      margin: 0;
       font-family: 'Segoe UI', sans-serif;
-      background-color: var(--light-bg);
-      color: #222;
+      background-color: var(--bg-dark);
+      color: var(--text-light);
+      margin: 0;
+      padding-top: 70px;
     }
 
-    header {
-      background-color: var(--dark-green);
+    /* Header */
+    .header {
+      background-color: var(--bg-card);
+      padding: 1rem;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo {
+      width: 40px;
+      height: 40px;
+      background-color: var(--primary);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 20px;
+    }
+
+    .header h1 {
+      font-size: 1.5rem;
+      color: var(--primary);
+      margin: 0;
+    }
+
+    .user-menu {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    /* Message Icon Styles */
+    .message-icon {
+      position: relative;
+      color: var(--text-light);
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 50%;
+      transition: all 0.3s ease;
+    }
+
+    .message-icon:hover {
+      background: var(--bg-secondary);
+      color: var(--primary);
+    }
+
+    .message-badge {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background-color: #ff4444;
       color: white;
-      padding: 1.2rem;
-      text-align: center;
+      font-size: 0.7rem;
+      font-weight: bold;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
     }
 
-    .container {
-      padding: 1.5rem 1rem;
-      max-width: 960px;
-      margin: auto;
+    /* Notification Icon Styles */
+    .notification-icon {
+      position: relative;
+      color: var(--text-light);
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 50%;
+      transition: all 0.3s ease;
+      text-decoration: none;
     }
 
-    .greeting {
-      font-size: 1.1rem;
+    .notification-icon:hover {
+      background: var(--bg-secondary);
+      color: var(--primary);
+    }
+
+    .notification-badge {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background-color: #ff4444;
+      color: white;
+      font-size: 0.7rem;
+      font-weight: bold;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+    }
+
+    .user-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    /* Dashboard Stats */
+    .dashboard-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      padding: 1.5rem;
       margin-bottom: 1.5rem;
     }
 
-    .stats {
+    .stat-card {
+      background: var(--bg-card);
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
       display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
+      align-items: center;
+    }
+
+    .stat-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 12px;
+      background: rgba(0, 204, 153, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 1rem;
+      color: var(--primary);
+      font-size: 1.5rem;
+    }
+
+    .stat-info h3 {
+      font-size: 1.8rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .stat-info p {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    /* Dashboard Content */
+    .dashboard {
+      padding: 0 1.5rem 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .welcome-message {
+      text-align: center;
+      margin-bottom: 2rem;
+      color: var(--muted);
+    }
+
+
+
+    .section-title {
+      font-size: 1.5rem;
+      color: var(--primary);
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
       margin-bottom: 2rem;
     }
 
     .card {
-      background: var(--light-card);
-      flex: 1;
-      min-width: 160px;
-      padding: 1.2rem;
-      border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      background: var(--bg-card);
+      border-radius: 12px;
+      padding: 1.5rem;
       text-align: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      transition: transform 0.3s;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 150px;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    }
+
+    /* Share Business Card */
+    .share-business-card {
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--primary), #00b386);
+      color: var(--bg-dark);
+    }
+
+    .share-business-card:hover {
+      background: linear-gradient(135deg, #00b386, var(--primary));
+      transform: translateY(-5px) scale(1.02);
+    }
+
+    .share-business-card .card-icon {
+      background: rgba(255, 255, 255, 0.2);
+      color: var(--bg-dark);
+    }
+
+    .share-business-card h3,
+    .share-business-card p {
+      color: var(--bg-dark);
+    }
+
+    /* Share Modal Styles */
+    .share-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .share-modal.show {
+      display: flex;
+    }
+
+    .share-modal-content {
+      background: var(--bg-card);
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 450px;
+      width: 90%;
+      text-align: center;
+      position: relative;
+    }
+
+    .share-modal-header {
+      margin-bottom: 1.5rem;
+    }
+
+    .share-modal-header h2 {
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .share-modal-header p {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .close-modal {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      background: none;
+      border: none;
+      color: var(--text-light);
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 5px;
+    }
+
+    .business-link-display {
+      background: var(--bg-secondary);
+      border: 1px solid var(--primary);
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1.5rem 0;
+      word-break: break-all;
+      font-family: monospace;
+      font-size: 0.9rem;
+      color: var(--primary);
+    }
+
+    .share-options {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+
+    .share-option {
+      background: var(--bg-secondary);
+      border: none;
+      border-radius: 8px;
+      padding: 1rem;
+      color: var(--text-light);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .share-option:hover {
+      background: var(--primary);
+      color: var(--bg-dark);
+      transform: translateY(-2px);
+    }
+
+    .share-option i {
+      font-size: 1.5rem;
+    }
+
+    .share-option.whatsapp:hover {
+      background: #25D366;
+    }
+
+    .share-option.facebook:hover {
+      background: #1877F2;
+    }
+
+    .share-option.twitter:hover {
+      background: #1DA1F2;
+    }
+
+    .share-option.copy:hover {
+      background: var(--primary);
+    }
+
+    .copy-success {
+      background: var(--primary);
+      color: var(--bg-dark);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      margin-top: 1rem;
+      display: none;
+      font-weight: 500;
+    }
+
+    .copy-success.show {
+      display: block;
+    }
+
+    .qr-section {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+    }
+
+    .qr-code {
+      display: block;
+      margin: 0 auto;
+      max-width: 150px;
+      height: auto;
+    }
+
+    /* Payout Queue Styles */
+    .payout-queue-container {
+      background: var(--bg-card);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .queue-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-item {
+      background: var(--bg-secondary);
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+      display: block;
+      color: var(--primary);
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .queue-details h3 {
+      color: var(--text-light);
+      margin-bottom: 1rem;
+      font-size: 1.2rem;
+    }
+
+    .orders-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .order-item {
+      background: var(--bg-secondary);
+      padding: 1rem;
+      border-radius: 8px;
+      border-left: 4px solid var(--primary);
+    }
+
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .order-id {
+      font-weight: bold;
+      color: var(--primary);
+    }
+
+    .order-amount {
+      font-size: 1.1rem;
+      color: var(--text-light);
+    }
+
+    .order-details {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .order-status {
+      background: #ff9800;
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    
+    .order-status.confirmed {
+      background: #28a745;
+    }
+    
+    .order-item.confirmed {
+      border-left: 4px solid #28a745;
+      background: #f8fff9;
+    }
+
+    .collapsible-header {
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 0;
+      border-bottom: 1px solid #e0e0e0;
+      margin-bottom: 0;
+    }
+
+    .collapsible-header:hover {
+      background: #f5f5f5;
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 0 -1rem 0 -1rem;
+    }
+
+    .toggle-icon {
+      font-size: 0.8rem;
+      transition: transform 0.3s ease;
+    }
+
+    .toggle-icon.rotated {
+      transform: rotate(180deg);
+    }
+
+    .collapsible-content {
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+
+    .card-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 12px;
+      background: rgba(0, 204, 153, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+      color: var(--primary);
+      font-size: 1.5rem;
     }
 
     .card h3 {
-      font-size: 1.8rem;
-      margin-bottom: 0.3rem;
-      color: var(--primary-green);
+      margin: 0 0 0.5rem;
+      font-size: 1.1rem;
+      color: var(--primary);
     }
 
     .card p {
+      font-size: 0.9rem;
       margin: 0;
-      font-size: 0.95rem;
-      color: #555;
+      color: var(--muted);
     }
 
-    .nav-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 1.2rem;
-    }
-
-    .nav-tile {
-      background-color: var(--light-card);
-      padding: 1.4rem 1rem;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-      text-align: center;
-      transition: all 0.2s ease-in-out;
-      cursor: pointer;
-    }
-
-    .nav-tile:hover {
-      background-color: var(--hover-bg);
-    }
-
-    .nav-tile i {
-      font-size: 1.6rem;
-      margin-bottom: 0.6rem;
-      color: var(--primary-green);
-    }
-
-    .nav-tile p {
-      margin: 0;
-      font-weight: 600;
-      font-size: 0.95rem;
-      color: #222;
-    }
-
-    .logout-btn {
-      display: block;
-      margin: 2.5rem auto 1rem auto;
-      background: crimson;
-      color: white;
-      padding: 0.75rem 2rem;
-      border: none;
-      border-radius: 6px;
-      font-size: 0.95rem;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-
-    .logout-btn:hover {
-      background: darkred;
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .dashboard-stats {
+        grid-template-columns: 1fr;
+      }
+      
+      .grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      }
     }
 
     @media (max-width: 480px) {
-      .stats {
-        flex-direction: column;
+      .header h1 {
+        font-size: 1.2rem;
       }
-
-      .nav-grid {
-        grid-template-columns: 1fr 1fr;
+      
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .dashboard {
+        padding: 0 1rem 2rem;
       }
     }
   </style>
 </head>
 <body>
-
-  <header>
-    <h2>VendPlug Agent Dashboard</h2>
-  </header>
-
-  <div class="container">
-    <div class="greeting">Welcome back, <strong>Agent</strong> 👋</div>
-
-    <!-- Stats Section -->
-    <div class="stats">
-      <div class="card">
-        <h3>0</h3>
-        <p>Orders Today</p>
-      </div>
-      <div class="card">
-        <h3>0</h3>
-        <p>Pending Pickups</p>
-      </div>
-      <div class="card">
-        <h3>₦0.00</h3>
-        <p>Total Earnings</p>
-      </div>
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-container">
+      <h1>Agent Dashboard</h1>
     </div>
-
-    <!-- Navigation Tiles -->
-    <div class="nav-grid">
-      <div class="nav-tile" onclick="location.href='agent-orders.html'">
-        <i class="fa-solid fa-clipboard-list"></i>
-        <p>My Orders</p>
+    <div class="user-menu">
+      <!-- Notification icon will be injected here by notifications.js -->
+      <div class="message-icon" onclick="openMessages()">
+        <i class="fas fa-comments"></i>
+        <span class="message-badge" id="messageCount">0</span>
       </div>
-      <div class="nav-tile" onclick="location.href='agent-pickups.html'">
-        <i class="fa-solid fa-box-open"></i>
-        <p>Pickup Requests</p>
-      </div>
-      <div class="nav-tile" onclick="location.href='agent-earnings.html'">
-        <i class="fa-solid fa-wallet"></i>
-        <p>Earnings</p>
-      </div>
-      <div class="nav-tile" onclick="location.href='agent-profile.html'">
-        <i class="fa-solid fa-user-gear"></i>
-        <p>Settings</p>
-      </div>
-      <div class="nav-tile" onclick="location.href='agent-history.html'">
-        <i class="fa-solid fa-clock-rotate-left"></i>
-        <p>Order History</p>
-      </div>
-      <div class="nav-tile" onclick="location.href='agent-upload.html'">
-        <i class="fa-solid fa-upload"></i>
-        <p>Upload Product</p>
-      </div>
-      <div class="nav-tile" onclick="location.href='agent-manage-products.html'">
-        <i class="fa-solid fa-boxes-stacked"></i>
-        <p>Manage Products</p>
-      </div>
-      <div class="nav-tile" onclick="toggleWallet()">
-        <i class="fa-solid fa-money-bill-wave"></i>
-        <p>Wallet</p>
-      </div>
+      <div class="user-avatar">A</div>
     </div>
-
-    <button onclick="logout()" class="logout-btn">Logout</button>
-
-    <!-- ✅ Agent Wallet Section -->
-    <div id="wallet-section" style="display: none; margin-top: 2rem;">
-      <h3>Wallet</h3>
-
-      <div class="card">
-        <h3 id="wallet-balance">₦0.00</h3>
-        <p>Available Balance</p>
-      </div>
-
-      <!-- ✅ Pay Vendor UI -->
-      <div style="margin-top: 1.5rem;">
-        <label for="vendorSelect"><strong>Select Vendor:</strong></label><br />
-        <select id="vendorSelect" style="width: 100%; padding: 0.6rem; margin-top: 0.5rem; border-radius: 6px;">
-          <option disabled selected>Loading vendors...</option>
-        </select>
-      </div>
-
-      <div style="margin-top: 1rem;">
-        <label for="transferAmount"><strong>Amount (₦):</strong></label><br />
-        <input type="number" id="transferAmount" placeholder="Enter amount" style="width: 100%; padding: 0.6rem; margin-top: 0.5rem; border-radius: 6px;" />
-      </div>
-
-      <button onclick="sendToVendor()" style="
-        margin-top: 1.2rem;
-        padding: 0.6rem 1.5rem;
-        background: var(--primary-green);
-        color: white;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 0.95rem;
-      ">Pay Vendor</button>
-      <!-- Pay Vendor Section -->
-<div style="margin-top: 2rem;">
-  <h4>Pay a Vendor</h4>
-  <label for="vendorAccount">Vendor Virtual Account Number:</label><br/>
-  <input type="text" id="vendorAccount" placeholder="e.g., 3010001234" style="padding: 0.5rem; width: 100%; margin-bottom: 0.5rem;" />
-  <button onclick="validateVendor()" style="
-    background: var(--primary-green);
-    color: white;
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    margin-bottom: 1rem;
-  ">Validate Vendor</button>
-
-  <div id="vendorInfo" style="display: none; margin-bottom: 1rem;">
-    <strong>Vendor:</strong> <span id="vendorNameDisplay"></span><br/>
-    <label for="transferAmount">Amount (₦):</label><br/>
-    <input type="number" id="transferAmount" placeholder="e.g. 5000" style="padding: 0.5rem; width: 100%; margin-bottom: 0.5rem;" />
-    <button onclick="sendToVendor()" style="
-      background: var(--primary-green);
-      color: white;
-      padding: 0.5rem 1rem;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    ">Pay Vendor</button>
   </div>
-</div>
 
+
+  <!-- Dashboard Content -->
+  <div class="dashboard">
+    <div class="welcome-message">
+      <h2>Welcome back, Agent! 👋</h2>
+      <p>Here's what's happening with your store today</p>
+    </div>
+
+
+
+    <h2 class="section-title">Orders & Products</h2>
+    <div class="grid">
+      <a href="agent-orders.html">
+        <div class="card">
+          <div class="card-icon">
+            <i class="fas fa-clipboard-list"></i>
+          </div>
+          <h3>Incoming Orders</h3>
+          <p>View & manage incoming orders</p>
+        </div>
+      </a>
+
+      <a href="agent-delivered-orders.html">
+        <div class="card">
+          <div class="card-icon">
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <h3>Delivered Orders</h3>
+          <p>View completed & delivered orders</p>
+        </div>
+      </a>
+
+      <a href="agent-products.html">
+        <div class="card">
+          <div class="card-icon">
+            <i class="fas fa-box-open"></i>
+          </div>
+          <h3>Manage Products</h3>
+          <p>Add, update, or remove listings</p>
+        </div>
+      </a>
+
+      <a href="agent-stats.html">
+        <div class="card">
+          <div class="card-icon">
+            <i class="fas fa-chart-line"></i>
+          </div>
+          <h3>Stats & Analytics</h3>
+          <p>Sales overview & performance</p>
+        </div>
+      </a>
+    </div>
+
+    <h2 class="section-title">Payouts & Finances</h2>
+    <div class="grid">
+      <a href="request-payout.html">
+        <div class="card">
+          <div class="card-icon">
+            <i class="fas fa-paper-plane"></i>
+          </div>
+          <h3>Request Payout</h3>
+          <p>Withdraw funds to your bank</p>
+        </div>
+      </a>
+
+      <a href="bank-accounts.html">
+        <div class="card">
+          <div class="card-icon">
+            <i class="fas fa-university"></i>
+          </div>
+          <h3>Bank Accounts</h3>
+          <p>Manage your bank details</p>
+        </div>
+      </a>
+
+      <a href="agent-wallet.html">
+        <div class="card">
+          <div class="card-icon">
+            <i class="fas fa-wallet"></i>
+          </div>
+          <h3>Wallet</h3>
+          <p>View balance & transactions</p>
+        </div>
+      </a>
+    </div>
+
+    <h2 class="section-title">Dispute Management</h2>
+    <div class="grid">
+      <a href="my-disputes.html">
+        <div class="card">
+          <div class="card-icon">
+            <i class="fas fa-clipboard-list"></i>
+          </div>
+          <h3>My Disputes</h3>
+          <p>Track your dispute cases</p>
+        </div>
+      </a>
+    </div>
+
+    <!-- Payout Queue Section -->
+    <h2 class="section-title">📋 Payout Queue</h2>
+    <div class="payout-queue-container">
+      <div class="queue-stats">
+        <div class="stat-item">
+          <span class="stat-label">Pending Confirmations</span>
+          <span class="stat-value" id="pendingConfirmations">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Expected Payouts</span>
+          <span class="stat-value" id="expectedPayouts">₦0.00</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Available for Payout</span>
+          <span class="stat-value" id="availablePayouts">₦0.00</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Successful Payouts/Confirmed</span>
+          <span class="stat-value" id="successfulPayouts">₦0.00</span>
+        </div>
+      </div>
       
+      <div class="queue-details">
+        <h3 class="collapsible-header" onclick="toggleSection('pendingOrders')">
+          📦 Orders Awaiting Buyer Confirmation
+          <span class="toggle-icon" id="pendingOrdersToggle">▼</span>
+        </h3>
+        <div id="pendingOrdersList" class="orders-list collapsible-content" style="display: none;">
+          <!-- Pending orders will be loaded here -->
+        </div>
+      </div>
+      
+      <div class="queue-details">
+        <h3 class="collapsible-header" onclick="toggleSection('confirmedOrders')">
+          ✅ Confirmed Orders & Successful Payouts
+          <span class="toggle-icon" id="confirmedOrdersToggle">▼</span>
+        </h3>
+        <div id="confirmedOrdersList" class="orders-list collapsible-content" style="display: none;">
+          <!-- Confirmed orders will be loaded here -->
+        </div>
+      </div>
+    </div>
 
-      <!-- Transaction History -->
-      <div id="transactionHistory" style="margin-top: 2rem;"></div>
+    <h2 class="section-title">Account & Support</h2>
+    <div class="grid">
+      <a href="agent-profile.html">
+        <div class="card">
+          <div class="card-icon">
+            <i class="fas fa-user"></i>
+          </div>
+          <h3>Profile</h3>
+          <p>View & edit your details</p>
+        </div>
+      </a>
+
+      <div class="card share-business-card" onclick="showShareModal()">
+        <div class="card-icon">
+          <i class="fas fa-share-alt"></i>
+        </div>
+        <h3>Share My Business</h3>
+        <p>Share your business link with customers</p>
+      </div>
+
+      <a href="support.html">
+        <div class="card">
+          <div class="card-icon">
+            <i class="fas fa-headset"></i>
+          </div>
+          <h3>Support</h3>
+          <p>Get help with your account</p>
+        </div>
+      </a>
+
+      <a href="#" onclick="event.preventDefault(); window.logout && window.logout('agent');">
+        <div class="card">
+          <div class="card-icon">
+            <i class="fas fa-sign-out-alt"></i>
+          </div>
+          <h3>Sign Out</h3>
+          <p>Secure logout from your account</p>
+        </div>
+      </a>
     </div>
   </div>
 
+  <!-- Share Business Modal -->
+  <div class="share-modal" id="shareModal">
+    <div class="share-modal-content">
+      <button class="close-modal" onclick="closeShareModal()">
+        <i class="fas fa-times"></i>
+      </button>
+      
+      <div class="share-modal-header">
+        <h2>Share Your Business</h2>
+        <p>Share your business link with customers and grow your business!</p>
+      </div>
+
+      <div class="business-link-display" id="businessLinkDisplay">
+        Loading business link...
+      </div>
+
+      <div class="share-options">
+        <button class="share-option whatsapp" onclick="shareToWhatsApp()">
+          <i class="fab fa-whatsapp"></i>
+          <span>WhatsApp</span>
+        </button>
+        
+        <button class="share-option facebook" onclick="shareToFacebook()">
+          <i class="fab fa-facebook"></i>
+          <span>Facebook</span>
+        </button>
+        
+        <button class="share-option twitter" onclick="shareToTwitter()">
+          <i class="fab fa-twitter"></i>
+          <span>Twitter</span>
+        </button>
+        
+        <button class="share-option copy" onclick="copyBusinessLink()">
+          <i class="fas fa-copy"></i>
+          <span>Copy Link</span>
+        </button>
+      </div>
+
+      <div class="copy-success" id="copySuccess">
+        Link copied to clipboard! ✅
+      </div>
+
+      <div class="qr-section">
+        <h4>QR Code for Easy Sharing</h4>
+        <img id="qrCode" class="qr-code" alt="Shop QR Code">
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/auth-utils.js"></script>
+  <script src="/js/notifications.js"></script>
   <script>
-    const token = localStorage.getItem("vendplug-token");
+    // Global variables for sharing
+    let agentData = null;
+    let businessUrl = '';
+    const SHARE_BASE = window.SHARE_BASE_URL || (window.location.hostname === 'localhost'
+      ? (window.PUBLIC_BASE_URL || window.DEPLOY_BASE_URL || 'https://your-domain.com')
+      : window.location.origin);
 
-    if (!token) {
-      alert("You need to log in.");
-      window.location.href = "agent-login.html";
-    }
+    // This would be replaced with your actual data loading logic
+    document.addEventListener('DOMContentLoaded', function() {
+      // Load agent data for sharing
+      loadAgentData();
+      
+      // Load payout queue data
+      loadPayoutQueue();
+      
+      // Simulate loading data from backend
+      setTimeout(() => {
+        // Update stats with real data (this would come from your backend)
+        const stats = {
+          orders: 142,
+          revenue: 982450,
+          products: 56,
+          rating: 4.8
+        };
+        
+      }, 500);
+    });
 
-    // Agent Profile
-    fetch("/api/agents/profile", {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => {
-      if (!res.ok) throw new Error("Session expired");
-      return res.json();
-    })
-    .then(agent => {
-      if (agent.fullName) {
-        document.querySelector(".greeting").innerHTML =
-          `Welcome back, <strong>${agent.fullName}</strong> 👋`;
+    // Load agent data for sharing
+    async function loadAgentData() {
+      try {
+        // Get agent ID from localStorage or token
+        const token = localStorage.getItem('vendplug-agent-token');
+        if (!token) {
+          console.log('No agent token found');
+          return;
+        }
+
+        // Get agent ID from localStorage
+        const agent = JSON.parse(localStorage.getItem('vendplugAgent'));
+        if (!agent || !agent._id) {
+          console.log('No agent data found');
+          return;
+        }
+
+        // Fetch agent data using agent ID
+        const response = await fetch(`/api/agents/${agent._id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          agentData = await response.json();
+          console.log('✅ Agent data loaded:', agentData);
+          
+          businessUrl = `${SHARE_BASE}/view-business.html?agent=${agentData._id}`;
+          console.log('✅ Business URL generated:', businessUrl);
+          
+          // Update business link display
+          document.getElementById('businessLinkDisplay').textContent = businessUrl;
+          
+          // Generate QR code
+          generateQRCode(businessUrl);
+        } else {
+          console.error('❌ Failed to fetch agent data:', response.status, response.statusText);
+        }
+      } catch (error) {
+        console.error('Error loading agent data:', error);
+        // Fallback: use placeholder data
+        businessUrl = `${SHARE_BASE}/view-business.html?agent=your-agent-id`;
+        document.getElementById('businessLinkDisplay').textContent = businessUrl;
+        generateQRCode(businessUrl);
       }
-    })
-    .catch(() => {
-      alert("Session expired. Please log in again.");
-      localStorage.clear();
-      window.location.href = "agent-login.html";
-    });
-
-    // Agent Stats
-    fetch("/api/agents/stats", {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => {
-      if (!res.ok) throw new Error("Session expired");
-      return res.json();
-    })
-    .then(stats => {
-      document.querySelector(".card:nth-child(1) h3").textContent = stats.ordersToday || '0';
-      document.querySelector(".card:nth-child(2) h3").textContent = stats.pendingPickups || '0';
-      document.querySelector(".card:nth-child(3) h3").textContent = `₦${(stats.earnings || 0).toFixed(2)}`;
-    })
-    .catch(() => {
-      alert("Session expired. Please log in again.");
-      localStorage.clear();
-      window.location.href = "agent-login.html";
-    });
-
-    function logout() {
-      localStorage.clear();
-      window.location.href = "agent-login.html";
     }
+
+    // Load payout queue data
+    async function loadPayoutQueue() {
+      try {
+        const token = localStorage.getItem('vendplug-agent-token');
+        if (!token) {
+          console.log('No agent token found');
+          return;
+        }
+
+        const agent = JSON.parse(localStorage.getItem('vendplugAgent'));
+        if (!agent || !agent._id) {
+          console.log('No agent data found');
+          return;
+        }
+
+        // Fetch pending orders (delivered but not confirmed)
+        const pendingResponse = await fetch(`/api/agent-orders?status=delivered&agent=${agent._id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        // Fetch confirmed orders (fulfilled)
+        const confirmedResponse = await fetch(`/api/agent-orders?status=fulfilled&agent=${agent._id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (pendingResponse.ok && confirmedResponse.ok) {
+          const allDeliveredOrders = await pendingResponse.json();
+          const confirmedOrders = await confirmedResponse.json();
+          
+          // Filter out fulfilled orders from pending (only show truly pending delivered orders)
+          const pendingOrders = allDeliveredOrders.filter(order => order.status === 'delivered');
+          
+          console.log('✅ Payout queue loaded:', pendingOrders);
+          console.log('✅ Confirmed orders loaded:', confirmedOrders);
+
+          // Update stats
+          document.getElementById('pendingConfirmations').textContent = pendingOrders.length;
+          
+          const totalExpected = pendingOrders.reduce((sum, order) => sum + order.totalAmount, 0);
+          document.getElementById('expectedPayouts').textContent = `₦${totalExpected.toLocaleString()}`;
+
+          const totalConfirmed = confirmedOrders.reduce((sum, order) => sum + order.totalAmount, 0);
+          document.getElementById('successfulPayouts').textContent = `₦${totalConfirmed.toLocaleString()}`;
+
+          // Get wallet balance for available payouts
+          const walletResponse = await fetch(`/api/wallet/agent`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (walletResponse.ok) {
+            const walletData = await walletResponse.json();
+            const balance = walletData.balance || 0;
+            document.getElementById('availablePayouts').textContent = `₦${balance.toLocaleString()}`;
+          } else if (walletResponse.status === 404) {
+            // Wallet doesn't exist yet, set balance to 0
+            document.getElementById('availablePayouts').textContent = '₦0.00';
+            console.log('ℹ️ Wallet not found - user may not have made any transactions yet');
+          } else {
+            console.error('❌ Failed to fetch wallet balance:', walletResponse.status);
+            document.getElementById('availablePayouts').textContent = '₦0.00';
+          }
+
+          // Display pending orders
+          const pendingOrdersList = document.getElementById('pendingOrdersList');
+          if (pendingOrders.length === 0) {
+            pendingOrdersList.innerHTML = '<p style="color: var(--muted); text-align: center; padding: 2rem;">No orders awaiting confirmation</p>';
+          } else {
+            pendingOrdersList.innerHTML = pendingOrders.map(order => `
+              <div class="order-item">
+                <div class="order-header">
+                  <span class="order-id">#${order._id.slice(-8)}</span>
+                  <span class="order-amount">₦${order.totalAmount.toLocaleString()}</span>
+                </div>
+                <div class="order-details">
+                  <strong>Buyer:</strong> ${order.buyer?.fullName || 'Unknown'}<br>
+                  <strong>Order Date:</strong> ${new Date(order.createdAt).toLocaleDateString()}<br>
+                  <strong>Status:</strong> <span class="order-status">Awaiting Confirmation</span>
+                </div>
+              </div>
+            `).join('');
+          }
+
+          // Display confirmed orders
+          const confirmedOrdersList = document.getElementById('confirmedOrdersList');
+          if (confirmedOrders.length === 0) {
+            confirmedOrdersList.innerHTML = '<p style="color: var(--muted); text-align: center; padding: 2rem;">No confirmed orders yet</p>';
+          } else {
+            confirmedOrdersList.innerHTML = confirmedOrders.map(order => `
+              <div class="order-item confirmed">
+                <div class="order-header">
+                  <span class="order-id">#${order._id.slice(-8)}</span>
+                  <span class="order-amount">₦${order.totalAmount.toLocaleString()}</span>
+                </div>
+                <div class="order-details">
+                  <strong>Buyer:</strong> ${order.buyer?.fullName || 'Unknown'}<br>
+                  <strong>Amount:</strong> ₦${order.totalAmount.toLocaleString()}<br>
+                  <strong>Order Date:</strong> ${new Date(order.createdAt).toLocaleDateString()}<br>
+                  <strong>Confirmed Date:</strong> ${order.deliveredAt ? new Date(order.deliveredAt).toLocaleDateString() : 'N/A'}<br>
+                  <strong>Status:</strong> <span class="order-status confirmed">Confirmed & Paid</span>
+                </div>
+              </div>
+            `).join('');
+          }
+        } else {
+          console.error('❌ Failed to fetch payout queue:');
+          if (!pendingResponse.ok) {
+            console.error('  - Pending orders:', pendingResponse.status, pendingResponse.statusText);
+          }
+          if (!confirmedResponse.ok) {
+            console.error('  - Confirmed orders:', confirmedResponse.status, confirmedResponse.statusText);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading payout queue:', error);
+      }
+    }
+
+
+
+    // Show share modal
+    function showShareModal() {
+      const modal = document.getElementById('shareModal');
+      modal.classList.add('show');
+      
+      // Load agent data if not already loaded
+      if (!agentData) {
+        loadAgentData();
+      }
+    }
+
+    // Close share modal
+    function closeShareModal() {
+      const modal = document.getElementById('shareModal');
+      modal.classList.remove('show');
+    }
+
+    // Generate QR code
+    function generateQRCode(url) {
+      const qrCodeEl = document.getElementById('qrCode');
+      if (qrCodeEl && window.QRCode) {
+        QRCode.toCanvas(qrCodeEl, url, {
+          width: 150,
+          margin: 2,
+          color: {
+            dark: '#00cc99',
+            light: '#ffffff'
+          }
+        }, function (error) {
+          if (error) console.error('QR Code generation error:', error);
+        });
+      }
+    }
+
+    // Share to WhatsApp
+    function shareToWhatsApp() {
+      if (!agentData || !businessUrl) return;
+      
+      const message = `Check out my business on Vendplug!\n\n🏪 ${agentData.businessName || agentData.fullName}\n📍 ${agentData.state || 'Nigeria'}\n📱 ${agentData.phoneNumber}\n\n${businessUrl}`;
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank');
+      
+      // Track sharing
+      trackShare('whatsapp');
+    }
+
+    // Share to Facebook
+    function shareToFacebook() {
+      if (!businessUrl) return;
+      
+      const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(businessUrl)}`;
+      window.open(facebookUrl, '_blank', 'width=600,height=400');
+      
+      // Track sharing
+      trackShare('facebook');
+    }
+
+    // Share to Twitter
+    function shareToTwitter() {
+      if (!agentData || !businessUrl) return;
+      
+      const message = `Check out my business ${agentData.businessName || agentData.fullName} on Vendplug! 🏪✨\n\n${businessUrl}`;
+      const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`;
+      window.open(twitterUrl, '_blank', 'width=600,height=400');
+      
+      // Track sharing
+      trackShare('twitter');
+    }
+
+    // Copy business link
+    function copyBusinessLink() {
+      if (!businessUrl) return;
+      
+      navigator.clipboard.writeText(businessUrl).then(() => {
+        const copySuccess = document.getElementById('copySuccess');
+        copySuccess.classList.add('show');
+        
+        setTimeout(() => {
+          copySuccess.classList.remove('show');
+        }, 3000);
+      }).catch(err => {
+        console.error('Failed to copy:', err);
+        window.showOverlay && showOverlay({ type:'error', title:'Share', message:'Failed to copy link. Please try again.' });
+      });
+      
+      // Track sharing
+      trackShare('copy');
+    }
+
+    // Track sharing analytics
+    function trackShare(platform) {
+      try {
+        // Send analytics to backend
+        fetch('/api/analytics/share', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            platform,
+            agentId: agentData?._id,
+            businessUrl,
+            timestamp: new Date().toISOString()
+          })
+        }).catch(err => console.log('Analytics error:', err));
+        
+        // Log locally
+        console.log(`Business shared via ${platform}`);
+      } catch (error) {
+        console.log('Analytics tracking failed:', error);
+      }
+    }
+
+    // Close modal when clicking outside
+    document.addEventListener('click', function(event) {
+      const modal = document.getElementById('shareModal');
+      if (event.target === modal) {
+        closeShareModal();
+      }
+    });
+
+    // Toggle collapsible sections
+    function toggleSection(sectionName) {
+      const content = document.getElementById(sectionName + 'List');
+      const toggle = document.getElementById(sectionName + 'Toggle');
+      
+      if (content.style.display === 'none') {
+        content.style.display = 'block';
+        toggle.classList.remove('rotated');
+      } else {
+        content.style.display = 'none';
+        toggle.classList.add('rotated');
+      }
+    }
+
+    // Open messages function
+    function openMessages() {
+      // Open chat interface in the same window
+      const chatUrl = 'chat.html?type=agent';
+      window.location.href = chatUrl;
+    }
+
+    // Load unread message count
+    async function loadMessageCount() {
+      try {
+        const token = localStorage.getItem('vendplug-agent-token');
+        if (!token) return;
+
+        const response = await fetch('/api/chats/unread-count', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const count = data.count || 0;
+          document.getElementById('messageCount').textContent = count;
+          document.getElementById('messageCount').style.display = count > 0 ? 'flex' : 'none';
+        }
+      } catch (error) {
+        console.error('Error loading message count:', error);
+      }
+    }
+
+    // Load message count on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      loadMessageCount();
+      
+      // Refresh message count every 30 seconds
+      setInterval(loadMessageCount, 30000);
+    });
   </script>
-  <script src="js/config.js"></script>
-  <script src="js/agent-wallet.js"></script>
+  <script src="js/adManager.js"></script>
 </body>
 </html>

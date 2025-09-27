@@ -1,11 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const vendor = JSON.parse(localStorage.getItem('vendplugVendor'));
-  const token = vendor?.token;
+  const vendor = getCurrentUser();
+  const token = getAuthToken();
   const BACKEND = window.BACKEND_URL || "";
 
   if (!token) {
     alert('Unauthorized. Please log in again.');
-    window.location.href = '/vendor-login.html';
+    redirectToLogin();
     return;
   }
 

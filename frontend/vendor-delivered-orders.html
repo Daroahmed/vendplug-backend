@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VendPlug | Delivered Orders</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #121212;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 1rem 2rem;
+      background-color: #1e1e1e;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #00cc99;
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #00cc99;
+    }
+
+    header a {
+      color: #00cc99;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    header a:hover {
+      text-decoration: underline;
+    }
+
+    main {
+      flex: 1;
+      padding: 2rem;
+    }
+
+    h2 {
+      color: #00cc99;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Filters */
+    .filters {
+      margin-bottom: 1.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+      background: #1e1e1e;
+      padding: 1rem;
+      border-radius: 10px;
+      border: 2px solid #00cc99;
+    }
+
+    .filters label {
+      font-size: 0.9rem;
+    }
+
+    .filters select,
+    .filters input,
+    .filters button {
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid #00cc99;
+      background: #121212;
+      color: white;
+      font-size: 0.9rem;
+    }
+
+    .filters button {
+      cursor: pointer;
+      border: 2px solid #00cc99;
+      transition: all 0.3s ease;
+    }
+
+    .filters button:hover {
+      background: #00cc99;
+      color: #121212;
+    }
+
+    /* Order card */
+    .order-card {
+      background-color: #1e1e1e;
+      border: 2px solid #00cc99;
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      text-align: left;
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+
+    .order-card img {
+      width: 80px;
+      height: 80px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 1px solid #00cc99;
+    }
+
+    .order-info {
+      flex: 1;
+    }
+
+    .order-info p {
+      margin: 0.2rem 0;
+      font-size: 0.9rem;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+
+    .status.delivered { background: blue; color: white; }
+    .status.fulfilled { background: green; color: white; }
+    .status.resolved { background: orange; color: white; }
+
+    .button-group {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    button {
+      padding: 6px 14px;
+      background-color: #1e1e1e;
+      border: 2px solid #00cc99;
+      color: white;
+      font-size: 0.85rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #00cc99;
+      color: #121212;
+    }
+
+    /* Modal */
+    #orderModal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      overflow: auto;
+      z-index: 50;
+    }
+
+    .modal-content {
+      background: #1e1e1e;
+      border: 2px solid #00cc99;
+      border-radius: 12px;
+      padding: 1.5rem;
+      width: min(90%, 700px);
+      max-width: 500px;
+      text-align: left;
+      max-height: 90vh;
+      overflow: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .modal-header h2 {
+      color: #00cc99;
+      margin: 0;
+    }
+
+    .modal-header button {
+      background: none;
+      border: none;
+      color: #aaa;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .modal-header button:hover {
+      color: white;
+    }
+
+    .btn-primary {
+      background: #00cc99;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      margin: 4px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .btn-secondary {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      margin: 4px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .btn-close {
+      background: gray;
+      color: white;
+      padding: 8px 12px;
+      margin: 4px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    /* Copy button styles */
+    .copy-btn {
+      background: #00cc99;
+      border: none;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.3s ease;
+    }
+
+    .copy-btn:hover {
+      background: #00aa77;
+      transform: scale(1.05);
+    }
+
+    .copy-btn i {
+      font-size: 10px;
+    }
+
+    /* Stats cards */
+    .stats-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: #1e1e1e;
+      border: 2px solid #00cc99;
+      border-radius: 10px;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .stat-card h3 {
+      color: #00cc99;
+      margin: 0 0 0.5rem 0;
+      font-size: 1.2rem;
+    }
+
+    .stat-card p {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <h1>Delivered Orders</h1>
+    <a href="vendor-dashboard.html">← Back to Dashboard</a>
+  </header>
+
+  <!-- Orders Section -->
+  <main>
+    <!-- Stats -->
+    <div class="stats-container">
+      <div class="stat-card">
+        <h3>Total Delivered</h3>
+        <p id="totalDelivered">0</p>
+      </div>
+      <div class="stat-card">
+        <h3>Total Fulfilled</h3>
+        <p id="totalFulfilled">0</p>
+      </div>
+      <div class="stat-card">
+        <h3>Total Revenue</h3>
+        <p id="totalRevenue">₦0</p>
+      </div>
+    </div>
+
+    <h2>Completed Orders</h2>
+
+    <!-- Filters -->
+    <div class="filters">
+      <label for="statusFilter">Filter by Status:</label>
+      <select id="statusFilter">
+        <option value="">All</option>
+        <option value="delivered">Delivered</option>
+        <option value="fulfilled">Fulfilled</option>
+        <option value="resolved">Resolved</option>
+      </select>
+
+      <label for="startDate">Start Date:</label>
+      <input type="date" id="startDate">
+
+      <label for="endDate">End Date:</label>
+      <input type="date" id="endDate">
+
+      <button id="applyFilters">Apply</button>
+    </div>
+
+    <!-- Orders container -->
+    <div id="orders-container"></div>
+  </main>
+
+  <!-- Order Details Modal -->
+  <div id="orderModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Order Details</h2>
+        <button id="closeModalBtn">&times;</button>
+      </div>
+      <div id="orderDetails"></div>
+      <div class="button-group"></div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/auth-utils.js"></script>
+  <script src="/js/back-button.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/vendor-delivered-orders.js" defer></script>
+
+  
+</body>
+</html>

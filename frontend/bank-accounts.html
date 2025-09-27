@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Accounts - Vendplug</title>
+    <!-- CSS is included inline below -->
+    <style>
+        :root {
+            --primary: #00cc99;
+            --bg-dark: #121212;
+            --bg-card: #1e1e1e;
+            --bg-secondary: #2c2c2c;
+            --text-light: #fff;
+            --muted: #aaa;
+        }
+
+        body { background: var(--bg-dark); color: var(--text-light); font-family: 'Segoe UI', sans-serif; margin:0; padding-top:70px; }
+        .header { background: var(--bg-card); padding:1rem; position:fixed; top:0; left:0; right:0; z-index:100; display:flex; align-items:center; box-shadow:0 2px 10px rgba(0,0,0,0.3); }
+        .back-button { background:none; border:none; color:var(--text-light); font-size:1.2rem; margin-right:15px; cursor:pointer; }
+        .header-title { font-size:1.2rem; color:var(--primary); }
+
+        .bank-accounts-container {
+            max-width: 800px;
+            margin: 20px auto 60px;
+            padding: 20px;
+        }
+        
+        .add-account-form {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--bg-secondary);
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--text-light);
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--bg-secondary);
+            border-radius: 4px;
+            font-size: 14px;
+            background: var(--bg-secondary);
+            color: var(--text-light);
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: #000;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        
+        .accounts-list {
+            background: var(--bg-card);
+            border-radius: 8px;
+            border: 1px solid var(--bg-secondary);
+            overflow: hidden;
+        }
+        
+        .account-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .account-item:last-child {
+            border-bottom: none;
+        }
+        
+        .account-info h4 {
+            margin: 0 0 5px 0;
+            color: var(--text-light);
+        }
+        
+        .account-info p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 14px;
+        }
+        
+        .account-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-small {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .btn-success {
+            background: #1dbf73;
+            color: #000;
+        }
+        
+        .btn-danger {
+            background: #ff4d4f;
+            color: #000;
+        }
+        
+        .btn-warning {
+            background: #ffd666;
+            color: #000;
+        }
+        
+        .default-badge {
+            background: var(--primary);
+            color: #000;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        
+        .verified-badge {
+            background: #1dbf73;
+            color: #000;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .error {
+            background: #3a1e1f;
+            color: #f5b5b9;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        
+        .success {
+            background: #163a2a;
+            color: #9adbb3;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="bank-accounts-container">
+        <div style="margin-bottom: 20px;">
+            <a href="#" id="dashboardLink" style="color: #007bff; text-decoration: none; margin-right: 20px;">← Back to Dashboard</a>
+            <a href="request-payout.html" style="color: #007bff; text-decoration: none;">Request Payout</a>
+        </div>
+        <h1>🏦 Bank Account Management</h1>
+        
+        <div id="messageContainer"></div>
+        
+        <!-- Add Bank Account Form -->
+        <div class="add-account-form">
+            <h3>➕ Add New Bank Account</h3>
+            <form id="addAccountForm">
+                <div class="form-group">
+                    <label for="bankName">Bank Name</label>
+                    <select id="bankName" required>
+                        <option value="">Select a bank</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="accountNumber">Account Number</label>
+                    <input type="text" id="accountNumber" placeholder="Enter account number" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="accountName">Account Name</label>
+                    <input type="text" id="accountName" placeholder="Account holder name" required>
+                </div>
+                
+                <button type="submit" class="btn-primary">Add Bank Account</button>
+            </form>
+        </div>
+        
+        <!-- Bank Accounts List -->
+        <div class="accounts-list">
+            <h3>📋 Your Bank Accounts</h3>
+            <div id="accountsList">
+                <div class="loading">Loading bank accounts...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth-utils.js"></script>
+    <script src="/js/back-button.js"></script>
+    <script>
+        let banks = [];
+        let userToken = getAuthToken();
+        let userRole = null;
+        
+        // Get user data using smart utility
+        const userData = getCurrentUser();
+        userRole = getCurrentUserType() || userData?.role || 'buyer';
+
+        // Check authentication
+        if (!userToken) {
+            redirectToLogin();
+        }
+
+        // Load banks on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set dashboard link based on user role
+            const dashboardLink = document.getElementById('dashboardLink');
+            if (userRole === 'vendor') {
+                dashboardLink.href = 'vendor-dashboard.html';
+            } else if (userRole === 'agent') {
+                dashboardLink.href = 'agent-dashboard.html';
+            }
+            
+            // Update page title based on user type
+            const pageTitle = document.querySelector('h1');
+            if (pageTitle) {
+                if (userRole === 'agent') {
+                    pageTitle.textContent = '🏦 Agent Bank Account Management';
+                }
+            }
+            
+            loadBanks();
+            loadBankAccounts();
+        });
+
+        // Load available banks
+        async function loadBanks() {
+            try {
+                const response = await fetch(`${window.BACKEND_URL}/api/paystack/banks`, {
+                    headers: {
+                        'Authorization': `Bearer ${userToken}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    banks = data.data || [];
+                    populateBankSelect();
+                } else {
+                    console.error('Failed to load banks');
+                }
+            } catch (error) {
+                console.error('Error loading banks:', error);
+            }
+        }
+
+        // Populate bank select dropdown
+        function populateBankSelect() {
+            const bankSelect = document.getElementById('bankName');
+            bankSelect.innerHTML = '<option value="">Select a bank</option>';
+            
+            banks.forEach(bank => {
+                const option = document.createElement('option');
+                option.value = bank.code;
+                option.textContent = bank.name;
+                bankSelect.appendChild(option);
+            });
+        }
+
+        // Load user's bank accounts
+        async function loadBankAccounts() {
+            try {
+                const response = await fetch(`${window.BACKEND_URL}/api/bank-accounts/list`, {
+                    headers: {
+                        'Authorization': `Bearer ${userToken}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    displayBankAccounts(data.data || []);
+                } else {
+                    showMessage('Failed to load bank accounts', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading bank accounts:', error);
+                showMessage('Error loading bank accounts', 'error');
+            }
+        }
+
+        // Display bank accounts
+        function displayBankAccounts(accounts) {
+            const accountsList = document.getElementById('accountsList');
+            
+            if (accounts.length === 0) {
+                accountsList.innerHTML = '<div class="loading">No bank accounts found. Add your first bank account above.</div>';
+                return;
+            }
+            
+            accountsList.innerHTML = accounts.map(account => `
+                <div class="account-item">
+                    <div class="account-info">
+                        <h4>
+                            ${account.bankName}
+                            ${account.isDefault ? '<span class="default-badge">Default</span>' : ''}
+                            ${account.isVerified ? '<span class="verified-badge">Verified</span>' : ''}
+                        </h4>
+                        <p>Account: ${account.accountNumber} | Name: ${account.accountName}</p>
+                    </div>
+                    <div class="account-actions">
+                        ${!account.isDefault ? `<button class="btn-small btn-warning" onclick="setDefault('${account._id}')">Set Default</button>` : ''}
+                        ${!account.isDefault ? `<button class="btn-small btn-danger" onclick="deleteAccount('${account._id}')">Delete</button>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Add new bank account
+        document.getElementById('addAccountForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const bankCode = document.getElementById('bankName').value;
+            const accountNumber = document.getElementById('accountNumber').value;
+            const accountName = document.getElementById('accountName').value;
+            
+            if (!bankCode || !accountNumber || !accountName) {
+                showMessage('Please fill in all fields', 'error');
+                return;
+            }
+            
+            const bank = banks.find(b => b.code === bankCode);
+            if (!bank) {
+                showMessage('Please select a valid bank', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${window.BACKEND_URL}/api/bank-accounts/add`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${userToken}`
+                    },
+                    body: JSON.stringify({
+                        bankName: bank.name,
+                        bankCode: bank.code,
+                        accountNumber: accountNumber,
+                        accountName: accountName
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showMessage('Bank account added successfully!', 'success');
+                    document.getElementById('addAccountForm').reset();
+                    loadBankAccounts();
+                } else {
+                    const errorData = await response.json();
+                    showMessage(errorData.message || 'Failed to add bank account', 'error');
+                }
+            } catch (error) {
+                console.error('Error adding bank account:', error);
+                showMessage('Error adding bank account', 'error');
+            }
+        });
+
+        // Set default bank account
+        async function setDefault(accountId) {
+            try {
+                const response = await fetch(`${window.BACKEND_URL}/api/bank-accounts/${accountId}/set-default`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${userToken}`
+                    }
+                });
+                
+                if (response.ok) {
+                    showMessage('Default bank account updated!', 'success');
+                    loadBankAccounts();
+                } else {
+                    const errorData = await response.json();
+                    showMessage(errorData.message || 'Failed to update default account', 'error');
+                }
+            } catch (error) {
+                console.error('Error setting default account:', error);
+                showMessage('Error updating default account', 'error');
+            }
+        }
+
+        // Delete bank account
+        async function deleteAccount(accountId) {
+            if (!confirm('Are you sure you want to delete this bank account?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${window.BACKEND_URL}/api/bank-accounts/${accountId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${userToken}`
+                    }
+                });
+                
+                if (response.ok) {
+                    showMessage('Bank account deleted successfully!', 'success');
+                    loadBankAccounts();
+                } else {
+                    const errorData = await response.json();
+                    showMessage(errorData.message || 'Failed to delete account', 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting account:', error);
+                showMessage('Error deleting account', 'error');
+            }
+        }
+
+        // Show message
+        function showMessage(message, type) {
+            const messageContainer = document.getElementById('messageContainer');
+            messageContainer.innerHTML = `<div class="${type}">${message}</div>`;
+            
+            setTimeout(() => {
+                messageContainer.innerHTML = '';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

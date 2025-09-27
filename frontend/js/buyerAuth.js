@@ -22,7 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const data = await res.json();
         if (!res.ok) return alert(data.message || "Login failed");
 
-        localStorage.setItem("vendplug-token", data.token);
+        localStorage.setItem("vendplug-buyer-token", data.token);
         localStorage.setItem("buyer", JSON.stringify(data.user));
         location.href = "buyer-dashboard.html";
       } catch (err) {
@@ -50,7 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!res.ok) return alert(data.message || "Registration failed");
 
         alert("Registration successful. Please log in.");
-        location.href = "buyer-login.html";
+        location.href = "buyer-auth.html";
       } catch (err) {
         alert("Error during registration");
       }

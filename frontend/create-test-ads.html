@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Test Ads</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .ad-form { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .form-group { margin: 10px 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select, textarea { width: 100%; padding: 8px; margin-bottom: 10px; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 3px; }
+        button:hover { background: #0056b3; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; padding: 10px; margin: 10px 0; border-radius: 3px; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; padding: 10px; margin: 10px 0; border-radius: 3px; }
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; }
+        .checkbox-item { display: flex; align-items: center; gap: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🎯 Create Test Ads</h1>
+    
+    <div class="ad-form">
+        <h3>Create New Test Ad</h3>
+        
+        <div class="form-group">
+            <label for="adTitle">Ad Title:</label>
+            <input type="text" id="adTitle" value="Test Ad - Welcome to Vendplug" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="adDescription">Description:</label>
+            <textarea id="adDescription" rows="3">Your trusted escrow platform for secure transactions</textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="adType">Ad Type:</label>
+            <select id="adType">
+                <option value="banner">Banner</option>
+                <option value="popup">Popup</option>
+                <option value="sidebar">Sidebar</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="adImage">Image URL:</label>
+            <input type="url" id="adImage" value="https://via.placeholder.com/800x200/007bff/ffffff?text=Test+Ad" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="adLink">Click URL:</label>
+            <input type="url" id="adLink" value="https://vendplug.com">
+        </div>
+        
+        <div class="form-group">
+            <label for="adPosition">Position:</label>
+            <select id="adPosition">
+                <option value="hero">Hero</option>
+                <option value="sidebar">Sidebar</option>
+                <option value="footer">Footer</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="adPriority">Priority (1-10):</label>
+            <input type="number" id="adPriority" value="1" min="1" max="10">
+        </div>
+        
+        <div class="form-group">
+            <label>Target Pages:</label>
+            <div class="checkbox-group">
+                <div class="checkbox-item">
+                    <input type="checkbox" id="page-buyer-home" value="buyer-home" checked>
+                    <label for="page-buyer-home">Buyer Home</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="page-buyer-agent-home" value="buyer-agent-home" checked>
+                    <label for="page-buyer-agent-home">Buyer-Agent Home</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="page-vendor-shop" value="vendor-shop">
+                    <label for="page-vendor-shop">Vendor Shop</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="page-agent-shop" value="agent-shop">
+                    <label for="page-agent-shop">Agent Shop</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="page-view-shop" value="view-shop">
+                    <label for="page-view-shop">View Shop</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="page-view-business" value="view-business">
+                    <label for="page-view-business">View Business</label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Target User Types:</label>
+            <div class="checkbox-group">
+                <div class="checkbox-item">
+                    <input type="checkbox" id="user-buyer" value="buyer" checked>
+                    <label for="user-buyer">Buyer</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="user-vendor" value="vendor">
+                    <label for="user-vendor">Vendor</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="user-agent" value="agent" checked>
+                    <label for="user-agent">Agent</label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="adStartDate">Start Date:</label>
+            <input type="datetime-local" id="adStartDate" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="adEndDate">End Date:</label>
+            <input type="datetime-local" id="adEndDate" required>
+        </div>
+        
+        <button onclick="createAd()">Create Test Ad</button>
+        <button onclick="createMultipleAds()">Create 3 Test Ads</button>
+        <button onclick="testAdDisplay()">Test Ad Display</button>
+    </div>
+    
+    <div id="results"></div>
+
+    <script>
+        const BACKEND_URL = 'http://localhost:5000';
+        
+        // Set default dates
+        document.getElementById('adStartDate').value = new Date().toISOString().slice(0, 16);
+        document.getElementById('adEndDate').value = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16);
+        
+        function getSelectedPages() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"][id^="page-"]:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+        
+        function getSelectedUserTypes() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"][id^="user-"]:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+        
+        async function createAd() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = 'Creating ad...';
+            
+            const targetPages = getSelectedPages();
+            const targetUserTypes = getSelectedUserTypes();
+            
+            if (targetPages.length === 0) {
+                resultsDiv.innerHTML = '<div class="error">Please select at least one target page</div>';
+                return;
+            }
+            
+            if (targetUserTypes.length === 0) {
+                resultsDiv.innerHTML = '<div class="error">Please select at least one target user type</div>';
+                return;
+            }
+            
+            const adData = {
+                title: document.getElementById('adTitle').value,
+                description: document.getElementById('adDescription').value,
+                type: document.getElementById('adType').value,
+                image: document.getElementById('adImage').value,
+                link: document.getElementById('adLink').value,
+                position: document.getElementById('adPosition').value,
+                priority: parseInt(document.getElementById('adPriority').value),
+                targetPages: targetPages,
+                targetUserTypes: targetUserTypes,
+                startDate: new Date(document.getElementById('adStartDate').value),
+                endDate: new Date(document.getElementById('adEndDate').value),
+                status: 'active'
+            };
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/admin-ads/ads`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer test-token' // This will fail, but we can see the structure
+                    },
+                    body: JSON.stringify(adData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    resultsDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Ad created successfully!<br>
+                            <strong>ID:</strong> ${result.data._id}<br>
+                            <strong>Title:</strong> ${result.data.title}<br>
+                            <strong>Target Pages:</strong> ${result.data.targetPages.join(', ')}<br>
+                            <strong>Target Users:</strong> ${result.data.targetUserTypes.join(', ')}
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="error">
+                            ❌ Failed to create ad: ${result.message}<br>
+                            <strong>Status:</strong> ${response.status}<br>
+                            <strong>Note:</strong> This is expected without proper authentication. 
+                            Use the admin dashboard to create ads with proper auth.
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        async function createMultipleAds() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = 'Creating multiple test ads...';
+            
+            const testAds = [
+                {
+                    title: 'Welcome to Vendplug!',
+                    description: 'Your trusted escrow platform for secure transactions',
+                    type: 'banner',
+                    image: 'https://via.placeholder.com/800x200/007bff/ffffff?text=Welcome+to+Vendplug',
+                    link: 'https://vendplug.com',
+                    position: 'hero',
+                    priority: 1,
+                    targetPages: ['buyer-home', 'buyer-agent-home'],
+                    targetUserTypes: ['buyer', 'agent']
+                },
+                {
+                    title: 'Secure Escrow Services',
+                    description: 'Protect your transactions with our secure escrow system',
+                    type: 'banner',
+                    image: 'https://via.placeholder.com/800x200/28a745/ffffff?text=Secure+Escrow+Services',
+                    link: 'https://vendplug.com/escrow',
+                    position: 'sidebar',
+                    priority: 2,
+                    targetPages: ['vendor-shop', 'agent-shop'],
+                    targetUserTypes: ['vendor', 'agent']
+                },
+                {
+                    title: 'Start Selling Today',
+                    description: 'Join thousands of vendors on our platform',
+                    type: 'banner',
+                    image: 'https://via.placeholder.com/800x200/ffc107/000000?text=Start+Selling+Today',
+                    link: 'https://vendplug.com/vendor-signup',
+                    position: 'hero',
+                    priority: 3,
+                    targetPages: ['buyer-home', 'vendor-shop'],
+                    targetUserTypes: ['buyer', 'vendor']
+                }
+            ];
+            
+            let results = '<h3>Creating Test Ads:</h3>';
+            
+            for (let i = 0; i < testAds.length; i++) {
+                const ad = testAds[i];
+                ad.startDate = new Date();
+                ad.endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+                ad.status = 'active';
+                
+                results += `<p>Creating ad ${i + 1}: ${ad.title}...</p>`;
+                resultsDiv.innerHTML = results;
+                
+                try {
+                    const response = await fetch(`${BACKEND_URL}/api/admin-ads/ads`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer test-token'
+                        },
+                        body: JSON.stringify(ad)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        results += `<p>✅ Ad ${i + 1} created successfully!</p>`;
+                    } else {
+                        results += `<p>❌ Ad ${i + 1} failed: ${result.message}</p>`;
+                    }
+                } catch (error) {
+                    results += `<p>❌ Ad ${i + 1} error: ${error.message}</p>`;
+                }
+                
+                resultsDiv.innerHTML = results;
+            }
+            
+            results += '<p><strong>Note:</strong> These will fail without proper authentication. Use the admin dashboard to create real ads.</p>';
+            resultsDiv.innerHTML = results;
+        }
+        
+        async function testAdDisplay() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = 'Testing ad display...';
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/admin-ads/public/ads?userType=buyer&page=buyer-home`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultsDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Ad display API working!<br>
+                            <strong>Found ${data.data?.ads?.length || 0} ads</strong><br>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `<div class="error">❌ API Error: ${data.message}</div>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

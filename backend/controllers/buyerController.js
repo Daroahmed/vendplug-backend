@@ -1,10 +1,18 @@
 const asyncHandler = require("express-async-handler");
 const Buyer = require("../models/Buyer");
+const VendorOrder = require('../models/vendorOrderModel');
+const AgentOrder = require('../models/AgentOrder');
 const generateToken = require("../utils/generateToken");
+const { mintRefreshToken, setRefreshCookie } = (()=>{
+  // Import from authController without creating circular HTTP deps
+  const auth = require('./authController');
+  return { mintRefreshToken: auth.__proto__?.mintRefreshToken || auth.mintRefreshToken, setRefreshCookie: auth.__proto__?.setRefreshCookie || auth.setRefreshCookie };
+})();
 const bcrypt = require("bcryptjs");
 const { createWalletIfNotExists } = require("../controllers/walletHelper");
-const Order = require("../models/Order");
 const { notifyUser, handleError } = require('../utils/orderHelpers');
+const { sendVerificationEmail } = require('../utils/emailService');
+const Token = require('../models/Token');
 
 // @desc    Register new buyer
 // @desc    Register new buyer
@@ -19,14 +27,14 @@ const registerBuyer = asyncHandler(async (req, res) => {
     throw new Error("Buyer already exists");
   }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+ 
 
   const tempVirtualAccount = "BP" + Date.now(); // temporary value
 
   const newBuyer = new Buyer({
     fullName,
     email,
-    password: hashedPassword,
+    password,
     phoneNumber,
     address,
     virtualAccount: tempVirtualAccount, // ⛑️ prevent null insert
@@ -40,12 +48,31 @@ const registerBuyer = asyncHandler(async (req, res) => {
   
   savedBuyer.virtualAccount = wallet.virtualAccount;
   await savedBuyer.save();
-  
 
-const updatedBuyer = await Buyer.findById(savedBuyer._id).select("-password");
+  // Send verification email
+  try {
+    const verificationToken = generateToken(savedBuyer._id, "verification");
+    // Persist token so the verify endpoint can find it
+    try {
+      await Token.create({
+        userId: savedBuyer._id,
+        userModel: 'Buyer',
+        token: verificationToken,
+        type: 'verification',
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
+      });
+    } catch(e) { console.error('⚠️ Failed to persist buyer verification token:', e.message); }
+    await sendVerificationEmail(email, verificationToken);
+    console.log("✉️ Verification email sent to:", email);
+  } catch (error) {
+    console.error("❌ Error sending verification email:", error);
+    // Continue with registration even if email fails
+  }
+
+  const updatedBuyer = await Buyer.findById(savedBuyer._id).select("-password");
 
   res.status(201).json({
-    message: "Buyer registered successfully",
+    message: "Registration successful! Please check your email to verify your account.",
     buyer: updatedBuyer,
   });
 });
@@ -55,6 +82,22 @@ const loginBuyer = asyncHandler(async (req, res) => {
   const buyer = await Buyer.findOne({ email });
 
   if (buyer && (await bcrypt.compare(password, buyer.password))) {
+    if (!buyer.isEmailVerified) {
+      return res.status(403).json({
+        code: 'EMAIL_NOT_VERIFIED',
+        message: 'Please verify your email to continue.',
+        email: buyer.email,
+        userType: 'buyer'
+      });
+    }
+    // Issue refresh cookie (rolling session)
+    try {
+      if (mintRefreshToken && setRefreshCookie) {
+        const raw = await mintRefreshToken(buyer._id, 'Buyer');
+        setRefreshCookie(res, raw);
+      }
+    } catch(_){}
+
     res.status(200).json({
       _id: buyer._id,
       fullName: buyer.fullName,
@@ -71,23 +114,7 @@ const loginBuyer = asyncHandler(async (req, res) => {
   }
 });
 
-// ✅ Reset Password
-const resetBuyerPassword = async (req, res) => {
-  try {
-    const { email, newPassword } = req.body;
 
-    const buyer = await Buyer.findOne({ email });
-    if (!buyer) return res.status(404).json({ message: "Buyer not found" });
-
-    buyer.password = await bcrypt.hash(newPassword, 10);
-    await buyer.save();
-
-    res.status(200).json({ message: "Password reset successfully" });
-  } catch (error) {
-    console.error("❌ Reset Error:", error.message);
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-};
 
 // @desc    Get buyer profile
 // @route   GET /api/buyers/profile
@@ -102,33 +129,37 @@ const getBuyerProfile = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Get order stats for buyer
+// @desc    Get order stats for buyer (combines Vendor and Agent orders)
 // @route   GET /api/buyers/order-stats
 // @access  Private
 const getBuyerOrderStats = asyncHandler(async (req, res) => {
   const buyerId = req.buyer._id;
 
-  const totalOrders = await Order.countDocuments({ buyer: buyerId });
-  const completedOrders = await Order.countDocuments({
-    buyer: buyerId,
-    status: "completed",
-  });
-  const pendingOrders = await Order.countDocuments({
-    buyer: buyerId,
-    status: "pending",
-  });
+  const [
+    vendorTotal, agentTotal,
+    vendorCompleted, agentCompleted,
+    vendorPending, agentPending
+  ] = await Promise.all([
+    VendorOrder.countDocuments({ buyer: buyerId }),
+    AgentOrder.countDocuments({ buyer: buyerId }),
+
+    VendorOrder.countDocuments({ buyer: buyerId, status: 'completed' }),
+    AgentOrder.countDocuments({ buyer: buyerId, status: 'completed' }),
+
+    VendorOrder.countDocuments({ buyer: buyerId, status: 'pending' }),
+    AgentOrder.countDocuments({ buyer: buyerId, status: 'pending' })
+  ]);
 
   res.status(200).json({
-    totalOrders,
-    completedOrders,
-    pendingOrders,
+    totalOrders: vendorTotal + agentTotal,
+    completedOrders: vendorCompleted + agentCompleted,
+    pendingOrders: vendorPending + agentPending
   });
 });
 
 module.exports = {
   registerBuyer,
   loginBuyer,
-  resetBuyerPassword,
   getBuyerProfile,
   getBuyerOrderStats,
   notifyUser, handleError

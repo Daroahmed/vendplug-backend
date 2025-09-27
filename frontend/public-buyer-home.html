@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>VendPlug - Discover Amazing Products</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/ads.css">
+  <style>
+    :root {
+      --primary: #00cc99;
+      --bg-dark: #121212;
+      --bg-card: #1e1e1e;
+      --bg-secondary: #2c2c2c;
+      --text-light: #fff;
+      --muted: #aaa;
+      --accent: #00cc99;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-light);
+      margin: 0;
+      padding-bottom: 20px;
+    }
+
+    /* Header Styles */
+    .header {
+      background-color: var(--bg-card);
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo {
+      width: 40px;
+      height: 40px;
+      background-color: var(--primary);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 20px;
+    }
+
+    .header h2 {
+      margin: 0;
+      color: var(--primary);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 25px;
+    }
+
+    .auth-buttons {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-block;
+      text-align: center;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: var(--text-light);
+    }
+
+    .btn-primary:hover {
+      background: #00b894;
+      transform: translateY(-2px);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--primary);
+      border: 2px solid var(--primary);
+    }
+
+    .btn-outline:hover {
+      background: var(--primary);
+      color: var(--text-light);
+    }
+
+    /* Logged in user actions */
+    .user-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .cart-icon, .message-icon, .notification-icon {
+      position: relative;
+      color: var(--text-light);
+      font-size: 1.2rem;
+      text-decoration: none;
+      padding: 8px;
+      border-radius: 50%;
+      transition: all 0.3s ease;
+    }
+
+    .cart-icon:hover, .message-icon:hover, .notification-icon:hover {
+      background-color: var(--bg-secondary);
+      color: var(--primary);
+    }
+
+    .cart-count, .message-badge, .notification-badge {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background-color: var(--primary);
+      color: #000;
+      font-size: 0.7rem;
+      font-weight: bold;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Hamburger Menu */
+    .menu-toggle {
+      background: none;
+      border: none;
+      color: var(--text-light);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .menu-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 999;
+      display: none;
+    }
+
+    .side-menu {
+      position: fixed;
+      top: 0;
+      left: -300px;
+      width: 300px;
+      height: 100%;
+      background: var(--bg-card);
+      z-index: 1000;
+      padding: 1.5rem;
+      overflow-y: auto;
+      transition: left 0.3s ease;
+    }
+
+    .side-menu.active {
+      left: 0;
+    }
+
+    .menu-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .menu-header h3 {
+      color: var(--primary);
+    }
+
+    .close-menu {
+      background: none;
+      border: none;
+      color: var(--text-light);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .menu-section {
+      margin-bottom: 1.5rem;
+    }
+
+    .menu-section h4 {
+      color: var(--primary);
+      margin-bottom: 0.8rem;
+      font-size: 1rem;
+    }
+
+    .menu-links {
+      list-style: none;
+    }
+
+    .menu-links li {
+      margin-bottom: 0.5rem;
+    }
+
+    .menu-links a {
+      display: block;
+      padding: 0.8rem 1rem;
+      color: var(--text-light);
+      text-decoration: none;
+      border-radius: 8px;
+      transition: all 0.3s;
+    }
+
+    .menu-links a:hover {
+      background: var(--bg-secondary);
+      color: var(--primary);
+    }
+
+    /* Toggle Container */
+    .toggle-container {
+      background: var(--bg-card);
+      padding: 1rem;
+      text-align: center;
+      border-bottom: 1px solid var(--bg-secondary);
+    }
+
+    .toggle-buttons {
+      display: inline-flex;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      padding: 4px;
+      gap: 4px;
+    }
+
+    .toggle-btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .toggle-btn.active {
+      background: var(--primary);
+      color: var(--text-light);
+      box-shadow: 0 2px 8px rgba(0, 204, 153, 0.3);
+    }
+
+    .toggle-btn:hover:not(.active) {
+      background: var(--bg-card);
+      color: var(--text-light);
+    }
+
+
+    /* Container */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+
+    .main-content {
+      padding: 2rem 0;
+    }
+
+    /* State Selection */
+    .state-selection {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .section-title {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: var(--text-light);
+    }
+
+    .state-select {
+      background: var(--bg-card);
+      color: var(--text-light);
+      border: 2px solid var(--primary);
+      padding: 1rem 2rem;
+      border-radius: 50px;
+      font-size: 1.1rem;
+      min-width: 300px;
+      cursor: pointer;
+    }
+
+    .state-select:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(0, 204, 153, 0.3);
+    }
+
+    /* Loading Spinner */
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--bg-secondary);
+      border-top: 4px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Category Groups */
+    .category-group {
+      margin-bottom: 3rem;
+    }
+
+    .group-title {
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+      color: var(--primary);
+      text-align: center;
+      position: relative;
+    }
+
+    .group-title::after {
+      content: '';
+      position: absolute;
+      bottom: -0.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 3px;
+      background: var(--primary);
+      border-radius: 2px;
+    }
+
+    .categories-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .category-card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      border: 2px solid transparent;
+    }
+
+    .category-card:hover {
+      transform: translateY(-5px);
+      border-color: var(--primary);
+      box-shadow: 0 8px 25px rgba(0, 204, 153, 0.2);
+    }
+
+    .category-image {
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+      background: var(--bg-secondary);
+    }
+
+    .category-info {
+      padding: 1.5rem;
+      text-align: center;
+    }
+
+    .category-name {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-light);
+      margin-bottom: 0.5rem;
+    }
+
+    .category-description {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .auth-buttons {
+        flex-direction: column;
+        width: 100%;
+      }
+
+      .state-select {
+        min-width: 250px;
+        width: 100%;
+      }
+
+      .categories-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+      }
+
+    }
+  </style>
+</head>
+<body>
+  <!-- Header with Hamburger, Cart, and Notification -->
+  <div class="header">
+    <div class="logo-container">
+      <button class="menu-toggle" id="menuToggle">
+        <i class="fas fa-bars"></i>
+      </button>
+      <h2>Select Category</h2>
+    </div>
+    
+    <div class="header-actions">
+      <!-- Public user actions -->
+      <div id="publicActions" class="auth-buttons">
+        <a href="auth-selection.html" class="btn btn-outline">Sign In</a>
+        <a href="auth-selection.html" class="btn btn-primary">Sign Up</a>
+      </div>
+      
+      <!-- Logged in user actions -->
+      <div id="loggedInActions" class="user-actions" style="display: none;">
+        <!-- Message icon -->
+        <a href="chat.html" class="message-icon" id="messageIcon">
+          <i class="fas fa-comments"></i>
+          <span class="message-badge" id="messageBadge">0</span>
+        </a>
+        <!-- Notification icon will be injected here by notifications.js -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Hamburger Menu -->
+  <div class="menu-overlay" id="menuOverlay"></div>
+  <div class="side-menu" id="sideMenu">
+    <div class="menu-header">
+      <h3>Menu</h3>
+      <button class="close-menu" id="closeMenu">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="menu-section">
+      <h4>VENDORS</h4>
+      <ul class="menu-links">
+        <li><a href="buyer-vendor-checkout.html"><i class="fas fa-shopping-cart"></i> Cart</a></li>
+        <li><a href="buyer-vendor-orders.html"><i class="fas fa-clipboard-list"></i> Orders</a></li>
+      </ul>
+    </div>
+
+    <div class="menu-section">
+      <h4>AGENTS</h4>
+      <ul class="menu-links">
+        <li><a href="buyer-agent-checkout.html"><i class="fas fa-shopping-cart"></i> Cart</a></li>
+        <li><a href="buyer-agent-orders.html"><i class="fas fa-clipboard-list"></i> Orders</a></li>
+        <li><a href="buyer-list.html"><i class="fas fa-list"></i> Custom List</a></li>
+      </ul>
+    </div>
+
+    <div class="menu-section">
+      <ul class="menu-links">
+        <li><a href="buyer-wallet.html"><i class="fas fa-wallet"></i> Wallet</a></li>
+        <li><a href="buyer-profile.html"><i class="fas fa-user"></i> Profile</a></li>
+        
+        <li><a href="my-disputes.html"><i class="fas fa-clipboard-list"></i> My Disputes</a></li>
+        <li><a href="support.html"><i class="fas fa-headset"></i> Support</a></li>
+        <li><a href="#" onclick="buyerLogout(event)"><i class="fas fa-sign-out-alt"></i> Sign Out</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Vendor/Agent Toggle -->
+  <div class="toggle-container">
+    <div class="toggle-buttons">
+      <button id="vendorToggle" class="toggle-btn active" onclick="switchToVendor()">
+        <i class="fas fa-store"></i> Vendors
+      </button>
+      <button id="agentToggle" class="toggle-btn" onclick="switchToAgent()">
+        <i class="fas fa-user-tie"></i> Agents
+      </button>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Ad containers will be inserted here by adManager.js -->
+    <main class="main-content">
+    <!-- State Selection -->
+    <div class="state-selection">
+      <h2 class="section-title">Select Your Location</h2>
+      <select id="stateSelect" class="state-select"></select>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div class="loading" id="loadingSpinner">
+      <div class="spinner"></div>
+    </div>
+
+    <!-- Category Sections will be dynamically added here -->
+    <div id="activeCategoriesSection" class="category-group" style="display:none;">
+      <h3 class="group-title">Active Categories Near You</h3>
+      <div id="activeCategoriesGrid" class="categories-grid"></div>
+    </div>
+    <div id="categorySections"></div>
+    </main>
+  </div>
+
+
+  <!-- Ad Manager -->
+  <script src="/js/adManager.js"></script>
+  <script src="/js/pwa-register.js"></script>
+  
+  <!-- Notification and Message Scripts -->
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/auth-utils.js"></script>
+  <script src="/js/notifications.js"></script>
+  <script src="/js/messageNotifications.js"></script>
+  <script src="/js/cart-badge.js"></script>
+  <script src="/js/push-cta.js"></script>
+  <script>
+    // Try enabling push after the user interacts or when page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      // Delay a bit to avoid permission prompt on first paint
+      setTimeout(() => { window.enablePushIfPossible && window.enablePushIfPossible(); }, 1500);
+    });
+  </script>
+  
+  <script>
+    // Unified buyer logout clears tokens and relevant storage, then redirects
+    function buyerLogout(e){
+      if (e && e.preventDefault) e.preventDefault();
+      try {
+        // Clear buyer auth and any legacy keys
+        localStorage.removeItem('vendplug-buyer-token');
+        localStorage.removeItem('vendplugBuyer');
+        // Clear carts for both vendor and agent contexts (defensive)
+        localStorage.removeItem('cart');
+        localStorage.removeItem('vendorCart');
+        localStorage.removeItem('agentCart');
+        // Optional other session keys
+        localStorage.removeItem('vendplug-category');
+        localStorage.removeItem('vendplug-buyer-state');
+      } catch(_) {}
+      // Redirect to auth selection to avoid auto-login loops
+      window.location.href = 'auth-selection.html';
+    }
+    // Grouped categories - exact match with buyer-home.html
+    const groupedCategories = [
+      {
+        groupName: "Everyday Essentials",
+        categories: [
+          { name: "Supermarkets/Groceries and Provisions", image: "/assets/groceries.jpg" },
+          { name: "Soft Drinks & Water", image: "/assets/soft-drinks.jpg" },
+          { name: "Kitchen Utensils & Plastics", image: "/assets/kitchen-utensils.jpg" },
+          { name: "Gas Plants", image: "/assets/gas.jpg" },
+          { name: "Fruits & Vegetables", image: "/assets/fruits-vegetables.jpg" },
+          { name: "Grains", image: "/assets/grains.jpg" }
+        ]
+      },
+      {
+        groupName: "Meat & Animal Products",
+        categories: [
+          { name: "Suya & Balango", image: "/assets/suya.jpg" },
+          { name: "Raw Meat Sellers", image: "/assets/meat.jpg" },
+          { name: "Poultry (Chicken, Eggs, Turkey)", image: "/assets/poultry.jpg" },
+          { name: "Livestock (Goat, Ram, Cow)", image: "/assets/livestock.jpg" },
+          { name: "Fish & Seafood", image: "/assets/fish.jpg" }
+        ]
+      },
+      {
+        groupName: "Food & Hospitality",
+        categories: [
+          { name: "Restaurants", image: "/assets/restaurants.jpg" },
+          { name: "Catering & Small Chops", image: "/assets/catering.jpg" },
+          { name: "Hotels & Apartments", image: "/assets/hotels.jpg" },
+          { name: "Event Rentals (Canopies, Chairs)", image: "/assets/event-rentals.jpg" }
+        ]
+      },
+      {
+        groupName: "Fashion & Lifestyle",
+        categories: [
+          { name: "Boutiques", image: "/assets/boutiques.jpg" },
+          { name: "Thrift / Okrika / Gongo", image: "/assets/thrift.jpg" },
+          { name: "Tokunbo / Belgium Products", image: "/assets/tokunbo.jpg" },
+          { name: "Shoes and Bags", image: "/assets/shoes-bags.jpg" },
+          { name: "Jewelry & Accessories", image: "/assets/jewelry.jpg" },
+          { name: "Tailoring & Fashion Design", image: "/assets/tailoring.jpg" },
+          { name: "Textiles & Fabrics", image: "/assets/textiles.jpg" },
+          { name: "Wigs & Hair", image: "/assets/wigs.jpg" },
+          { name: "Cosmetics & Skincare", image: "/assets/cosmetics.jpg" },
+          { name: "Perfumes & Fragrances", image: "/assets/perfumes.jpg" },
+          { name: "Nigerian Caps e.g. Zana", image: "/assets/caps.jpg" }
+        ]
+      },
+      {
+        groupName: "Home & Living",
+        categories: [
+          { name: "Furniture", image: "/assets/furniture.jpg" },
+          { name: "Home Appliances", image: "/assets/home-appliances.jpg" },
+          { name: "Interior Decor & Curtains", image: "/assets/interior.jpg" },
+          { name: "Cleaning Services", image: "/assets/cleaning.jpg" },
+          { name: "Flowers & Gardens", image: "/assets/flowers.jpg" }
+        ]
+      },
+      {
+        groupName: "Building & Construction",
+        categories: [
+          { name: "Building Materials", image: "/assets/building-materials.jpg" },
+          { name: "Aluminium & Roofing", image: "/assets/aluminium.jpg" },
+          { name: "Cement, Blocks & Interlock", image: "/assets/cement.jpg" },
+          { name: "Gravel, Sharp Sand & Quarry", image: "/assets/sand.jpg" },
+          { name: "Electrical Supplies", image: "/assets/electrical.jpg" },
+          { name: "Plumbing Materials", image: "/assets/plumbing.jpg" },
+          { name: "Tiles & Paints", image: "/assets/tiles.jpg" },
+          { name: "Metal & Iron Works", image: "/assets/metal.jpg" },
+          { name: "Carpenters & Artisans", image: "/assets/carpenters.jpg" }
+        ]
+      },
+      {
+        groupName: "Health & Beauty",
+        categories: [
+          { name: "Pharmacy & Patent Stores", image: "/assets/pharmacy.jpg" },
+          { name: "Hospital & Medical Equipment", image: "/assets/medical-equipment.jpg" },
+          { name: "Herbal Medicine", image: "/assets/herbal.jpg" },
+          { name: "Maternity & Clinics", image: "/assets/maternity.jpg" },
+          { name: "Fitness & Supplements", image: "/assets/fitness.jpg" }
+        ]
+      },
+      {
+        groupName: "Electronics & Gadgets",
+        categories: [
+          { name: "Phones & Accessories / Laptops & Computers", image: "/assets/phones.jpg" },
+          { name: "Solar & Inverters", image: "/assets/solar.jpg" },
+          { name: "CCTV & Security Devices", image: "/assets/cctv.jpg" },
+          { name: "Game Consoles & Accessories", image: "/assets/games.jpg" }
+        ]
+      },
+      {
+        groupName: "Office & Services",
+        categories: [
+          { name: "Printing Press", image: "/assets/printing.jpg" },
+          { name: "Stationery & Office Supplies", image: "/assets/stationery.jpg" },
+          { name: "Internet & Data Services", image: "/assets/internet.jpg" },
+          { name: "Freelancers & Digital Services", image: "/assets/freelancers.jpg" }
+        ]
+      },
+      {
+        groupName: "Auto & Transport",
+        categories: [
+          { name: "Car Dealers / Tokunbo Cars", image: "/assets/cars.jpg" },
+          { name: "Car Spare Parts", image: "/assets/spare-parts.jpg" },
+          { name: "Auto Mechanics", image: "/assets/mechanics.jpg" },
+          { name: "Tyres, Batteries & Accessories", image: "/assets/tyres.jpg" },
+          { name: "Car Wash & Detailing", image: "/assets/car-wash.jpg" }
+        ]
+      },
+      {
+        groupName: "Laundry & Cleaning",
+        categories: [
+          { name: "Laundry Services", image: "/assets/laundry.jpg" },
+          { name: "Dry Cleaning", image: "/assets/dry-cleaning.jpg" },
+          { name: "House Cleaning", image: "/assets/house-cleaning.jpg" }
+        ]
+      },
+      {
+        groupName: "Agriculture",
+        categories: [
+          { name: "Animal Feed & Supplements", image: "/assets/animal-feed.jpg" },
+          { name: "Fish Farming", image: "/assets/fish-farming.jpg" }
+        ]
+      },
+      {
+        groupName: "Pets",
+        categories: [
+          { name: "Pets (Dogs, Cats, Birds)", image: "/assets/pets.jpg" },
+          { name: "Pet Food & Accessories", image: "/assets/pet-food.jpg" },
+          { name: "Veterinary Clinics", image: "/assets/veterinary.jpg" },
+          { name: "Pet Grooming", image: "/assets/pet-grooming.jpg" }
+        ]
+      },
+      {
+        groupName: "Real Estate",
+        categories: [
+          { name: "Real Estate Agents", image: "/assets/real-estate.jpg" },
+          { name: "Rentals & Sales", image: "/assets/rentals.jpg" },
+          { name: "Facility Management", image: "/assets/facility.jpg" },
+          { name: "Movers & Packers", image: "/assets/movers.jpg" }
+        ]
+      },
+      {
+        groupName: "Professional Services",
+        categories: [
+          { name: "Legal Services", image: "/assets/legal.jpg" },
+          { name: "Accounting & Tax", image: "/assets/accounting.jpg" },
+          { name: "Private Tutors", image: "/assets/tutors.jpg" },
+          { name: "Event Planners", image: "/assets/event-planners.jpg" },
+          { name: "Photography & Videography", image: "/assets/photography.jpg" },
+          { name: "Tech Repairs", image: "/assets/tech-repairs.jpg" }
+        ]
+      },
+      {
+        groupName: "Other",
+        categories: [
+          { name: "Other", image: "/assets/other.jpg" }
+        ]
+      }
+    ];
+
+    // Nigerian states
+    const nigerianStates = [
+      "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno",
+      "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", "FCT", "Gombe",
+      "Imo", "Jigawa", "Kaduna", "Kano", "Katsina", "Kebbi", "Kogi", "Kwara",
+      "Lagos", "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", "Oyo", "Plateau",
+      "Rivers", "Sokoto", "Taraba", "Yobe", "Zamfara"
+    ];
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+      checkUserStatus();
+      loadStates();
+      loadCategories();
+    });
+
+    // Load states into dropdown
+    function loadStates() {
+      const stateSelect = document.getElementById('stateSelect');
+      
+      // Add "All States" as default option (persisted)
+      const persisted = localStorage.getItem('vendplug-buyer-state') || '';
+      const allStatesOption = document.createElement('option');
+      allStatesOption.value = '';
+      allStatesOption.textContent = 'All States';
+      stateSelect.appendChild(allStatesOption);
+      
+      nigerianStates.forEach(state => {
+        const option = document.createElement('option');
+        option.value = state;
+        option.textContent = state;
+        stateSelect.appendChild(option);
+      });
+
+      // Apply persisted selection
+      stateSelect.value = persisted;
+    }
+
+    // Load categories
+    function loadCategories() {
+      const categorySections = document.getElementById('categorySections');
+      const loadingSpinner = document.getElementById('loadingSpinner');
+      
+      // Hide loading spinner
+      loadingSpinner.style.display = 'none';
+      
+      // Render Active Categories first (vendor mode by default)
+      renderActiveCategories();
+      
+      // Create category groups
+      groupedCategories.forEach(group => {
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'category-group';
+        
+        groupDiv.innerHTML = `
+          <h3 class="group-title">${group.groupName}</h3>
+          <div class="categories-grid">
+            ${group.categories.map(category => `
+              <div class="category-card" onclick="selectCategory('${category.name}')">
+                <img src="${category.image}" alt="${category.name}" class="category-image" onerror="this.src='https://via.placeholder.com/300x150?text=${encodeURIComponent(category.name)}'">
+                <div class="category-info">
+                  <h4 class="category-name">${category.name}</h4>
+                  <p class="category-description">Browse products in this category</p>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        
+        categorySections.appendChild(groupDiv);
+      });
+    }
+
+    async function renderActiveCategories() {
+      try {
+        const state = document.getElementById('stateSelect').value || '';
+        const grid = document.getElementById('activeCategoriesGrid');
+        const wrapper = document.getElementById('activeCategoriesSection');
+        grid.innerHTML = '';
+
+        // Prepare category list
+        const allCards = groupedCategories.flatMap(g => g.categories);
+        const uniqueNames = Array.from(new Set(allCards.map(c => c.name)));
+
+        // Choose endpoint based on current mode
+        const base = currentMode === 'agent' ? '/api/agents/shop-agents' : '/api/vendors/shop-vendors';
+
+        // Probe each category for availability (in parallel)
+        const checks = await Promise.all(uniqueNames.map(async (name) => {
+          const url = `${base}?category=${encodeURIComponent(name)}${state ? `&state=${encodeURIComponent(state)}` : ''}`;
+          try {
+            const res = await fetch(url);
+            const data = await res.json().catch(() => ([]));
+            const count = Array.isArray(data) ? data.length : Array.isArray(data?.vendors) ? data.vendors.length : Array.isArray(data?.agents) ? data.agents.length : 0;
+            return { name, count };
+          } catch (_) {
+            return { name, count: 0 };
+          }
+        }));
+
+        const activeNames = checks.filter(c => c.count > 0).map(c => c.name);
+        const activeCards = allCards.filter(c => activeNames.includes(c.name));
+
+        if (activeCards.length === 0) {
+          wrapper.style.display = 'none';
+          return;
+        }
+
+        wrapper.style.display = '';
+        grid.innerHTML = activeCards.slice(0, 12).map(category => `
+          <div class="category-card" onclick="selectCategory('${category.name}')">
+            <img src="${category.image}" alt="${category.name}" class="category-image" onerror="this.src='https://via.placeholder.com/300x150?text=${encodeURIComponent(category.name)}'">
+            <div class="category-info">
+              <h4 class="category-name">${category.name}</h4>
+              <p class="category-description">${currentMode === 'agent' ? 'Agents' : 'Vendors'} available</p>
+            </div>
+          </div>
+        `).join('');
+      } catch (e) {
+        console.warn('Active categories load failed:', e.message);
+        document.getElementById('activeCategoriesSection').style.display = 'none';
+      }
+    }
+
+    // Global variable to track current mode
+    let currentMode = 'vendor'; // 'vendor' or 'agent'
+
+    // Check if user is logged in and show appropriate header
+    function checkUserStatus() {
+      const buyerToken = localStorage.getItem('vendplug-buyer-token');
+      const publicActions = document.getElementById('publicActions');
+      const loggedInActions = document.getElementById('loggedInActions');
+      
+      if (buyerToken) {
+        // User is logged in
+        publicActions.style.display = 'none';
+        loggedInActions.style.display = 'flex';
+        updateUserCounts();
+      } else {
+        // User is not logged in (public user)
+        publicActions.style.display = 'flex';
+        loggedInActions.style.display = 'none';
+      }
+    }
+
+    // Update notification, message, and cart counts
+    function updateUserCounts() {
+      // Update message count (you can implement this based on your chat system)
+      document.getElementById('messageBadge').textContent = '0';
+    }
+
+    // Logout function
+    // Deprecated: kept for safety if referenced elsewhere
+    function logout(){ buyerLogout(); }
+
+    // Hamburger menu functionality
+    const menuToggle = document.getElementById('menuToggle');
+    const closeMenu = document.getElementById('closeMenu');
+    const menuOverlay = document.getElementById('menuOverlay');
+    const sideMenu = document.getElementById('sideMenu');
+
+    function openMenu() {
+      sideMenu.classList.add('active');
+      menuOverlay.style.display = 'block';
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeMenuFunc() {
+      sideMenu.classList.remove('active');
+      menuOverlay.style.display = 'none';
+      document.body.style.overflow = 'auto';
+    }
+
+    menuToggle.addEventListener('click', openMenu);
+    closeMenu.addEventListener('click', closeMenuFunc);
+    menuOverlay.addEventListener('click', closeMenuFunc);
+
+    // Switch to vendor mode
+    function switchToVendor() {
+      currentMode = 'vendor';
+      document.getElementById('vendorToggle').classList.add('active');
+      document.getElementById('agentToggle').classList.remove('active');
+      renderActiveCategories();
+    }
+
+    // Switch to agent mode
+    function switchToAgent() {
+      currentMode = 'agent';
+      document.getElementById('agentToggle').classList.add('active');
+      document.getElementById('vendorToggle').classList.remove('active');
+      renderActiveCategories();
+    }
+
+    // Select category (navigate to appropriate shop based on mode)
+    function selectCategory(categoryName) {
+      const selectedState = document.getElementById('stateSelect').value; // always read current UI value
+      const query = new URLSearchParams({
+        category: categoryName
+      });
+      if (selectedState) {
+        query.set('state', selectedState);
+      }
+      
+      // Navigate to appropriate shop based on current mode
+      const shopPage = currentMode === 'vendor' ? 'vendor-shop.html' : 'agent-shop.html';
+      window.location.href = `/${shopPage}?${query.toString()}`;
+    }
+
+    // Re-render active categories when state changes
+    document.getElementById('stateSelect').addEventListener('change', (e) => {
+      const val = e.target.value;
+      // Persist selection so other pages (shop views) can use it
+      localStorage.setItem('vendplug-buyer-state', val);
+      // Update URL query (remove state when All States)
+      try {
+        const url = new URL(window.location.href);
+        if (val) {
+          url.searchParams.set('state', val);
+        } else {
+          url.searchParams.delete('state');
+        }
+        const qs = url.searchParams.toString();
+        history.replaceState(null, '', url.pathname + (qs ? ('?' + qs) : '') + window.location.hash);
+      } catch (_) {}
+      renderActiveCategories();
+    });
+  </script>
+</body>
+</html>

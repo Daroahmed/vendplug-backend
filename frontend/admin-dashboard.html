@@ -1,223 +1,1652 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Agent Dashboard - VendPlug</title>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
-  <style>
-    :root {
-      --primary-green: #3BA935;
-      --dark-green: #002b18;
-      --light-bg: #f4fff8;
-      --light-card: #ffffff;
-      --hover-bg: #eafaea;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendplug Admin Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background-color: var(--light-bg);
-      color: #222;
-    }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
 
-    header {
-      background-color: var(--dark-green);
-      color: white;
-      padding: 1.2rem;
-      text-align: center;
-    }
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
 
-    .container {
-      padding: 1.5rem 1rem;
-      max-width: 960px;
-      margin: auto;
-    }
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background: #2c3e50;
+            color: white;
+            padding: 20px 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 1001;
+        }
 
-    .greeting {
-      font-size: 1.1rem;
-      margin-bottom: 1.5rem;
-    }
+        .sidebar-header {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid #34495e;
+        }
 
-    .stats {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      margin-bottom: 2rem;
-    }
+        .sidebar-header h2 {
+            color: #ecf0f1;
+            font-size: 1.5rem;
+        }
 
-    .card {
-      background: var(--light-card);
-      flex: 1;
-      min-width: 160px;
-      padding: 1.2rem;
-      border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-      text-align: center;
-    }
+        .nav-menu {
+            list-style: none;
+            padding: 20px 0;
+        }
 
-    .card h3 {
-      font-size: 1.8rem;
-      margin-bottom: 0.3rem;
-      color: var(--primary-green);
-    }
+        .nav-item {
+            margin: 5px 0;
+        }
 
-    .card p {
-      margin: 0;
-      font-size: 0.95rem;
-      color: #555;
-    }
+        .nav-link {
+            display: block;
+            padding: 12px 20px;
+            color: #bdc3c7;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
 
-    .nav-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 1.2rem;
-    }
+        .nav-link:hover,
+        .nav-link.active {
+            background: #34495e;
+            color: #ecf0f1;
+            border-left-color: #3498db;
+        }
 
-    .nav-tile {
-      background-color: var(--light-card);
-      padding: 1.4rem 1rem;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-      text-align: center;
-      transition: all 0.2s ease-in-out;
-      cursor: pointer;
-    }
+        .nav-link i {
+            margin-right: 10px;
+            width: 20px;
+        }
 
-    .nav-tile:hover {
-      background-color: var(--hover-bg);
-    }
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 250px;
+            padding: 20px;
+        }
 
-    .nav-tile i {
-      font-size: 1.6rem;
-      margin-bottom: 0.6rem;
-      color: var(--primary-green);
-    }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
 
-    .nav-tile p {
-      margin: 0;
-      font-weight: 600;
-      font-size: 0.95rem;
-      color: #222;
-    }
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
 
-    .logout-btn {
-      display: block;
-      margin: 2.5rem auto 1rem auto;
-      background: crimson;
-      color: white;
-      padding: 0.75rem 2rem;
-      border: none;
-      border-radius: 6px;
-      font-size: 0.95rem;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
+        .header p {
+            color: #7f8c8d;
+        }
 
-    .logout-btn:hover {
-      background: darkred;
-    }
+        /* Dashboard Cards */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
 
-    @media (max-width: 480px) {
-      .stats {
-        flex-direction: column;
-      }
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
 
-      .nav-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-    }
-  </style>
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .card-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .card-icon.users { background: #3498db; }
+        .card-icon.orders { background: #e74c3c; }
+        .card-icon.payouts { background: #f39c12; }
+        .card-icon.revenue { background: #27ae60; }
+
+        .card-title {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .card-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        /* Content Sections */
+        .content-section {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .section-header h3 {
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .section-header p {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .section-content {
+            padding: 20px;
+        }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #e67e22;
+        }
+
+        /* Status badges */
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-processing { background: #d1ecf1; color: #0c5460; }
+        .status-completed { background: #d4edda; color: #155724; }
+        .status-failed { background: #f8d7da; color: #721c24; }
+
+        /* Search and filters */
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-group label {
+            font-size: 0.9rem;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .pagination button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .pagination button:hover {
+            background: #f8f9fa;
+        }
+
+        .pagination button.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+
+        /* Loading states */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filters {
+                flex-direction: column;
+            }
+
+            /* Mobile menu button */
+            .menu-toggle {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 38px;
+                height: 38px;
+                border-radius: 8px;
+                background: #f0f2f5;
+                border: 1px solid #e5e7eb;
+                cursor: pointer;
+                margin-right: 10px;
+            }
+        }
+
+        /* Sidebar backdrop for mobile */
+        .sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            display: none;
+            z-index: 999;
+        }
+        .sidebar.open + .sidebar-overlay { display: block; }
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 0;
+            border: none;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 1000px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close:hover {
+            color: white;
+        }
+
+        .modal-body {
+            padding: 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        /* Image Upload Styles */
+        .image-upload-section {
+            width: 100%;
+        }
+
+        .image-upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            background: #fafafa;
+        }
+
+        .image-upload-area:hover {
+            border-color: #007bff;
+            background: #f0f8ff;
+        }
+
+        .image-upload-area.dragover {
+            border-color: #007bff;
+            background: #e6f3ff;
+        }
+
+        #imageUploadPlaceholder {
+            color: #666;
+        }
+
+        #imageUploadPlaceholder i {
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        #imageUploadPlaceholder p {
+            margin: 5px 0;
+            font-weight: 500;
+        }
+
+        #imageUploadPlaceholder small {
+            color: #999;
+        }
+
+        #imagePreview {
+            position: relative;
+            display: inline-block;
+        }
+
+        #previewImg {
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        #imageUploadStatus {
+            text-align: center;
+        }
+
+        .upload-success {
+            color: #28a745;
+        }
+
+        .upload-error {
+            color: #dc3545;
+        }
+
+        .upload-progress {
+            color: #007bff;
+        }
+
+        .dispute-info {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .info-item label {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .parties-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .party {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+
+        .party h4 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+
+        .dispute-details {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+        }
+
+        .dispute-details h3 {
+            margin: 0 0 15px 0;
+            color: #2c3e50;
+        }
+
+        .detail-item {
+            margin-bottom: 15px;
+        }
+
+        .detail-item label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+
+        .evidence-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .evidence-item {
+            display: flex;
+            gap: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #e74c3c;
+        }
+
+        .evidence-info {
+            flex: 1;
+        }
+
+        .evidence-preview img {
+            border-radius: 5px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .messages-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message-item {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #27ae60;
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        .message-content p {
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        .dispute-resolution {
+            background: #e8f5e8;
+            padding: 20px;
+            border-radius: 5px;
+            border-left: 4px solid #27ae60;
+        }
+
+        .resolution-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+    </style>
 </head>
 <body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Vendplug Admin</h2>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="#dashboard" class="nav-link active" data-section="dashboard">
+                        <i>📊</i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#users" class="nav-link" data-section="users">
+                        <i>👥</i> Users
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#orders" class="nav-link" data-section="orders">
+                        <i>📦</i> Orders
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#payouts" class="nav-link" data-section="payouts">
+                        <i>💰</i> Payouts
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#disputes" class="nav-link" data-section="disputes">
+                        <i>🚨</i> Disputes
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#support-tickets" class="nav-link" data-section="support-tickets">
+                        <i>🎫</i> Support Tickets
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="staff-management.html" class="nav-link">
+                        <i>👨‍💼</i> Staff Management
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#staff-activity" class="nav-link" data-section="staff-activity">
+                        <i>📋</i> Staff Activity Log
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#ad-management" class="nav-link" data-section="ad-management">
+                        <i>📢</i> Ad Management
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#notification-campaigns" class="nav-link" data-section="notification-campaigns">
+                        <i>📨</i> Notification Campaigns
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#logout" class="nav-link" id="logoutBtn">
+                        <i>🚪</i> Logout
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="sidebar-overlay" onclick="document.querySelector('.sidebar').classList.remove('open')"></div>
 
-  <header>
-    <h2>VendPlug Agent Dashboard</h2>
-  </header>
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header with Notifications -->
+            <div class="header">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <button class="menu-toggle" aria-label="Open menu" onclick="document.querySelector('.sidebar').classList.add('open')">☰</button>
+                        <h1>Admin Dashboard</h1>
+                        <p>Platform management and monitoring</p>
+                    </div>
+                    <div class="header-actions" style="display: flex; align-items: center; gap: 1rem;">
+                        <!-- Notification icon will be injected here by notifications.js -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Dashboard Section -->
+            <div id="dashboard-section" class="content-section">
+                <div class="section-header">
+                    <h3>Dashboard Overview</h3>
+                    <p>Platform statistics and recent activities</p>
+                </div>
+                <div class="section-content">
+                    <!-- Financial Summary Card -->
+                    <div class="financial-summary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 15px; margin-bottom: 25px; box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h4 style="margin: 0 0 10px 0; font-weight: 600;">💰 Financial Overview</h4>
+                                <p style="margin: 0; opacity: 0.9; font-size: 0.95rem;">Total platform transaction volume and revenue</p>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <div class="financial-stats">
+                                    <div class="stat-item" style="margin-bottom: 10px;">
+                                        <div style="font-size: 0.85rem; opacity: 0.8;">Total Transactions</div>
+                                        <div style="font-size: 1.8rem; font-weight: bold;" id="totalTransactionAmount">₦0</div>
+                                    </div>
+                                    <div class="stat-item" style="margin-bottom: 10px;">
+                                        <div style="font-size: 0.85rem; opacity: 0.8;">Total Orders</div>
+                                        <div style="font-size: 1.8rem; font-weight: bold;" id="totalOrderAmount">₦0</div>
+                                    </div>
+                                    <div class="stat-item" style="margin-bottom: 10px;">
+                                        <div style="font-size: 0.85rem; opacity: 0.8;">Total Payouts</div>
+                                        <div style="font-size: 1.8rem; font-weight: bold;" id="totalPayoutAmount">₦0</div>
+                                    </div>
+                                    <div class="stat-item" style="border-top: 1px solid rgba(255,255,255,0.2); padding-top: 10px;">
+                                        <div style="font-size: 0.85rem; opacity: 0.8;">Net Revenue</div>
+                                        <div style="font-size: 2.2rem; font-weight: bold; color: #4ade80;" id="netRevenue">₦0</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Global Dashboard Filter -->
+                    <div class="filters" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <div class="filter-group">
+                            <label>Date Range</label>
+                            <input type="date" id="dashboardDateFrom" placeholder="From Date">
+                        </div>
+                        <div class="filter-group">
+                            <label>To</label>
+                            <input type="date" id="dashboardDateTo" placeholder="To Date">
+                        </div>
+                        <div class="filter-group">
+                            <label>&nbsp;</label>
+                            <button class="btn btn-primary" onclick="adminDashboard.applyGlobalFilter()">Apply Filter</button>
+                        </div>
+                        <div class="filter-group">
+                            <label>&nbsp;</label>
+                            <button class="btn btn-secondary" onclick="adminDashboard.clearGlobalFilter()">Clear</button>
+                        </div>
+                    </div>
+                    <div class="dashboard-grid">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-icon users">👥</div>
+                                <div>
+                                    <div class="card-title">Total Users</div>
+                                    <div class="card-value" id="totalUsers">-</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-icon orders">📦</div>
+                                <div>
+                                    <div class="card-title">Total Orders</div>
+                                    <div class="card-value" id="totalOrders">-</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-icon payouts">💰</div>
+                                <div>
+                                    <div class="card-title">Pending Payouts</div>
+                                    <div class="card-value" id="pendingPayouts">-</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-icon revenue">📈</div>
+                                <div>
+                                    <div class="card-title">Processing Payouts</div>
+                                    <div class="card-value" id="processingPayouts">-</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-icon disputes">🚨</div>
+                                <div>
+                                    <div class="card-title">Open Disputes</div>
+                                    <div class="card-value" id="openDisputes">-</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-icon disputes">👥</div>
+                                <div>
+                                    <div class="card-title">Assigned Disputes</div>
+                                    <div class="card-value" id="assignedDisputes">-</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-icon disputes">🔍</div>
+                                <div>
+                                    <div class="card-title">Under Review</div>
+                                    <div class="card-value" id="underReviewDisputes">-</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-icon" style="background: #27ae60;">✅</div>
+                                <div>
+                                    <div class="card-title">Resolved Disputes</div>
+                                    <div class="card-value" id="resolvedDisputes">-</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-icon" style="background: #8e44ad;">📊</div>
+                                <div>
+                                    <div class="card-title">Total Disputes</div>
+                                    <div class="card-value" id="totalDisputes">-</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-icon" style="background: #e67e22;">🎫</div>
+                                <div>
+                                    <div class="card-title">Support Tickets</div>
+                                    <div class="card-value" id="totalSupportTickets">-</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card" style="cursor: pointer;" onclick="window.location.href='staff-management.html'">
+                            <div class="card-header">
+                                <div class="card-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">👨‍💼</div>
+                                <div>
+                                    <div class="card-title">Staff Management</div>
+                                    <div class="card-value" style="font-size: 0.9rem; color: #3498db;">Manage Team</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card" style="cursor: pointer;" onclick="window.location.href='staff-login.html'">
+                            <div class="card-header">
+                                <div class="card-icon" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);">🛡️</div>
+                                <div>
+                                    <div class="card-title">Staff Login</div>
+                                    <div class="card-value" style="font-size: 0.9rem; color: #27ae60;">Dispute Resolution</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card" style="cursor: pointer;" onclick="adminDashboard.showEscalatedDisputes()">
+                            <div class="card-header">
+                                <div class="card-icon" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">🚨</div>
+                                <div>
+                                    <div class="card-title">Escalated Disputes</div>
+                                    <div class="card-value" id="escalatedDisputes">0</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-  <div class="container">
-    <div class="greeting">Welcome back, <strong>Agent</strong> 👋</div>
+                    <div class="dashboard-grid">
+                        <div class="content-section">
+                            <div class="section-header">
+                                <h4>Recent Orders</h4>
+                            </div>
+                            <div class="section-content">
+                                <div id="recentOrders" class="loading">
+                                    <div class="spinner"></div>
+                                    Loading recent orders...
+                                </div>
+                            </div>
+                        </div>
 
-    <!-- Stats Section -->
-    <div class="stats">
-      <div class="card">
-        <h3>0</h3>
-        <p>Orders Today</p>
-      </div>
-      <div class="card">
-        <h3>0</h3>
-        <p>Pending Pickups</p>
-      </div>
-      <div class="card">
-        <h3>₦0.00</h3>
-        <p>Total Earnings</p>
-      </div>
+                        <div class="content-section">
+                            <div class="section-header">
+                                <h4>Recent Transactions</h4>
+                            </div>
+                            <div class="section-content">
+                                <div id="recentTransactions" class="loading">
+                                    <div class="spinner"></div>
+                                    Loading recent transactions...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Section -->
+            <div id="users-section" class="content-section" style="display: none;">
+                <div class="section-header">
+                    <h3>User Management</h3>
+                    <p>Manage buyers, vendors, and agents</p>
+                </div>
+                <div class="section-content">
+                    <div class="filters">
+                        <div class="filter-group">
+                            <label>Search</label>
+                            <input type="text" id="userSearch" placeholder="Search by name or email">
+                        </div>
+                        <div class="filter-group">
+                            <label>Role</label>
+                            <select id="userRole">
+                                <option value="">All Roles</option>
+                                <option value="buyer">Buyers</option>
+                                <option value="vendor">Vendors</option>
+                                <option value="agent">Agents</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Status</label>
+                            <select id="userStatus">
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>&nbsp;</label>
+                            <button class="btn btn-primary" onclick="searchUsers()">Search</button>
+                        </div>
+                    </div>
+
+                    <div id="usersTable" class="loading">
+                        <div class="spinner"></div>
+                        Loading users...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Orders Section -->
+            <div id="orders-section" class="content-section" style="display: none;">
+                <div class="section-header">
+                    <h3>Order Management</h3>
+                    <p>Monitor all platform orders</p>
+                </div>
+                <div class="section-content">
+                    <div class="filters">
+                        <div class="filter-group">
+                            <label>Search</label>
+                            <input type="text" id="orderSearch" placeholder="Search by order ID or user">
+                        </div>
+                        <div class="filter-group">
+                            <label>Status</label>
+                            <select id="orderStatus">
+                                <option value="">All Status</option>
+                                <option value="pending">Pending</option>
+                                <option value="accepted">Accepted</option>
+                                <option value="in-progress">In Progress</option>
+                                <option value="delivered">Delivered</option>
+                                <option value="fulfilled">Fulfilled</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Order Type</label>
+                            <select id="orderType">
+                                <option value="">All Types</option>
+                                <option value="vendor">Vendor Orders</option>
+                                <option value="agent">Agent Orders</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>&nbsp;</label>
+                            <button class="btn btn-primary" onclick="searchOrders()">Search</button>
+                        </div>
+                    </div>
+
+                    <div id="ordersTable" class="loading">
+                        <div class="spinner"></div>
+                        Loading orders...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payouts Section -->
+            <div id="payouts-section" class="content-section" style="display: none;">
+                <div class="section-header">
+                    <h3>Payout Management</h3>
+                    <p>Approve and manage vendor/agent payouts</p>
+                </div>
+                <div class="section-content">
+                    <div class="filters">
+                        <div class="filter-group">
+                            <label>Status</label>
+                            <select id="payoutStatus">
+                                <option value="">All Status</option>
+                                <option value="pending">Pending</option>
+                                <option value="processing">Processing</option>
+                                <option value="completed">Completed</option>
+                                <option value="failed">Failed</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>&nbsp;</label>
+                            <button class="btn btn-primary" onclick="searchPayouts()">Filter</button>
+                        </div>
+                    </div>
+
+                    <div id="payoutsTable" class="loading">
+                        <div class="spinner"></div>
+                        Loading payouts...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Disputes Section -->
+            <div id="disputes-section" class="content-section" style="display: none;">
+                <div class="section-header">
+                    <h3>Dispute Management</h3>
+                    <p>Review and resolve customer disputes</p>
+                </div>
+                <div class="section-content">
+                    <div class="filters">
+                        <div class="filter-group">
+                            <label>Status</label>
+                            <select id="disputeStatus">
+                                <option value="">All Statuses</option>
+                                <option value="open">Open</option>
+                                <option value="assigned">Assigned</option>
+                                <option value="under_review">Under Review</option>
+                                <option value="escalated">Escalated</option>
+                                <option value="resolved">Resolved</option>
+                                <option value="closed">Closed</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Priority</label>
+                            <select id="disputePriority">
+                                <option value="">All Priorities</option>
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                                <option value="urgent">Urgent</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>&nbsp;</label>
+                            <button class="btn btn-primary" onclick="searchDisputes()">Filter</button>
+                        </div>
+                    </div>
+
+                    <div id="disputesTable" class="loading">
+                        <div class="spinner"></div>
+                        Loading disputes...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Escalated Disputes Section -->
+            <div id="escalated-disputes-section" class="content-section" style="display: none;">
+                <div class="section-header">
+                    <h3>Escalated Disputes</h3>
+                    <p>Review and take action on escalated disputes</p>
+                </div>
+                <div class="section-content">
+                    <div class="filters">
+                        <div class="filter-group">
+                            <label>Priority</label>
+                            <select id="escalatedPriority">
+                                <option value="">All Priorities</option>
+                                <option value="high">High</option>
+                                <option value="urgent">Urgent</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Escalation Reason</label>
+                            <select id="escalationReason">
+                                <option value="">All Reasons</option>
+                                <option value="complex_case">Complex Case</option>
+                                <option value="staff_unavailable">Staff Unavailable</option>
+                                <option value="requires_admin_decision">Requires Admin Decision</option>
+                                <option value="legal_issues">Legal Issues</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>&nbsp;</label>
+                            <button class="btn btn-primary" onclick="searchEscalatedDisputes()">Filter</button>
+                        </div>
+                    </div>
+
+                    <div id="escalatedDisputesTable" class="loading">
+                        <div class="spinner"></div>
+                        Loading escalated disputes...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Staff Activity Log Section -->
+            <div id="staff-activity-section" class="content-section" style="display: none;">
+                <div class="section-header">
+                    <h3>Staff Activity Log</h3>
+                    <p>Track all staff actions and dispute activities</p>
+                </div>
+                <div class="section-content">
+                    <div class="filters">
+                        <div class="filter-group">
+                            <label>Staff Member</label>
+                            <select id="staffFilter">
+                                <option value="">All Staff</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Action Type</label>
+                            <select id="actionFilter">
+                                <option value="">All Actions</option>
+                                <option value="resolved">Dispute Resolved</option>
+                                <option value="refund">Refund Issued</option>
+                                <option value="no_refund">No Refund</option>
+                                <option value="partial_refund">Partial Refund</option>
+                                <option value="escalated">Dispute Escalated</option>
+                                <option value="under_review">Under Review</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Date Range</label>
+                            <input type="date" id="dateFrom">
+                        </div>
+                        <div class="filter-group">
+                            <label>To</label>
+                            <input type="date" id="dateTo">
+                        </div>
+                        <div class="filter-group">
+                            <label>&nbsp;</label>
+                            <button class="btn btn-primary" onclick="searchStaffActivity()">Filter</button>
+                        </div>
+                    </div>
+
+                    <div id="staffActivityTable" class="loading">
+                        <div class="spinner"></div>
+                        Loading staff activity...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Support Tickets Section -->
+            <div id="support-tickets-section" class="content-section" style="display: none;">
+                <div class="section-header">
+                    <h3>Support Tickets Management</h3>
+                    <p>Monitor and manage customer support tickets</p>
+                </div>
+                <div class="section-content">
+                    <div class="filters">
+                        <div class="filter-group">
+                            <label>Status</label>
+                            <select id="supportStatus">
+                                <option value="">All Statuses</option>
+                                <option value="open">Open</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="resolved">Resolved</option>
+                                <option value="closed">Closed</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Priority</label>
+                            <select id="supportPriority">
+                                <option value="">All Priorities</option>
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                                <option value="urgent">Urgent</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Category</label>
+                            <select id="supportCategory">
+                                <option value="">All Categories</option>
+                                <option value="technical">Technical</option>
+                                <option value="billing">Billing</option>
+                                <option value="order">Order</option>
+                                <option value="account">Account</option>
+                                <option value="payment">Payment</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Assigned To</label>
+                            <select id="supportAssignedTo">
+                                <option value="">All Staff</option>
+                                <option value="unassigned">Unassigned</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Search</label>
+                            <input type="text" id="supportSearch" placeholder="Search by ticket ID or subject">
+                        </div>
+                        <div class="filter-group">
+                            <label>&nbsp;</label>
+                            <button class="btn btn-primary" onclick="searchSupportTickets()">Filter</button>
+                        </div>
+                        <div class="filter-group">
+                            <label>&nbsp;</label>
+                            <button class="btn btn-secondary" onclick="clearSupportFilters()">Clear</button>
+                        </div>
+                    </div>
+
+                    <div id="supportTicketsTable" class="loading">
+                        <div class="spinner"></div>
+                        Loading support tickets...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ad Management Section -->
+            <div id="ad-management-section" class="content-section" style="display: none;">
+                <div class="section-header">
+                    <h3>Ad Management</h3>
+                    <p>Create and manage promotional content across the platform</p>
+                </div>
+                <div class="section-content">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <div class="filters">
+                            <div class="filter-group">
+                                <label>Ad Type</label>
+                                <select id="adTypeFilter">
+                                    <option value="">All Types</option>
+                                    <option value="banner">Banner Ads</option>
+                                    <option value="carousel">Carousel Ads</option>
+                                    <option value="popup">Popup Ads</option>
+                                    <option value="inline">Inline Ads</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label>Status</label>
+                                <select id="adStatusFilter">
+                                    <option value="">All Status</option>
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                    <option value="scheduled">Scheduled</option>
+                                    <option value="expired">Expired</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label>&nbsp;</label>
+                                <button class="btn btn-primary" onclick="filterAds()">Filter</button>
+                            </div>
+                        </div>
+                        <button class="btn btn-success" onclick="showCreateAdModal()">
+                            <i>➕</i> Create New Ad
+                        </button>
+                    </div>
+
+                    <div id="adsTable" class="loading">
+                        <div class="spinner"></div>
+                        Loading ads...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notification Campaigns Section -->
+            <div id="notification-campaigns-section" class="content-section" style="display: none;">
+                <div class="section-header">
+                    <h3>Notification Campaigns</h3>
+                    <p>Send targeted notifications to users</p>
+                </div>
+                <div class="section-content">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <div class="filters">
+                            <div class="filter-group">
+                                <label>Status</label>
+                                <select id="campaignStatusFilter">
+                                    <option value="">All Status</option>
+                                    <option value="draft">Draft</option>
+                                    <option value="scheduled">Scheduled</option>
+                                    <option value="active">Active</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label>Target</label>
+                                <select id="campaignTargetFilter">
+                                    <option value="">All Targets</option>
+                                    <option value="all">All Users</option>
+                                    <option value="buyers">Buyers Only</option>
+                                    <option value="vendors">Vendors Only</option>
+                                    <option value="agents">Agents Only</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label>&nbsp;</label>
+                                <button class="btn btn-primary" onclick="filterCampaigns()">Filter</button>
+                            </div>
+                        </div>
+                        <button class="btn btn-success" onclick="showCreateCampaignModal()">
+                            <i>📨</i> Create Campaign
+                        </button>
+                    </div>
+
+                    <div id="campaignsTable" class="loading">
+                        <div class="spinner"></div>
+                        Loading campaigns...
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Navigation Tiles -->
-    <div class="nav-grid">
-      <div class="nav-tile" onclick="location.href='agent-orders.html'">
-        <i class="fa-solid fa-clipboard-list"></i>
-        <p>My Orders</p>
-      </div>
-      <div class="nav-tile" onclick="location.href='agent-pickups.html'">
-        <i class="fa-solid fa-box-open"></i>
-        <p>Pickup Requests</p>
-      </div>
-      <div class="nav-tile" onclick="location.href='agent-earnings.html'">
-        <i class="fa-solid fa-wallet"></i>
-        <p>Earnings</p>
-      </div>
-      <div class="nav-tile" onclick="location.href='agent-profile.html'">
-        <i class="fa-solid fa-user-gear"></i>
-        <p>Settings</p>
-      </div>
+    <!-- Create Ad Modal -->
+    <div id="createAdModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create New Ad</h2>
+                <span class="close" onclick="closeCreateAdModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="createAdForm">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>Ad Title *</label>
+                            <input type="text" id="adTitle" required>
+                        </div>
+                        <div class="info-item">
+                            <label>Ad Type *</label>
+                            <select id="adType" required>
+                                <option value="">Select Type</option>
+                                <option value="banner">Banner Ad</option>
+                                <option value="popup">Popup Ad</option>
+                                <option value="inline">Inline Ad</option>
+                                <option value="carousel">Carousel Ad</option>
+                            </select>
+                        </div>
+                        <div class="info-item">
+                            <label>Position *</label>
+                            <select id="adPosition" required>
+                                <option value="">Select Position</option>
+                                <option value="hero">Hero Section</option>
+                                <option value="top">Top</option>
+                                <option value="middle">Middle</option>
+                                <option value="bottom">Bottom</option>
+                                <option value="sidebar">Sidebar</option>
+                                <option value="popup">Popup</option>
+                            </select>
+                        </div>
+                        <div class="info-item">
+                            <label>Status *</label>
+                            <select id="adStatus" required>
+                                <option value="draft">Draft</option>
+                                <option value="active" selected>Active</option>
+                                <option value="paused">Paused</option>
+                                <option value="archived">Archived</option>
+                            </select>
+                        </div>
+                        <div class="info-item">
+                            <label>Priority</label>
+                            <select id="adPriority">
+                                <option value="1">Low (1)</option>
+                                <option value="5" selected>Medium (5)</option>
+                                <option value="10">High (10)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="info-item" style="margin: 20px 0;">
+                        <label>Description</label>
+                        <textarea id="adDescription" rows="3" placeholder="Ad description or call-to-action"></textarea>
+                    </div>
+                    
+                    <div class="info-item" style="margin: 20px 0;">
+                        <label>Ad Image *</label>
+                        <div class="image-upload-section">
+                            <input type="file" id="adImageFile" accept="image/*" style="display: none;" onchange="handleImageUpload(this)">
+                            <div class="image-upload-area" onclick="document.getElementById('adImageFile').click()">
+                                <div id="imageUploadPlaceholder">
+                                    <i style="font-size: 2rem; color: #666;">📷</i>
+                                    <p>Click to upload image</p>
+                                    <small>JPEG, PNG, GIF, WebP (Max 5MB)</small>
+                                </div>
+                                <div id="imagePreview" style="display: none;">
+                                    <img id="previewImg" style="max-width: 100%; max-height: 200px; border-radius: 4px;">
+                                    <button type="button" onclick="removeImage()" style="position: absolute; top: 5px; right: 5px; background: #dc3545; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer;">×</button>
+                                </div>
+                            </div>
+                            <input type="hidden" id="adImageUrl" required>
+                            <div id="imageUploadStatus" style="margin-top: 10px; font-size: 0.9rem;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-item" style="margin: 20px 0;">
+                        <label>Click URL</label>
+                        <input type="url" id="adClickUrl" placeholder="https://example.com/landing-page">
+                    </div>
+                    
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>Start Date</label>
+                            <input type="datetime-local" id="adStartDate">
+                        </div>
+                        <div class="info-item">
+                            <label>End Date</label>
+                            <input type="datetime-local" id="adEndDate">
+                        </div>
+                    </div>
+                    
+                    <div class="info-item" style="margin: 20px 0;">
+                        <label>Target Pages</label>
+                        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px;">
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" name="adTargetPages" value="public-buyer-home"> Public Buyer Home
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" name="adTargetPages" value="buyer-home"> Buyer Home
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" name="adTargetPages" value="buyer-agent-home"> Buyer-Agent Home
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" name="adTargetPages" value="vendor-dashboard"> Vendor Dashboard
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" name="adTargetPages" value="agent-dashboard"> Agent Dashboard
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" name="adTargetPages" value="vendor-shop"> Vendor Shop
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" name="adTargetPages" value="agent-shop"> Agent Shop
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" name="adTargetPages" value="view-shop"> View Shop
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" name="adTargetPages" value="view-business"> View Business
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" name="adTargetPages" value="all"> All Pages
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="info-item" style="margin: 20px 0;">
+                        <label>Target User Types</label>
+                        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px;">
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" name="adTargetUserTypes" value="buyer"> Buyer
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" name="adTargetUserTypes" value="vendor"> Vendor
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" name="adTargetUserTypes" value="agent"> Agent
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" name="adTargetUserTypes" value="all"> All Users
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeCreateAdModal()">Cancel</button>
+                <button class="btn btn-success" id="createAdBtn" onclick="createAd()">Create Ad</button>
+            </div>
+        </div>
     </div>
 
-    <button onclick="logout()" class="logout-btn">Logout</button>
-  </div>
+    <!-- Create Campaign Modal -->
+    <div id="createCampaignModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create Notification Campaign</h2>
+                <span class="close" onclick="closeCreateCampaignModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="createCampaignForm">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>Campaign Name *</label>
+                            <input type="text" id="campaignName" required>
+                        </div>
+                        <div class="info-item">
+                            <label>Status *</label>
+                            <select id="campaignStatus" required>
+                                <option value="draft">Draft</option>
+                                <option value="scheduled">Scheduled</option>
+                                <option value="active">Active</option>
+                            </select>
+                        </div>
+                        <div class="info-item">
+                            <label>Priority</label>
+                            <select id="campaignPriority">
+                                <option value="low">Low</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="high">High</option>
+                            </select>
+                        </div>
+                        <div class="info-item">
+                            <label>Target Audience *</label>
+                            <select id="campaignTarget" required>
+                                <option value="">Select Target</option>
+                                <option value="all">All Users</option>
+                                <option value="buyers">Buyers Only</option>
+                                <option value="vendors">Vendors Only</option>
+                                <option value="agents">Agents Only</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="info-item" style="margin: 20px 0;">
+                        <label>Notification Title *</label>
+                        <input type="text" id="campaignTitle" required>
+                    </div>
+                    
+                    <div class="info-item" style="margin: 20px 0;">
+                        <label>Notification Message *</label>
+                        <textarea id="campaignMessage" rows="4" required placeholder="Enter your notification message"></textarea>
+                    </div>
+                    
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>Send Date</label>
+                            <input type="datetime-local" id="campaignSendDate">
+                            <div style="margin-top:6px; display:flex; align-items:center; gap:8px;">
+                                <label style="display:flex; align-items:center; gap:6px; font-size:0.9rem; color:#555;">
+                                    <input type="checkbox" id="campaignSendNow" onchange="setCampaignSendNow(this.checked)"> Send now
+                                </label>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <label>Expiry Date</label>
+                            <input type="datetime-local" id="campaignExpiryDate">
+                            <div style="margin-top:6px; display:flex; gap:8px; flex-wrap:wrap;">
+                                <button type="button" class="btn btn-primary" onclick="setCampaignExpiry(1)">+1 day</button>
+                                <button type="button" class="btn btn-primary" onclick="setCampaignExpiry(7)">+7 days</button>
+                                <button type="button" class="btn btn-primary" onclick="setCampaignExpiry(30)">+30 days</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>Notification Type</label>
+                            <select id="campaignType">
+                                <option value="announcement" selected>Announcement</option>
+                                <option value="promotion">Promotion</option>
+                                <option value="update">Update</option>
+                                <option value="event">Event</option>
+                                <option value="maintenance">Maintenance</option>
+                                <option value="celebration">Celebration</option>
+                            </select>
+                        </div>
+                        <div class="info-item">
+                            <label>Delivery Method</label>
+                            <select id="campaignDelivery">
+                                <option value="in_app" selected>In App</option>
+                                <option value="push">Push</option>
+                                <option value="email">Email</option>
+                                <option value="sms">SMS</option>
+                                <option value="popup">Popup</option>
+                            </select>
+                        </div>
+                    </div>
 
-  <script>
-    const token = localStorage.getItem("vendplug-token");
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>Image URL (optional)</label>
+                            <input type="url" id="campaignImageUrl" placeholder="https://...">
+                        </div>
+                        <div class="info-item">
+                            <label>Link URL (optional)</label>
+                            <input type="url" id="campaignLinkUrl" placeholder="https://...">
+                        </div>
+                        <div class="info-item">
+                            <label>Link Text</label>
+                            <input type="text" id="campaignLinkText" placeholder="Learn More">
+                        </div>
+                    </div>
 
-    if (!token) {
-      alert("You need to log in.");
-      window.location.href = "agent-login.html";
-    }
+                    <div class="info-item" style="margin: 20px 0;">
+                        <label>Additional Data (JSON)</label>
+                        <textarea id="campaignData" rows="3" placeholder='{"popup": {"showDelay": 2000, "autoClose": 0}}'></textarea>
+                        <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+                            <button type="button" class="btn btn-primary" onclick="setCampaignDataTemplate('popup')">Popup template</button>
+                            <button type="button" class="btn btn-primary" onclick="setCampaignDataTemplate('email')">Email template</button>
+                            <button type="button" class="btn btn-primary" onclick="setCampaignDataTemplate('sms')">SMS template</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeCreateCampaignModal()">Cancel</button>
+                <button class="btn btn-success" onclick="createCampaign()">Create Campaign</button>
+            </div>
+        </div>
+    </div>
 
-    // Fetch Agent Profile
-    fetch("/api/agents/profile", {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => res.json())
-    .then(agent => {
-      if (agent.fullName) {
-        document.querySelector(".greeting").innerHTML =
-          `Welcome back, <strong>${agent.fullName}</strong> 👋`;
-      }
-    });
-
-    // Fetch Dashboard Stats
-    fetch("/api/agents/stats", {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => res.json())
-    .then(stats => {
-      document.querySelector(".card:nth-child(1) h3").textContent = stats.ordersToday || '0';
-      document.querySelector(".card:nth-child(2) h3").textContent = stats.pendingPickups || '0';
-      document.querySelector(".card:nth-child(3) h3").textContent = `₦${stats.totalEarnings?.toFixed(2) || '0.00'}`;
-    })
-    .catch(err => {
-      alert("Session expired or server error.");
-      localStorage.clear();
-      window.location.href = "agent-login.html";
-    });
-
-    function logout() {
-      localStorage.removeItem("vendplug-token");
-      window.location.href = "agent-login.html";
-    }
-  </script>
-
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/dataFormatter.js"></script>
+    <script src="js/auth-utils.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/adManager.js"></script>
+    <script src="js/admin-dashboard.js"></script>
 </body>
 </html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VendPlug – Offline</title>
+  <style>
+    :root { --primary:#00cc99; --bg:#121212; --card:#1e1e1e; --text:#fff; --muted:#aaa; }
+    body { margin:0; background:var(--bg); color:var(--text); font-family:Segoe UI, system-ui, -apple-system, Roboto, Arial; display:flex; min-height:100vh; }
+    .wrap { margin:auto; max-width:520px; padding:24px; text-align:center; }
+    .card { background:var(--card); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:24px; }
+    h1 { color:var(--primary); margin:0 0 12px; }
+    p { color:var(--muted); margin:8px 0; }
+    .btns { display:flex; gap:12px; justify-content:center; margin-top:16px; flex-wrap:wrap; }
+    a,button { border:1px solid var(--primary); color:#000; background:var(--primary); padding:10px 14px; border-radius:8px; text-decoration:none; font-weight:600; cursor:pointer; }
+    button.secondary { background:transparent; color:var(--primary); }
+  </style>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <script src="/js/pwa-register.js"></script>
+  <script src="/js/auth-utils.js"></script>
+  <script src="/js/back-button.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>You're Offline</h1>
+      <p>It looks like your device lost connection. You can still open cached pages or retry.</p>
+      <div class="btns">
+        <a href="/public-buyer-home.html">Home</a>
+        <button class="secondary" onclick="location.reload()">Retry</button>
+      </div>
+      <p style="margin-top:16px; font-size:12px;">Tip: Install VendPlug for a faster, app-like experience.</p>
+    </div>
+  </div>
+</body>
+</html>
+
+

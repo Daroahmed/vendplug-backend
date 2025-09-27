@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Login - Vendplug Escrow</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .login-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .success-message {
+            background: #efe;
+            color: #363;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .loading {
+            display: none;
+            margin-right: 8px;
+        }
+
+        .back-link {
+            margin-top: 1.5rem;
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .role-badge {
+            display: inline-block;
+            background: #f0f4ff;
+            color: #667eea;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">🛡️ Vendplug</div>
+        <div class="subtitle">Staff Dispute Resolution Portal</div>
+        <div class="role-badge">Dispute Resolution Staff</div>
+
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+
+            <button type="submit" class="login-btn" id="loginBtn">
+                <span class="loading" id="loading">⏳</span>
+                <span id="loginText">Login to Dashboard</span>
+            </button>
+        </form>
+
+        <a href="admin-dashboard.html" class="back-link">← Back to Admin Dashboard</a>
+    </div>
+
+    <script src="js/auth-utils.js"></script>
+    <script>
+        class StaffLogin {
+            constructor() {
+                this.loginForm = document.getElementById('loginForm');
+                this.loginBtn = document.getElementById('loginBtn');
+                this.loading = document.getElementById('loading');
+                this.loginText = document.getElementById('loginText');
+                this.errorMessage = document.getElementById('errorMessage');
+                this.successMessage = document.getElementById('successMessage');
+
+                this.init();
+            }
+
+            init() {
+                this.loginForm.addEventListener('submit', (e) => this.handleLogin(e));
+                
+                // Check if already logged in
+                this.checkExistingLogin();
+            }
+
+            checkExistingLogin() {
+                const token = localStorage.getItem('staff-token');
+                if (token) {
+                    // Verify token is still valid
+                    this.verifyToken(token);
+                }
+            }
+
+            async verifyToken(token) {
+                try {
+                    const response = await fetch('/api/staff/profile', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (response.ok) {
+                        // Token is valid, redirect to dashboard
+                        window.location.href = 'staff-dispute-dashboard.html';
+                    } else {
+                        // Token is invalid, remove it
+                        localStorage.removeItem('staff-token');
+                    }
+                } catch (error) {
+                    console.error('Token verification error:', error);
+                    localStorage.removeItem('staff-token');
+                }
+            }
+
+            async handleLogin(e) {
+                e.preventDefault();
+                
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+
+                this.showLoading(true);
+                this.hideMessages();
+
+                try {
+                    const response = await fetch('/api/staff/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ email, password })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        // Clear other user tokens to prevent conflicts
+                        clearOtherUserTokens('staff');
+                        
+                        // Store token and staff info
+                        localStorage.setItem('vendplug-staff-token', data.data.token);
+                        localStorage.setItem('staff-info', JSON.stringify(data.data.staff));
+                        
+                        console.log('✅ Token stored:', data.data.token.substring(0, 50) + '...');
+                        console.log('✅ Staff info stored:', data.data.staff);
+                        
+                        this.showSuccess('Login successful! Redirecting...');
+                        
+                        // Test token immediately
+                        this.testToken(data.data.token);
+                        
+                        // Redirect to staff dashboard
+                        setTimeout(() => {
+                            window.location.href = 'staff-dispute-dashboard.html';
+                        }, 2000);
+                    } else {
+                        this.showError(data.message || 'Login failed');
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    this.showError('Network error. Please try again.');
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            showLoading(show) {
+                this.loading.style.display = show ? 'inline' : 'none';
+                this.loginBtn.disabled = show;
+                this.loginText.textContent = show ? 'Logging in...' : 'Login to Dashboard';
+            }
+
+            showError(message) {
+                this.errorMessage.textContent = message;
+                this.errorMessage.style.display = 'block';
+                this.successMessage.style.display = 'none';
+            }
+
+            showSuccess(message) {
+                this.successMessage.textContent = message;
+                this.successMessage.style.display = 'block';
+                this.errorMessage.style.display = 'none';
+            }
+
+            hideMessages() {
+                this.errorMessage.style.display = 'none';
+                this.successMessage.style.display = 'none';
+            }
+
+            async testToken(token) {
+                try {
+                    console.log('🧪 Testing token...');
+                    const response = await fetch('/api/staff/profile', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log('✅ Token test successful:', data);
+                    } else {
+                        const errorData = await response.json();
+                        console.log('❌ Token test failed:', errorData);
+                    }
+                } catch (error) {
+                    console.log('❌ Token test error:', error);
+                }
+            }
+        }
+
+        // Initialize the login system
+        new StaffLogin();
+    </script>
+</body>
+</html>

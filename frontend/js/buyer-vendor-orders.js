@@ -1,19 +1,22 @@
 console.log("📦 buyer-vendor-orders.js loaded");
 
-const BACKEND = window.BACKEND_URL || "";
+// Avoid colliding with other globals (e.g., notifications.js)
+const API_BASE = window.BACKEND_URL || "";
 const container = document.getElementById("vendorOrdersContainer");
-const token = localStorage.getItem("vendplug-token");
+const token = getAuthToken();
 
 if (!token) {
   container.innerHTML = "<p>Please log in to view your orders.</p>";
+  redirectToLogin();
 } else {
   fetchOrders();
 }
 
 async function fetchOrders() {
   try {
+    showLoading && showLoading();
     // ✅ Correct endpoint
-    const res = await fetch(`${BACKEND}/api/buyer-orders`, {
+    const res = await fetch(`${API_BASE}/api/buyer-orders`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -22,14 +25,17 @@ async function fetchOrders() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.message);
 
-    if (!data.length) {
-      container.innerHTML = "<p>You haven’t placed any vendor orders yet.</p>";
+    // Filter for vendor orders only
+    const vendorOrders = data.filter(order => order.type === 'vendor');
+    
+    if (vendorOrders.length === 0) {
+      container.innerHTML = "<p>You haven't placed any vendor orders yet.</p>";
       return;
     }
 
     container.innerHTML = "";
 
-    data.forEach(order => {
+    vendorOrders.forEach(order => {
       const card = document.createElement("div");
       card.className = "order-card";
 
@@ -69,5 +75,5 @@ async function fetchOrders() {
   } catch (err) {
     console.error("❌ Failed to load orders:", err);
     container.innerHTML = "<p>Error loading orders.</p>";
-  }
+  } finally { hideLoading && hideLoading(); }
 }

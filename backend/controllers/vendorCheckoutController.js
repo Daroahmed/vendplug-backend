@@ -4,6 +4,7 @@ const Cart = require("../models/vendorCartModel");
 const Wallet = require("../models/walletModel");
 const Order = require("../models/vendorOrderModel");
 const Transaction = require("../models/Transaction");
+const VendorProduct = require("../models/vendorProductModel");
 
 const checkoutCart = async (req, res) => {
   const session = await mongoose.startSession();
@@ -80,7 +81,7 @@ const checkoutCart = async (req, res) => {
           amount: totalCost,
           description: "Order payment held in escrow",
           initiatedBy: req.buyer._id,
-          initiatorType: "buyer"
+          initiatorType: "Buyer"
         }
       ],
       { session }
@@ -97,7 +98,7 @@ const checkoutCart = async (req, res) => {
     });
 
     // ===============================
-    // 7. Create orders per vendor
+    // 7. Reserve stock atomically per item and create orders per vendor
     // ===============================
     const createdOrders = [];
     for (let vendorId in ordersByVendor) {
@@ -108,11 +109,29 @@ const checkoutCart = async (req, res) => {
         0
       );
 
+      // Reserve stock for each item (ensure available >= qty)
+      for (const item of vendorItems) {
+        const inc = Number(item.quantity || 0);
+        const reservedResult = await VendorProduct.findOneAndUpdate(
+          {
+            _id: item.product._id,
+            $expr: { $gte: [ { $subtract: ["$stock", "$reserved"] }, inc ] }
+          },
+          { $inc: { reserved: inc } },
+          { new: true, session }
+        );
+        if (!reservedResult) {
+          throw new Error(`Insufficient stock for ${item.product?.name || 'product'}`);
+        }
+        // If reservation pushed available to 0, mark for notify
+        // We only notify on true stock change after fulfillment to reduce noise
+      }
+
       const order = await Order.create(
         [
           {
             buyer: req.buyer._id,
-            vendor: vendorId,
+            vendor: new mongoose.Types.ObjectId(vendorId),
             items: vendorItems.map((item) => ({
               product: item.product._id,
               quantity: item.quantity,
@@ -137,6 +156,39 @@ const checkoutCart = async (req, res) => {
     await cart.save({ session });
 
     await session.commitTransaction();
+
+    // ===============================
+    // 9. Send notifications
+    // ===============================
+    try {
+      const io = req.app.get('io');
+      const { sendNotification } = require('../utils/notificationHelper');
+      
+      // Notify buyer about order creation
+      await sendNotification(io, {
+        recipientId: req.buyer._id,
+        recipientType: 'Buyer',
+        notificationType: 'ORDER_CREATED',
+        args: [createdOrders[0]._id, totalCost],
+        orderId: createdOrders[0]._id
+      });
+
+      // Notify each vendor about new orders
+      for (const order of createdOrders) {
+        await sendNotification(io, {
+          recipientId: order.vendor,
+          recipientType: 'Vendor',
+          notificationType: 'ORDER_CREATED',
+          args: [order._id, order.totalAmount],
+          orderId: order._id
+        });
+      }
+
+      console.log('✅ Order creation notifications sent');
+    } catch (notificationError) {
+      console.error('❌ Notification error:', notificationError);
+      // Don't fail the checkout if notifications fail
+    }
 
     res.json({
       message: "Checkout successful. Orders created and funds held in escrow.",

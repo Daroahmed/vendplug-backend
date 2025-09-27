@@ -11,7 +11,7 @@ const Notification = require('../models/Notification');
  * @param {Object} [params.io] - Socket.IO instance for real-time emit.
  * @returns {Promise<Object>} Created notification document.
  */
-async function createNotification({ recipientId, recipientType, title, message, orderId = null, io }) {
+async function createNotification({ recipientId, recipientType, title, message, orderId = null, io, url = null }) {
   if (!recipientId || !recipientType || !title) {
     throw new Error("Missing required notification parameters.");
   }
@@ -22,12 +22,20 @@ async function createNotification({ recipientId, recipientType, title, message, 
       recipientType,
       title,
       message,
-      order: orderId
+      orderId: orderId
     });
 
     if (io) {
+      // Emit to both legacy and current room formats
       io.to(`${recipientType}:${recipientId}`).emit('new-notification', notification);
+      io.to(`user:${recipientId}`).emit('new-notification', notification);
     }
+
+    // Fire Web Push if configured
+    try {
+      const { sendPush } = require('../controllers/pushController');
+      await sendPush({ userId: recipientId, userType: recipientType, title, message, url: url || '/public-buyer-home.html' });
+    } catch (_) {}
 
     return notification;
   } catch (error) {

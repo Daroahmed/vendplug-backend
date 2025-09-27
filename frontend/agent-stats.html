@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>VendPlug | Agent Stats</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #121212;
+      color: white;
+      padding: 20px;
+    }
+
+    h2 {
+      color: #00cc99;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .stats-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+    }
+
+    .stat-card {
+      background: #1e1e1e;
+      border-radius: 10px;
+      padding: 20px;
+      width: 260px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+      text-align: center;
+    }
+
+    .stat-title {
+      font-size: 1.1em;
+      margin-bottom: 10px;
+      color: #cccccc;
+    }
+
+    .stat-value {
+      font-size: 1.8em;
+      font-weight: bold;
+      color: #00cc99;
+    }
+
+    @media (max-width: 600px) {
+      .stats-grid {
+        flex-direction: column;
+        align-items: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h2>📊 Agent Performance</h2>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-title">Total Orders Fulfilled</div>
+      <div class="stat-value" id="fulfilledOrders">0</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-title">Total Earnings</div>
+      <div class="stat-value">₦<span id="totalEarnings">0</span></div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-title">Pending Orders</div>
+      <div class="stat-value" id="pendingOrders">0</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-title">Queued Payouts</div>
+      <div class="stat-value">₦<span id="queuedPayout">0</span></div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-title">Successful Payouts</div>
+      <div class="stat-value">₦<span id="successfulPayout">0</span></div>
+    </div>
+  </div>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/auth-utils.js"></script>
+  <script src="/js/back-button.js"></script>
+  <script>
+    const agent = JSON.parse(localStorage.getItem("vendplugAgent"));
+    const token = getAuthToken();
+    const BACKEND = window.BACKEND_URL || "";
+
+    if (!agent || !token) {
+      alert("Unauthorized. Please log in.");
+      window.location.href = "/agent-auth.html";
+    }
+
+    document.addEventListener("DOMContentLoaded", fetchStats);
+
+    async function fetchStats() {
+      try {
+        const res = await fetch(`${BACKEND}/api/agents/stats`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.message || "Failed to fetch stats");
+        }
+
+        document.getElementById("fulfilledOrders").textContent = data.fulfilledOrders || 0;
+        document.getElementById("totalEarnings").textContent = (data.totalEarnings || 0).toLocaleString();
+        document.getElementById("pendingOrders").textContent = data.pendingOrders || 0;
+        document.getElementById("queuedPayout").textContent = (data.queuedPayout || 0).toLocaleString();
+        document.getElementById("successfulPayout").textContent = (data.successfulPayout || 0).toLocaleString();
+
+      } catch (err) {
+        console.error("Failed to load stats:", err.message);
+        alert("❌ Error loading stats");
+      }
+    }
+  </script>
+    
+</body>
+</html>

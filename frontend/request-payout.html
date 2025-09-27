@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Request Payout - Vendplug</title>
+    <!-- CSS is included inline below -->
+    <style>
+        :root {
+            --primary: #00cc99;
+            --bg-dark: #121212;
+            --bg-card: #1e1e1e;
+            --bg-secondary: #2c2c2c;
+            --text-light: #fff;
+            --muted: #aaa;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding-top: 70px;
+        }
+
+        .header {
+            background: var(--bg-card);
+            padding: 1rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .back-button { background:none; border:none; color:var(--text-light); font-size:1.2rem; margin-right:15px; cursor:pointer; }
+        .header-title { font-size:1.2rem; color:var(--primary); }
+
+        .payout-container {
+            max-width: 800px;
+            margin: 20px auto 60px;
+            padding: 20px;
+        }
+        
+        .wallet-summary {
+            background: var(--bg-card);
+            color: var(--text-light);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            border: 1px solid var(--bg-secondary);
+        }
+        
+        .wallet-summary h2 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+        }
+        
+        .wallet-balance {
+            font-size: 36px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .payout-form {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--bg-secondary);
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-light);
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--bg-secondary);
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            background: var(--bg-secondary);
+            color: var(--text-light);
+        }
+        
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        .btn-request {
+            background: var(--primary);
+            color: #000;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+        
+        .btn-request:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn-request:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .payout-history {
+            background: var(--bg-card);
+            border-radius: 8px;
+            border: 1px solid var(--bg-secondary);
+            overflow: hidden;
+        }
+        
+        .payout-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .payout-item:last-child {
+            border-bottom: none;
+        }
+        
+        .payout-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .payout-amount {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--text-light);
+        }
+        
+        .payout-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-processing {
+            background: #cce5ff;
+            color: #004085;
+        }
+        
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .payout-details {
+            color: var(--muted);
+            font-size: 14px;
+        }
+        
+        .payout-date {
+            color: var(--muted);
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .error {
+            background: #3a1e1f;
+            color: #f5b5b9;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+        
+        .success {
+            background: #163a2a;
+            color: #9adbb3;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+        
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+        
+        .no-accounts {
+            background: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        
+        .no-accounts a {
+            color: #856404;
+            text-decoration: underline;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="payout-container">
+        <div style="margin-bottom: 20px;">
+            <a href="#" id="dashboardLink" style="color: #007bff; text-decoration: none; margin-right: 20px;">← Back to Dashboard</a>
+            <a href="bank-accounts.html" style="color: #007bff; text-decoration: none;">Manage Bank Accounts</a>
+        </div>
+        <h1>💰 Request Payout</h1>
+        
+        <div id="messageContainer"></div>
+        
+        <!-- Wallet Summary -->
+        <div class="wallet-summary">
+            <h2>Wallet Balance</h2>
+            <div class="wallet-balance" id="walletBalance">₦0.00</div>
+            <p>Available for withdrawal</p>
+        </div>
+        
+        <!-- Payout Form -->
+        <div class="payout-form">
+            <h3>📤 Request Payout</h3>
+            
+            <div id="noAccountsMessage" class="no-accounts" style="display: none;">
+                <p>You need to add a bank account before requesting payouts.</p>
+                <a href="bank-accounts.html">Add Bank Account</a>
+            </div>
+            
+            <form id="payoutForm" style="display: none;">
+                <div class="form-group">
+                    <label for="amount">Amount (₦)</label>
+                    <input type="number" id="amount" placeholder="Enter amount to withdraw" min="100" step="100" required>
+                    <small>Minimum withdrawal: ₦100</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="bankAccount">Bank Account</label>
+                    <select id="bankAccount" required>
+                        <option value="">Select bank account</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn-request" id="submitBtn">
+                    Request Payout
+                </button>
+            </form>
+        </div>
+        
+        <!-- Payout History -->
+        <div class="payout-history">
+            <h3>📋 Payout History</h3>
+            <div id="payoutHistory">
+                <div class="loading">Loading payout history...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth-utils.js"></script>
+    <script src="/js/back-button.js"></script>
+    <script>
+        let userToken = getAuthToken();
+        let userRole = getCurrentUserType();
+        
+        // Get user data using smart utility
+        const userData = getCurrentUser();
+        userRole = userRole || userData?.role || 'buyer';
+        
+        let bankAccounts = [];
+        let walletBalance = 0;
+
+        // Check authentication
+        if (!userToken) {
+            redirectToLogin();
+        }
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set dashboard link based on user role
+            const dashboardLink = document.getElementById('dashboardLink');
+            if (userRole === 'vendor') {
+                dashboardLink.href = 'vendor-dashboard.html';
+            } else if (userRole === 'agent') {
+                dashboardLink.href = 'agent-dashboard.html';
+            }
+            
+            // Update page title based on user type
+            const pageTitle = document.querySelector('h1');
+            if (pageTitle) {
+                if (userRole === 'agent') {
+                    pageTitle.textContent = '💰 Agent Payout Request';
+                }
+            }
+            
+            loadWalletBalance();
+            loadBankAccounts();
+            loadPayoutHistory();
+        });
+
+        // Load wallet balance
+        async function loadWalletBalance() {
+            try {
+                const endpoint = userRole === 'vendor' ? '/api/wallet/vendor' : '/api/wallet/agent';
+                const response = await fetch(`${window.BACKEND_URL}${endpoint}`, {
+                    headers: {
+                        'Authorization': `Bearer ${userToken}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    walletBalance = data.balance || 0;
+                    document.getElementById('walletBalance').textContent = `₦${walletBalance.toLocaleString()}`;
+                } else if (response.status === 404) {
+                    // Wallet doesn't exist yet, set balance to 0
+                    walletBalance = 0;
+                    document.getElementById('walletBalance').textContent = '₦0.00';
+                    console.log('ℹ️ Wallet not found - user may not have made any transactions yet');
+                } else {
+                    console.error('Failed to load wallet balance:', response.status);
+                    walletBalance = 0;
+                    document.getElementById('walletBalance').textContent = '₦0.00';
+                }
+            } catch (error) {
+                console.error('Error loading wallet balance:', error);
+            }
+        }
+
+        // Load bank accounts
+        async function loadBankAccounts() {
+            try {
+                const response = await fetch(`${window.BACKEND_URL}/api/bank-accounts/list`, {
+                    headers: {
+                        'Authorization': `Bearer ${userToken}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    bankAccounts = data.data || [];
+                    displayPayoutForm();
+                } else {
+                    showMessage('Failed to load bank accounts', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading bank accounts:', error);
+                showMessage('Error loading bank accounts', 'error');
+            }
+        }
+
+        // Display payout form or no accounts message
+        function displayPayoutForm() {
+            const form = document.getElementById('payoutForm');
+            const noAccountsMessage = document.getElementById('noAccountsMessage');
+            
+            if (bankAccounts.length === 0) {
+                form.style.display = 'none';
+                noAccountsMessage.style.display = 'block';
+                return;
+            }
+            
+            form.style.display = 'block';
+            noAccountsMessage.style.display = 'none';
+            
+            // Populate bank account select
+            const bankSelect = document.getElementById('bankAccount');
+            bankSelect.innerHTML = '<option value="">Select bank account</option>';
+            
+            bankAccounts.forEach(account => {
+                const option = document.createElement('option');
+                option.value = account._id;
+                option.textContent = `${account.bankName} - ${account.accountNumber} (${account.accountName})`;
+                bankSelect.appendChild(option);
+            });
+        }
+
+        // Load payout history
+        async function loadPayoutHistory() {
+            try {
+                const response = await fetch(`${window.BACKEND_URL}/api/vendor-payout/history`, {
+                    headers: {
+                        'Authorization': `Bearer ${userToken}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    displayPayoutHistory(data.data || []);
+                } else {
+                    showMessage('Failed to load payout history', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading payout history:', error);
+                showMessage('Error loading payout history', 'error');
+            }
+        }
+
+        // Display payout history
+        function displayPayoutHistory(payouts) {
+            const historyContainer = document.getElementById('payoutHistory');
+            
+            if (payouts.length === 0) {
+                historyContainer.innerHTML = '<div class="loading">No payout history found.</div>';
+                return;
+            }
+            
+            historyContainer.innerHTML = payouts.map(payout => `
+                <div class="payout-item">
+                    <div class="payout-header">
+                        <div class="payout-amount">₦${payout.amount.toLocaleString()}</div>
+                        <span class="payout-status status-${payout.status}">${payout.status}</span>
+                    </div>
+                    <div class="payout-details">
+                        ${payout.bankAccountId ? `${payout.bankAccountId.bankName} - ${payout.bankAccountId.accountNumber}` : 'Bank account not found'}
+                    </div>
+                    <div class="payout-date">
+                        Requested: ${new Date(payout.createdAt).toLocaleDateString()}
+                        ${payout.processedAt ? `| Processed: ${new Date(payout.processedAt).toLocaleDateString()}` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Handle payout form submission
+        document.getElementById('payoutForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const amount = parseFloat(document.getElementById('amount').value);
+            const bankAccountId = document.getElementById('bankAccount').value;
+            
+            if (!amount || amount <= 0) {
+                showMessage('Please enter a valid amount', 'error');
+                return;
+            }
+            
+            if (amount > walletBalance) {
+                showMessage('Insufficient wallet balance', 'error');
+                return;
+            }
+            
+            if (!bankAccountId) {
+                showMessage('Please select a bank account', 'error');
+                return;
+            }
+            
+            // Disable submit button
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
+            
+            try {
+                const response = await fetch(`${window.BACKEND_URL}/api/vendor-payout/request`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${userToken}`
+                    },
+                    body: JSON.stringify({
+                        amount: amount,
+                        bankAccountId: bankAccountId
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showMessage('Payout request submitted successfully!', 'success');
+                    document.getElementById('payoutForm').reset();
+                    
+                    // Refresh data
+                    loadWalletBalance();
+                    loadPayoutHistory();
+                } else {
+                    const errorData = await response.json();
+                    showMessage(errorData.message || 'Failed to submit payout request', 'error');
+                }
+            } catch (error) {
+                console.error('Error submitting payout request:', error);
+                showMessage('Error submitting payout request', 'error');
+            } finally {
+                // Re-enable submit button
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Request Payout';
+            }
+        });
+
+        // Show message
+        function showMessage(message, type) {
+            const messageContainer = document.getElementById('messageContainer');
+            messageContainer.innerHTML = `<div class="${type}">${message}</div>`;
+            
+            setTimeout(() => {
+                messageContainer.innerHTML = '';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

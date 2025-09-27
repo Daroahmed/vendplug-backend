@@ -20,12 +20,12 @@ document.getElementById('loginForm')?.addEventListener('submit', async function 
       localStorage.setItem('name', data.user.fullName); // optional
   
       // Redirect to the right dashboard
-      if (data.user.role === 'seller') {
-        window.location.href = '/seller-dashboard.html';
-      } else if (data.user.role === 'agent') {
+      if (data.user.role === 'Vendor') {
+        window.location.href = '/vendor-dashboard.html';
+      } else if (data.user.role === 'Agent') {
         window.location.href = '/agent-dashboard.html';
-      } else if (data.user.role === 'buyer') {
-        window.location.href = '/buyer-dashboard.html';
+      } else if (data.user.role === 'Buyer') {
+        window.location.href = '/buyer-home.html';
       } else {
         window.location.href = '/';
       }

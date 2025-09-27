@@ -15,13 +15,13 @@ router.post('/transfer', protectAnyUser, transferFunds);
 
 // Role-specific balance endpoints
 // For Agent
-router.get('/agent', protectAgent, getWallet);
+router.get('/agent', protectAnyUser, getWallet);
 
 // For Buyer
-router.get('/buyer', protectBuyer, getWallet);
+router.get('/buyer', protectAnyUser, getWallet);
 
 // For Vendor
-router.get('/vendor', protectVendor, getWallet);
+router.get('/vendor', protectAnyUser, getWallet);
 
 router.post('/fund', fundUserWallet);
 

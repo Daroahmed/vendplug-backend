@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VendPlug Agent Checkout</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #00cc99;
+      --bg-dark: #121212;
+      --bg-card: #1e1e1e;
+      --bg-secondary: #2c2c2c;
+      --text-light: #fff;
+      --muted: #aaa;
+      --accent: #00cc99;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-light);
+      margin: 0;
+      padding-top: 60px;
+    }
+
+    /* Header */
+    .header {
+      background-color: var(--bg-card);
+      padding: 1rem;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+
+
+    .header-title {
+      font-size: 1.2rem;
+      color: var(--primary);
+    }
+
+/* Notification badge */
+.notification-icon { position: relative; }
+.notification-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: var(--primary);
+  color: #000;
+  font-size: 0.7rem;
+  font-weight: bold;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Cart badge */
+.cart-icon { position: relative; }
+.cart-badge {
+  position: absolute;
+  top: -8px;
+  right: -10px;
+  background-color: var(--primary);
+  color: #000;
+  font-size: 0.7rem;
+  font-weight: bold;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+    /* Main Container */
+    .container {
+      padding: 1.5rem;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    /* Wallet Balance */
+    .wallet-card {
+      background: var(--bg-card);
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+
+    .wallet-label {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .wallet-amount {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: var(--primary);
+    }
+
+    /* Cart Items */
+    .cart-section {
+      background: var(--bg-card);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+
+    .section-title {
+      font-size: 1.2rem;
+      color: var(--primary);
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    #cart-items {
+      margin-bottom: 1.5rem;
+    }
+
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .cart-item:last-child {
+      border-bottom: none;
+    }
+
+    .item-info {
+      flex: 1;
+    }
+
+    .item-name {
+      font-weight: 500;
+      margin-bottom: 0.3rem;
+    }
+
+    .item-price {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .item-total {
+      font-weight: bold;
+      color: var(--primary);
+    }
+
+    /* Total Amount */
+    .total-amount {
+      text-align: right;
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: var(--primary);
+      margin: 1.5rem 0;
+    }
+
+    /* Form Elements */
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: var(--muted);
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 0.9rem 1rem;
+      border-radius: 8px;
+      border: none;
+      background: var(--bg-secondary);
+      color: var(--text-light);
+      font-family: inherit;
+    }
+
+    .form-input:focus {
+      outline: 2px solid var(--primary);
+    }
+
+    /* Checkout Button */
+    .checkout-btn {
+      width: 100%;
+      padding: 1rem;
+      background: var(--primary);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .checkout-btn:hover {
+      opacity: 0.9;
+    }
+
+    /* Empty Cart State */
+    .empty-cart {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 480px) {
+      .container {
+        padding: 1rem;
+      }
+      
+      .wallet-amount {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header with Back + quick actions -->
+  <div class="header">
+    
+    <div class="header-title" style="flex:1;color:#00cc99;">Agent Checkout</div>
+    <div class="header-actions" style="margin-left:auto;display:flex;align-items:center;gap:12px;">
+      <a href="chat.html" title="Messages" style="color:#fff;"><i class="fas fa-comments"></i></a>
+      <!-- Notification icon injected by notifications.js -->
+      <a href="buyer-agent-checkout.html" title="Cart" class="cart-icon" style="color:#fff;position:relative;">
+        <i class="fas fa-shopping-cart"></i>
+        <span id="cart-badge" class="cart-badge">0</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Wallet Balance -->
+    <div class="wallet-card">
+      <div class="wallet-label">Your Wallet Balance</div>
+      <div class="wallet-amount" id="wallet-balance">₦0</div>
+    </div>
+
+    <!-- Cart Items -->
+    <div class="cart-section">
+      <h2 class="section-title">Order Summary</h2>
+      <div id="cart-items">
+        <!-- Cart items will be dynamically injected here -->
+        <div class="empty-cart">
+          <i class="fas fa-shopping-cart" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+          <p>Your cart is empty</p>
+        </div>
+      </div>
+
+      <div class="total-amount" id="total-amount">Total: ₦0</div>
+    </div>
+
+    <!-- Pickup Location -->
+    <div class="form-group">
+      <label for="pickup-location" class="form-label">Pickup Location</label>
+      <input type="text" id="pickup-location" class="form-input" placeholder="Enter pickup location" />
+    </div>
+
+    <!-- Checkout Button -->
+    <button id="checkout-btn" class="checkout-btn">
+      <i class="fas fa-shopping-bag"></i> Place Order
+    </button>
+    <div style="display:flex;justify-content:space-between;margin-top:12px;gap:10px;">
+      <a href="view-business.html" class="btn btn-outline" style="flex:1;text-align:center;border:1px solid var(--primary);color:var(--primary);padding:10px;border-radius:8px;">Continue Shopping</a>
+      <a href="buyer-agent-orders.html" class="btn btn-outline" style="flex:1;text-align:center;border:1px solid var(--primary);color:var(--primary);padding:10px;border-radius:8px;">View Orders</a>
+    </div>
+  </div>
+
+  
+
+  <script src="/js/config.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="/js/notifications.js"></script>
+  <script src="/js/auth-utils.js"></script>
+  <script src="/js/back-button.js"></script>
+  <script src="/js/buyer-agent-checkout.js"></script>
+</body>
+</html>

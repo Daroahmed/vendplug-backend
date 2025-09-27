@@ -67,6 +67,16 @@
       margin-top: 10px;
       font-size: 0.9rem;
     }
+    .auth-links a {
+      color: #00cc99;
+      text-decoration: none;
+      display: block;
+      margin-bottom: 10px;
+      transition: color 0.3s ease;
+    }
+    .auth-links a:hover {
+      color: #00b386;
+    }
   </style>
 </head>
 <body>
@@ -79,6 +89,10 @@
       <input id="loginPassword" type="password" placeholder="Password" required />
       <button type="submit">Login</button>
       <div class="message" id="loginMessage"></div>
+      <div class="auth-links" style="margin-top: 15px; text-align: center;">
+        <a href="reset-password.html?role=buyer" style="color: #00cc99; text-decoration: none; display: block; margin-bottom: 10px;">Forgot Password?</a>
+        <a href="verify-email.html" style="color: #00cc99; text-decoration: none; display: block;">Resend Verification Email</a>
+      </div>
     </form>
 
     <!-- Register Form -->
@@ -97,6 +111,8 @@
     </div>
   </div>
 
+  <script src="js/auth-utils.js"></script>
+  <script src="/js/back-button.js"></script>
   <script src="js/buyer-auth.js"></script>
 </body>
 </html>

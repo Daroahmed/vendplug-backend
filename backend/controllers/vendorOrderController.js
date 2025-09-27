@@ -1,27 +1,25 @@
 // controllers/vendorOrderController.js
+const mongoose = require("mongoose");
+const Vendor = require("../models/vendorModel");
 const Order = require("../models/vendorOrderModel");
 const Payout = require("../models/payoutModel"); // ✅ Import Payout model
+const VendorProduct = require('../models/vendorProductModel');
+const Wallet = require("../models/walletModel");
+const Transaction = require("../models/Transaction");
 const {
   handleError,
-  notifyUser,
   processRefund,
   applyVendorOrderStatus
 } = require("../utils/orderHelpers");
+const {
+  sendNotification,
+  sendOrderStatusNotification,
+  sendPayoutNotification,
+  sendWalletNotification
+} = require('../utils/notificationHelper');
+const { incrementVendorTransactions } = require('../utils/transactionHelper');
 
-// Helper to send buyer + vendor notifications
-const sendOrderNotifications = async (req, order, buyerMsg, vendorMsg) => {
-  try {
-    const io = req.app.get("io");
-    if (buyerMsg) {
-      await notifyUser(io, order.buyer, "Buyer", buyerMsg.title, buyerMsg.body, order._id);
-    }
-    if (vendorMsg) {
-      await notifyUser(io, order.vendor, "Vendor", vendorMsg.title, vendorMsg.body, order._id);
-    }
-  } catch (err) {
-    console.error("❌ Notification error:", err.message);
-  }
-};
+// This helper is replaced by the new notification system
 
 // ===============================
 // Get all vendor orders
@@ -32,10 +30,20 @@ const getVendorOrders = async (req, res) => {
     const query = { vendor: req.vendor._id };
 
     if (status) {
-      query.status = status;
+      if (status === "delivered") {
+        // For delivered orders, include delivered, fulfilled, and resolved
+        query.status = { $in: ["delivered", "fulfilled", "resolved"] };
+      } else {
+        query.status = status;
+      }
     } else {
-      // Default filter for incoming orders
+      // Default filter for incoming orders (exclude resolved)
       query.status = { $in: ["pending", "accepted", "preparing", "out_for_delivery"] };
+    }
+    
+    // Only exclude resolved orders for default (incoming) orders
+    if (!status) {
+      query.status = { ...query.status, $ne: 'resolved' };
     }
     
     if (startDate || endDate) {
@@ -49,7 +57,7 @@ const getVendorOrders = async (req, res) => {
     }
 
     const orders = await Order.find(query)
-      .populate("buyer", "fullName phoneNumber email")
+      .populate("buyer", "_id fullName phoneNumber email")
       .populate("items.product", "name image price")
       .sort({ createdAt: -1 });
 
@@ -60,12 +68,13 @@ const getVendorOrders = async (req, res) => {
       createdAt: order.createdAt,
       buyer: order.buyer
         ? {
+            _id: order.buyer._id,
             fullName: order.buyer.fullName,
             phoneNumber: order.buyer.phoneNumber,
             email: order.buyer.email,
           }
         : null,
-      deliveryAddress: order.deliveryAddress || "No address provided",
+      deliveryAddress: order.deliveryLocation || "No address provided",
       items: order.items.map(i => ({
         name: i.product?.name || "Unknown",
         image: i.product?.image || null,
@@ -95,20 +104,30 @@ const acceptOrder = async (req, res) => {
     applyVendorOrderStatus(order, "accepted", "vendor");
     await order.save();
 
-    // ✅ Create payout record
-    await Payout.create({
-      vendor: order.vendor,
-      order: order._id,
-      amount: order.totalAmount,
-      status: "pending_receipt"
-    });
+    // Don't credit vendor wallet yet - wait for delivery confirmation
 
-    await sendOrderNotifications(
-      req,
-      order,
-      { title: "✅ Order Accepted", body: `Your order #${order._id} has been accepted.` },
-      { title: "📦 Order Accepted", body: `You accepted order #${order._id}.` }
+    // ✅ Update or create payout record (handle unique constraint)
+    await Payout.findOneAndUpdate(
+      { vendor: order.vendor },
+      {
+        vendor: order.vendor,
+        order: order._id,
+        amount: order.totalAmount,
+        status: "pending_receipt"
+      },
+      { upsert: true, new: true }
     );
+
+    const io = req.app.get('io');
+    await sendOrderStatusNotification(io, order, 'accepted');
+    
+    // Send payout notification
+    await sendPayoutNotification(io, {
+      vendorId: order.vendor,
+      amount: order.totalAmount,
+      status: 'pending',
+      orderId: order._id
+    });
 
     res.json({ message: "Order accepted", order });
   } catch (error) {
@@ -122,28 +141,124 @@ const acceptOrder = async (req, res) => {
 const rejectOrder = async (req, res) => {
   try {
     const { orderId } = req.params;
+    const { rejectionReason } = req.body;
+    
+    if (!rejectionReason || rejectionReason.trim().length < 10) {
+      return res.status(400).json({ 
+        message: "Rejection reason is required and must be at least 10 characters long" 
+      });
+    }
+
     const order = await Order.findOne({ _id: orderId, vendor: req.vendor._id });
     if (!order) return res.status(404).json({ message: "Order not found" });
     if (order.status !== "pending") {
       return res.status(400).json({ message: "Only pending orders can be rejected" });
     }
 
-    // Refund buyer
-    await processRefund(order.buyer, order.totalAmount, order._id);
+    // Start MongoDB session for transaction
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    applyVendorOrderStatus(order, "rejected", "vendor", { escrow: false });
-    await order.save();
+    try {
+      // Refund buyer's wallet
+      const buyerWallet = await Wallet.findOne({ user: order.buyer, role: 'buyer' }).session(session);
+      if (!buyerWallet) {
+        throw new Error("Buyer wallet not found");
+      }
 
-    await sendOrderNotifications(
-      req,
-      order,
-      { title: "❌ Order Rejected", body: `Your order #${order._id} was rejected. Refund issued.` },
-      { title: "🛑 Order Rejected", body: `You rejected order #${order._id}.` }
-    );
+      // Credit buyer's wallet
+      buyerWallet.balance = Number(buyerWallet.balance || 0) + Number(order.totalAmount);
+      await buyerWallet.save({ session });
 
-    res.json({ message: "Order rejected and refunded", order });
+      // Log refund transaction
+      await Transaction.create([{
+        ref: new mongoose.Types.ObjectId().toString(),
+        type: "refund",
+        status: "successful",
+        amount: order.totalAmount,
+        description: `Order rejected: ${rejectionReason}`,
+        from: "escrow",
+        to: buyerWallet.virtualAccount,
+        initiatedBy: req.vendor._id,
+        initiatorType: "Vendor"
+      }], { session });
+
+      // Update order status with rejection reason
+      order.status = "rejected";
+      order.rejectionReason = rejectionReason;
+      order.rejectedAt = new Date();
+      order.statusHistory = [
+        ...(order.statusHistory || []),
+        { 
+          status: "rejected", 
+          at: new Date(), 
+          by: "vendor",
+          reason: rejectionReason
+        }
+      ];
+      await order.save({ session });
+
+      // Release reserved stock for all items
+      try {
+        for (const item of (order.items || [])) {
+          const qty = Number(item.quantity || 0);
+          await VendorProduct.findByIdAndUpdate(
+            item.product,
+            { $inc: { reserved: -qty } },
+            { session }
+          );
+        }
+      } catch (invErr) {
+        console.error('⚠️ Failed to release reserved stock on rejection:', invErr);
+      }
+
+      // Commit transaction
+      await session.commitTransaction();
+
+      // Send notifications
+      const io = req.app.get('io');
+      
+      // Send order rejection notification with reason
+      await sendOrderStatusNotification(io, order, 'rejected', { rejectionReason });
+      
+      // Send refund notification to buyer
+      await sendWalletNotification(io, {
+        userId: order.buyer,
+        userType: 'Buyer',
+        type: 'credit',
+        amount: order.totalAmount,
+        source: 'Order Refund',
+        balance: buyerWallet.balance,
+        meta: { 
+          orderId: order._id,
+          rejectionReason 
+        }
+      });
+
+      res.json({ 
+        success: true,
+        message: "Order rejected and refunded successfully", 
+        order: {
+          _id: order._id,
+          status: order.status,
+          rejectionReason: order.rejectionReason,
+          rejectedAt: order.rejectedAt
+        }
+      });
+
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+
   } catch (error) {
-    handleError(res, error, "Error rejecting order");
+    console.error('❌ Error rejecting order:', error);
+    res.status(500).json({ 
+      message: "Error rejecting order", 
+      error: error.message 
+    });
   }
 };
 
@@ -176,12 +291,27 @@ const updateOrderStatus = async (req, res) => {
 
     // Special handling
     if (status === "accepted") {
-      await Payout.create({
-        vendor: order.vendor,
-        order: order._id,
-        amount: order.totalAmount,
-        status: "pending_receipt"
-      });
+
+      try {
+        const vendor = await Vendor.findById(req.vendor._id);
+        if (vendor) {
+          vendor.walletBalance += order.totalAmount;
+          await vendor.save();
+        }
+      } catch (walletError) {
+        console.error("Error updating vendor wallet:", walletError);
+      }
+      // ✅ Update or create payout record (handle unique constraint)
+      await Payout.findOneAndUpdate(
+        { vendor: order.vendor },
+        {
+          vendor: order.vendor,
+          order: order._id,
+          amount: order.totalAmount,
+          status: "pending_receipt"
+        },
+        { upsert: true, new: true }
+      );
     }
     if (status === "rejected") {
       await processRefund(order.buyer, order.totalAmount, order._id);
@@ -191,12 +321,24 @@ const updateOrderStatus = async (req, res) => {
     if (status === "delivered") order.deliveredAt = new Date();
     await order.save();
 
-    await sendOrderNotifications(
-      req,
-      order,
-      { title: "🚚 Order Update", body: `Your order #${order._id} is now "${status}".` },
-      { title: "📦 Vendor Update", body: `You marked order #${order._id} as "${status}".` }
-    );
+    // ✅ Increment vendor's total transactions count when order is delivered
+    if (status === "delivered") {
+      await incrementVendorTransactions(req.vendor._id);
+    }
+
+    const io = req.app.get('io');
+    await sendOrderStatusNotification(io, order, status);
+    
+    // Send additional notifications based on status
+    if (status === 'delivered') {
+      await sendNotification(io, {
+        recipientId: order.buyer,
+        recipientType: 'Buyer',
+        notificationType: 'ORDER_DELIVERED',
+        args: [order._id],
+        orderId: order._id
+      });
+    }
 
     res.json({ message: "Order status updated", order });
   } catch (error) {
@@ -210,3 +352,9 @@ module.exports = {
   rejectOrder,
   updateOrderStatus
 };
+
+
+
+
+
+

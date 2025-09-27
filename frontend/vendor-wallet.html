@@ -176,18 +176,7 @@
     </div>
   </div>
 
-  <!-- Transfer Section -->
-  <div class="form-section">
-    <h3>Transfer Funds</h3>
-    <label for="recipientAccount">Recipient Account No</label>
-    <input type="text" id="recipientAccount" onblur="resolveUser()" />
-    <div id="userNameResolved"></div>
-    <label for="resolvedName">Resolved Name</label>
-    <input type="text" id="resolvedName" disabled style="background-color:#222;" />
-    <label for="transferAmount">Amount</label>
-    <input type="number" id="transferAmount" placeholder="₦0.00" />
-    <button onclick="handleTransfer()">Transfer</button>
-  </div>
+  <!-- Transfer Section removed: wallet is debited/credited by orders and payouts -->
 
   <!-- Transactions -->
   <div class="form-section">
@@ -199,7 +188,7 @@
     function copyAccount() {
       const acct = document.getElementById('accountNumber').textContent.trim();
       navigator.clipboard.writeText(acct).then(() => {
-        alert("✅ Account number copied!");
+        window.showOverlay && showOverlay({ type:'success', title:'Copied', message:'Account number copied!' });
       });
     }
 
@@ -215,5 +204,7 @@
 
   <script src="/js/config.js"></script>
   <script src="/js/vendor-wallet.js"></script>
+  <script src="/js/auth-utils.js"></script>
+  <script src="/js/back-button.js"></script>
 </body>
 </html>

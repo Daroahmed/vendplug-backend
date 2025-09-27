@@ -5,6 +5,9 @@
   <title>VendPlug | Vendor Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/ads.css">
+  <!-- QR Code Library -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <style>
     :root {
       --primary: #00cc99;
@@ -75,6 +78,73 @@
       gap: 15px;
     }
 
+    /* Message Icon Styles */
+    .message-icon {
+      position: relative;
+      color: var(--text-light);
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 50%;
+      transition: all 0.3s ease;
+    }
+
+    .message-icon:hover {
+      background: var(--bg-secondary);
+      color: var(--primary);
+    }
+
+    .message-badge {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background-color: #ff4444;
+      color: white;
+      font-size: 0.7rem;
+      font-weight: bold;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+    }
+
+    /* Notification Icon Styles */
+    .notification-icon {
+      position: relative;
+      color: var(--text-light);
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 50%;
+      transition: all 0.3s ease;
+      text-decoration: none;
+    }
+
+    .notification-icon:hover {
+      background: var(--bg-secondary);
+      color: var(--primary);
+    }
+
+    .notification-badge {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background-color: #ff4444;
+      color: white;
+      font-size: 0.7rem;
+      font-weight: bold;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+    }
+
     .user-avatar {
       width: 40px;
       height: 40px;
@@ -141,6 +211,8 @@
       color: var(--muted);
     }
 
+
+
     .section-title {
       font-size: 1.5rem;
       color: var(--primary);
@@ -174,6 +246,296 @@
     .card:hover {
       transform: translateY(-5px);
       box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    }
+
+    /* Share Shop Card */
+    .share-shop-card {
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--primary), #00b386);
+      color: var(--bg-dark);
+    }
+
+    .share-shop-card:hover {
+      background: linear-gradient(135deg, #00b386, var(--primary));
+      transform: translateY(-5px) scale(1.02);
+    }
+
+    .share-shop-card .card-icon {
+      background: rgba(255, 255, 255, 0.2);
+      color: var(--bg-dark);
+    }
+
+    .share-shop-card h3,
+    .share-shop-card p {
+      color: var(--bg-dark);
+    }
+
+    /* Share Modal Styles */
+    .share-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .share-modal.show {
+      display: flex;
+    }
+
+    .share-modal-content {
+      background: var(--bg-card);
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 450px;
+      width: 90%;
+      text-align: center;
+      position: relative;
+    }
+
+    .share-modal-header {
+      margin-bottom: 1.5rem;
+    }
+
+    .share-modal-header h2 {
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .share-modal-header p {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .close-modal {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      background: none;
+      border: none;
+      color: var(--text-light);
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 5px;
+    }
+
+    .shop-link-display {
+      background: var(--bg-secondary);
+      border: 1px solid var(--primary);
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1.5rem 0;
+      word-break: break-all;
+      font-family: monospace;
+      font-size: 0.9rem;
+      color: var(--primary);
+    }
+
+    .share-options {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+
+    .share-option {
+      background: var(--bg-secondary);
+      border: none;
+      border-radius: 8px;
+      padding: 1rem;
+      color: var(--text-light);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .share-option:hover {
+      background: var(--primary);
+      color: var(--bg-dark);
+      transform: translateY(-2px);
+    }
+
+    .share-option i {
+      font-size: 1.5rem;
+    }
+
+    .share-option.whatsapp:hover {
+      background: #25D366;
+    }
+
+    .share-option.facebook:hover {
+      background: #1877F2;
+    }
+
+    .share-option.twitter:hover {
+      background: #1DA1F2;
+    }
+
+    .share-option.copy:hover {
+      background: var(--primary);
+    }
+
+    .copy-success {
+      background: var(--primary);
+      color: var(--bg-dark);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      margin-top: 1rem;
+      display: none;
+      font-weight: 500;
+    }
+
+    .copy-success.show {
+      display: block;
+    }
+
+    .qr-section {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+    }
+
+    .qr-code {
+      display: block;
+      margin: 0 auto;
+      max-width: 150px;
+      height: auto;
+    }
+
+    /* Payout Queue Styles */
+    .payout-queue-container {
+      background: var(--bg-card);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .queue-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-item {
+      background: var(--bg-secondary);
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+      display: block;
+      color: var(--primary);
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .queue-details h3 {
+      color: var(--text-light);
+      margin-bottom: 1rem;
+      font-size: 1.2rem;
+    }
+
+    .orders-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .order-item {
+      background: var(--bg-secondary);
+      padding: 1rem;
+      border-radius: 8px;
+      border-left: 4px solid var(--primary);
+    }
+
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .order-id {
+      font-weight: bold;
+      color: var(--primary);
+    }
+
+    .order-amount {
+      font-size: 1.1rem;
+      color: var(--text-light);
+    }
+
+    .order-details {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .order-status {
+      background: #ff9800;
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    
+    .order-status.confirmed {
+      background: #28a745;
+    }
+    
+    .order-item.confirmed {
+      border-left: 4px solid #28a745;
+      background: #f8fff9;
+    }
+
+    .collapsible-header {
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 0;
+      border-bottom: 1px solid #e0e0e0;
+      margin-bottom: 0;
+    }
+
+    .collapsible-header:hover {
+      background: #f5f5f5;
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 0 -1rem 0 -1rem;
+    }
+
+    .toggle-icon {
+      font-size: 0.8rem;
+      transition: transform 0.3s ease;
+    }
+
+    .toggle-icon.rotated {
+      transform: rotate(180deg);
+    }
+
+    .collapsible-content {
+      transition: all 0.3s ease;
+      overflow: hidden;
     }
 
     .card-icon {
@@ -230,11 +592,18 @@
 <body>
   <!-- Header -->
   <div class="header">
+    <div class="logo-container">
       <h1>Vendor Dashboard</h1>
-    </div> 
+    </div>
+    <div class="user-menu">
+      <!-- Notification icon will be injected here by notifications.js -->
+      <div class="message-icon" onclick="openMessages()">
+        <i class="fas fa-comments"></i>
+        <span class="message-badge" id="messageCount">0</span>
+      </div>
+      <div class="user-avatar">V</div>
     </div>
   </div>
-
 
 
   <!-- Dashboard Content -->
@@ -244,6 +613,8 @@
       <p>Here's what's happening with your store today</p>
     </div>
 
+
+
     <h2 class="section-title">Orders & Products</h2>
     <div class="grid">
       <a href="vendor-orders.html">
@@ -251,8 +622,18 @@
           <div class="card-icon">
             <i class="fas fa-clipboard-list"></i>
           </div>
-          <h3>Orders</h3>
+          <h3>Incoming Orders</h3>
           <p>View & manage incoming orders</p>
+        </div>
+      </a>
+
+      <a href="vendor-delivered-orders.html">
+        <div class="card">
+          <div class="card-icon">
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <h3>Delivered Orders</h3>
+          <p>View completed & delivered orders</p>
         </div>
       </a>
 
@@ -279,43 +660,23 @@
 
     <h2 class="section-title">Payouts & Finances</h2>
     <div class="grid">
-      <a href="vendor-payout-queue.html">
+      <a href="request-payout.html">
         <div class="card">
           <div class="card-icon">
-            <i class="fas fa-clock"></i>
+            <i class="fas fa-paper-plane"></i>
           </div>
-          <h3>Payout Queue</h3>
-          <p>Receipts pending buyer confirmation</p>
+          <h3>Request Payout</h3>
+          <p>Withdraw funds to your bank</p>
         </div>
       </a>
 
-      <a href="vendor-ready-for-payout.html">
+      <a href="bank-accounts.html">
         <div class="card">
           <div class="card-icon">
-            <i class="fas fa-check-circle"></i>
+            <i class="fas fa-university"></i>
           </div>
-          <h3>Ready for Payout</h3>
-          <p>Confirmed delivery by buyers</p>
-        </div>
-      </a>
-
-      <a href="vendor-payout-history.html">
-        <div class="card">
-          <div class="card-icon">
-            <i class="fas fa-history"></i>
-          </div>
-          <h3>Payout History</h3>
-          <p>Track your payouts</p>
-        </div>
-      </a>
-
-      <a href="vendor-requested-payout.html">
-        <div class="card">
-          <div class="card-icon">
-            <i class="fas fa-money-check"></i>
-          </div>
-          <h3>Requested Payouts</h3>
-          <p>View your payout requests</p>
+          <h3>Bank Accounts</h3>
+          <p>Manage your bank details</p>
         </div>
       </a>
 
@@ -325,9 +686,65 @@
             <i class="fas fa-wallet"></i>
           </div>
           <h3>Wallet</h3>
-          <p>Balance, transfers & payouts</p>
+          <p>View balance & transactions</p>
         </div>
       </a>
+    </div>
+
+    <h2 class="section-title">Dispute Management</h2>
+    <div class="grid">
+      <a href="my-disputes.html">
+        <div class="card">
+          <div class="card-icon">
+            <i class="fas fa-clipboard-list"></i>
+          </div>
+          <h3>My Disputes</h3>
+          <p>Track your dispute cases</p>
+        </div>
+      </a>
+    </div>
+
+    <!-- Payout Queue Section -->
+    <h2 class="section-title">📋 Payout Queue</h2>
+    <div class="payout-queue-container">
+      <div class="queue-stats">
+        <div class="stat-item">
+          <span class="stat-label">Pending Confirmations</span>
+          <span class="stat-value" id="pendingConfirmations">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Expected Payouts</span>
+          <span class="stat-value" id="expectedPayouts">₦0.00</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Available for Payout</span>
+          <span class="stat-value" id="availablePayouts">₦0.00</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Successful Payouts/Confirmed</span>
+          <span class="stat-value" id="successfulPayouts">₦0.00</span>
+        </div>
+      </div>
+      
+      <div class="queue-details">
+        <h3 class="collapsible-header" onclick="toggleSection('pendingOrders')">
+          📦 Orders Awaiting Buyer Confirmation
+          <span class="toggle-icon" id="pendingOrdersToggle">▼</span>
+        </h3>
+        <div id="pendingOrdersList" class="orders-list collapsible-content" style="display: none;">
+          <!-- Pending orders will be loaded here -->
+        </div>
+      </div>
+      
+      <div class="queue-details">
+        <h3 class="collapsible-header" onclick="toggleSection('confirmedOrders')">
+          ✅ Confirmed Orders & Successful Payouts
+          <span class="toggle-icon" id="confirmedOrdersToggle">▼</span>
+        </h3>
+        <div id="confirmedOrdersList" class="orders-list collapsible-content" style="display: none;">
+          <!-- Confirmed orders will be loaded here -->
+        </div>
+      </div>
     </div>
 
     <h2 class="section-title">Account & Support</h2>
@@ -342,6 +759,14 @@
         </div>
       </a>
 
+      <div class="card share-shop-card" onclick="showShareModal()">
+        <div class="card-icon">
+          <i class="fas fa-share-alt"></i>
+        </div>
+        <h3>Share My Shop</h3>
+        <p>Share your shop link with customers</p>
+      </div>
+
       <a href="support.html">
         <div class="card">
           <div class="card-icon">
@@ -352,7 +777,7 @@
         </div>
       </a>
 
-      <a href="vendor-auth.html">
+      <a id="vendorSignOut" href="#" onclick="event.preventDefault(); window.logout && window.logout('vendor');">
         <div class="card">
           <div class="card-icon">
             <i class="fas fa-sign-out-alt"></i>
@@ -364,9 +789,77 @@
     </div>
   </div>
 
+
+  <!-- Share Shop Modal -->
+  <div class="share-modal" id="shareModal">
+    <div class="share-modal-content">
+      <button class="close-modal" onclick="closeShareModal()">
+        <i class="fas fa-times"></i>
+      </button>
+      
+      <div class="share-modal-header">
+        <h2>Share Your Shop</h2>
+        <p>Share your shop link with customers and grow your business!</p>
+      </div>
+
+      <div class="shop-link-display" id="shopLinkDisplay">
+        Loading shop link...
+      </div>
+
+      <div class="share-options">
+        <button class="share-option whatsapp" onclick="shareToWhatsApp()">
+          <i class="fab fa-whatsapp"></i>
+          <span>WhatsApp</span>
+        </button>
+        
+        <button class="share-option facebook" onclick="shareToFacebook()">
+          <i class="fab fa-facebook"></i>
+          <span>Facebook</span>
+        </button>
+        
+        <button class="share-option twitter" onclick="shareToTwitter()">
+          <i class="fab fa-twitter"></i>
+          <span>Twitter</span>
+        </button>
+        
+        <button class="share-option copy" onclick="copyShopLink()">
+          <i class="fas fa-copy"></i>
+          <span>Copy Link</span>
+        </button>
+      </div>
+
+      <div class="copy-success" id="copySuccess">
+        Link copied to clipboard! ✅
+      </div>
+
+      <div class="qr-section">
+        <h4>QR Code for Easy Sharing</h4>
+        <img id="qrCode" class="qr-code" alt="Shop QR Code">
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/auth-utils.js?v=2"></script>
+  <script src="/js/notifications.js"></script>
+  <script src="/js/messageNotifications.js"></script>
   <script>
+    // Global variables for sharing
+    let vendorData = null;
+    let shopUrl = '';
+    const SHARE_BASE = window.SHARE_BASE_URL || (window.location.hostname === 'localhost'
+      ? (window.PUBLIC_BASE_URL || window.DEPLOY_BASE_URL || 'https://your-domain.com')
+      : window.location.origin);
+
     // This would be replaced with your actual data loading logic
     document.addEventListener('DOMContentLoaded', function() {
+      // Load vendor data for sharing
+      loadVendorData();
+      
+      // Load payout queue data
+      loadPayoutQueue();
+      
       // Simulate loading data from backend
       setTimeout(() => {
         // Update stats with real data (this would come from your backend)
@@ -379,6 +872,365 @@
         
       }, 500);
     });
+
+    // Load vendor data for sharing
+    async function loadVendorData() {
+      try {
+        // Get vendor ID from localStorage or token
+        const token = localStorage.getItem('vendplug-vendor-token');
+        if (!token) {
+          console.log('No vendor token found');
+          return;
+        }
+
+        // Get vendor ID from localStorage
+        const vendor = JSON.parse(localStorage.getItem('vendplugVendor'));
+        if (!vendor || !vendor._id) {
+          console.log('No vendor data found');
+          return;
+        }
+
+        // Fetch vendor data using vendor ID
+        const response = await fetch(`/api/vendors/${vendor._id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          vendorData = await response.json();
+          console.log('✅ Vendor data loaded:', vendorData);
+          
+          shopUrl = `${SHARE_BASE}/view-shop.html?vendor=${vendorData._id}`;
+          console.log('✅ Shop URL generated:', shopUrl);
+          
+          // Update shop link display
+          document.getElementById('shopLinkDisplay').textContent = shopUrl;
+          
+          // Generate QR code
+          generateQRCode(shopUrl);
+        } else {
+          console.error('❌ Failed to fetch vendor data:', response.status, response.statusText);
+        }
+      } catch (error) {
+        console.error('Error loading vendor data:', error);
+        // Fallback: use placeholder data
+        shopUrl = `${SHARE_BASE}/view-shop.html?vendor=your-vendor-id`;
+        document.getElementById('shopLinkDisplay').textContent = shopUrl;
+        generateQRCode(shopUrl);
+      }
+    }
+
+    // Load payout queue data
+    async function loadPayoutQueue() {
+      try {
+        const token = localStorage.getItem('vendplug-vendor-token');
+        if (!token) {
+          console.log('No vendor token found');
+          return;
+        }
+
+        const vendor = JSON.parse(localStorage.getItem('vendplugVendor'));
+        if (!vendor || !vendor._id) {
+          console.log('No vendor data found');
+          return;
+        }
+
+        // Fetch pending orders (delivered but not confirmed)
+        const pendingResponse = await fetch(`/api/vendor-orders?status=delivered&vendor=${vendor._id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        // Fetch confirmed orders (fulfilled)
+        const confirmedResponse = await fetch(`/api/vendor-orders?status=fulfilled&vendor=${vendor._id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (pendingResponse.ok && confirmedResponse.ok) {
+          const allDeliveredOrders = await pendingResponse.json();
+          const confirmedOrders = await confirmedResponse.json();
+          
+          // Filter out fulfilled orders from pending (only show truly pending delivered orders)
+          const pendingOrders = allDeliveredOrders.filter(order => order.status === 'delivered');
+          
+          console.log('✅ Payout queue loaded:', pendingOrders);
+          console.log('✅ Confirmed orders loaded:', confirmedOrders);
+
+          // Update stats
+          document.getElementById('pendingConfirmations').textContent = pendingOrders.length;
+          
+          const totalExpected = pendingOrders.reduce((sum, order) => sum + order.totalAmount, 0);
+          document.getElementById('expectedPayouts').textContent = `₦${totalExpected.toLocaleString()}`;
+
+          const totalConfirmed = confirmedOrders.reduce((sum, order) => sum + order.totalAmount, 0);
+          document.getElementById('successfulPayouts').textContent = `₦${totalConfirmed.toLocaleString()}`;
+
+          // Get wallet balance for available payouts
+          const walletResponse = await fetch(`/api/wallet/vendor`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (walletResponse.ok) {
+            const walletData = await walletResponse.json();
+            const balance = walletData.balance || 0;
+            document.getElementById('availablePayouts').textContent = `₦${balance.toLocaleString()}`;
+          } else if (walletResponse.status === 404) {
+            // Wallet doesn't exist yet, set balance to 0
+            document.getElementById('availablePayouts').textContent = '₦0.00';
+            console.log('ℹ️ Wallet not found - user may not have made any transactions yet');
+          } else {
+            console.error('❌ Failed to fetch wallet balance:', walletResponse.status);
+            document.getElementById('availablePayouts').textContent = '₦0.00';
+          }
+
+          // Display pending orders
+          const pendingOrdersList = document.getElementById('pendingOrdersList');
+          if (pendingOrders.length === 0) {
+            pendingOrdersList.innerHTML = '<p style="color: var(--muted); text-align: center; padding: 2rem;">No orders awaiting confirmation</p>';
+          } else {
+            pendingOrdersList.innerHTML = pendingOrders.map(order => `
+              <div class="order-item">
+                <div class="order-header">
+                  <span class="order-id">#${order._id.slice(-8)}</span>
+                  <span class="order-amount">₦${order.totalAmount.toLocaleString()}</span>
+                </div>
+                <div class="order-details">
+                  <strong>Buyer:</strong> ${order.buyer?.fullName || 'Unknown'}<br>
+                  <strong>Order Date:</strong> ${new Date(order.createdAt).toLocaleDateString()}<br>
+                  <strong>Status:</strong> <span class="order-status">Awaiting Confirmation</span>
+                </div>
+              </div>
+            `).join('');
+          }
+
+          // Display confirmed orders
+          const confirmedOrdersList = document.getElementById('confirmedOrdersList');
+          if (confirmedOrders.length === 0) {
+            confirmedOrdersList.innerHTML = '<p style="color: var(--muted); text-align: center; padding: 2rem;">No confirmed orders yet</p>';
+          } else {
+            confirmedOrdersList.innerHTML = confirmedOrders.map(order => `
+              <div class="order-item confirmed">
+                <div class="order-header">
+                  <span class="order-id">#${order._id.slice(-8)}</span>
+                  <span class="order-amount">₦${order.totalAmount.toLocaleString()}</span>
+                </div>
+                <div class="order-details">
+                  <strong>Buyer:</strong> ${order.buyer?.fullName || 'Unknown'}<br>
+                  <strong>Amount:</strong> ₦${order.totalAmount.toLocaleString()}<br>
+                  <strong>Order Date:</strong> ${new Date(order.createdAt).toLocaleDateString()}<br>
+                  <strong>Confirmed Date:</strong> ${order.deliveredAt ? new Date(order.deliveredAt).toLocaleDateString() : 'N/A'}<br>
+                  <strong>Status:</strong> <span class="order-status confirmed">Confirmed & Paid</span>
+                </div>
+              </div>
+            `).join('');
+          }
+        } else {
+          console.error('❌ Failed to fetch payout queue:');
+          if (!pendingResponse.ok) {
+            console.error('  - Pending orders:', pendingResponse.status, pendingResponse.statusText);
+          }
+          if (!confirmedResponse.ok) {
+            console.error('  - Confirmed orders:', confirmedResponse.status, confirmedResponse.statusText);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading payout queue:', error);
+      }
+    }
+
+
+
+    // Show share modal
+    function showShareModal() {
+      const modal = document.getElementById('shareModal');
+      modal.classList.add('show');
+      
+      // Load vendor data if not already loaded
+      if (!vendorData) {
+        loadVendorData();
+      }
+    }
+
+    // Close share modal
+    function closeShareModal() {
+      const modal = document.getElementById('shareModal');
+      modal.classList.remove('show');
+    }
+
+    // Generate QR code
+    function generateQRCode(url) {
+      const qrCodeEl = document.getElementById('qrCode');
+      if (qrCodeEl && window.QRCode) {
+        QRCode.toCanvas(qrCodeEl, url, {
+          width: 150,
+          margin: 2,
+          color: {
+            dark: '#00cc99',
+            light: '#ffffff'
+          }
+        }, function (error) {
+          if (error) console.error('QR Code generation error:', error);
+        });
+      }
+    }
+
+    // Share to WhatsApp
+    function shareToWhatsApp() {
+      if (!vendorData || !shopUrl) return;
+      
+      const message = `Check out my shop on Vendplug!\n\n🏪 ${vendorData.shopName || vendorData.fullName}\n📍 ${vendorData.state || 'Nigeria'}\n📱 ${vendorData.phoneNumber}\n\n${shopUrl}`;
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank');
+      
+      // Track sharing
+      trackShare('whatsapp');
+    }
+
+    // Share to Facebook
+    function shareToFacebook() {
+      if (!shopUrl) return;
+      
+      const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shopUrl)}`;
+      window.open(facebookUrl, '_blank', 'width=600,height=400');
+      
+      // Track sharing
+      trackShare('facebook');
+    }
+
+    // Share to Twitter
+    function shareToTwitter() {
+      if (!vendorData || !shopUrl) return;
+      
+      const message = `Check out my shop ${vendorData.shopName || vendorData.fullName} on Vendplug! 🏪✨\n\n${shopUrl}`;
+      const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`;
+      window.open(twitterUrl, '_blank', 'width=600,height=400');
+      
+      // Track sharing
+      trackShare('twitter');
+    }
+
+    // Copy shop link
+    function copyShopLink() {
+      if (!shopUrl) return;
+      
+      navigator.clipboard.writeText(shopUrl).then(() => {
+        const copySuccess = document.getElementById('copySuccess');
+        copySuccess.classList.add('show');
+        
+        setTimeout(() => {
+          copySuccess.classList.remove('show');
+        }, 3000);
+      }).catch(err => {
+        console.error('Failed to copy:', err);
+        window.showOverlay && showOverlay({ type:'error', title:'Share', message:'Failed to copy link. Please try again.' });
+      });
+      
+      // Track sharing
+      trackShare('copy');
+    }
+
+    // Track sharing analytics
+    function trackShare(platform) {
+      try {
+        // Send analytics to backend
+        fetch('/api/analytics/share', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            platform,
+            vendorId: vendorData?._id,
+            shopUrl,
+            timestamp: new Date().toISOString()
+          })
+        }).catch(err => console.log('Analytics error:', err));
+        
+        // Log locally
+        console.log(`Shop shared via ${platform}`);
+      } catch (error) {
+        console.log('Analytics tracking failed:', error);
+      }
+    }
+
+    // Close modal when clicking outside
+    document.addEventListener('click', function(event) {
+      const modal = document.getElementById('shareModal');
+      if (event.target === modal) {
+        closeShareModal();
+      }
+    });
+
+    // Toggle collapsible sections
+    function toggleSection(sectionName) {
+      const content = document.getElementById(sectionName + 'List');
+      const toggle = document.getElementById(sectionName + 'Toggle');
+      
+      if (content.style.display === 'none') {
+        content.style.display = 'block';
+        toggle.classList.remove('rotated');
+      } else {
+        content.style.display = 'none';
+        toggle.classList.add('rotated');
+      }
+    }
+
+    // Open messages function
+    function openMessages() {
+      // Open chat interface in the same window
+      const chatUrl = 'chat.html?type=vendor';
+      window.location.href = chatUrl;
+    }
+
+    // Load unread message count
+    async function loadMessageCount() {
+      try {
+        const token = localStorage.getItem('vendplug-vendor-token');
+        if (!token) return;
+
+        const response = await fetch('/api/chats/unread-count', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const count = data.count || 0;
+          document.getElementById('messageCount').textContent = count;
+          document.getElementById('messageCount').style.display = count > 0 ? 'flex' : 'none';
+        }
+      } catch (error) {
+        console.error('Error loading message count:', error);
+      }
+    }
+
+    // Load message count on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      loadMessageCount();
+      
+      // Refresh message count every 30 seconds
+      setInterval(loadMessageCount, 30000);
+    });
   </script>
+  <script>
+    // Ensure signout works even if inline handlers are blocked/cached
+    document.addEventListener('DOMContentLoaded', function(){
+      var el = document.getElementById('vendorSignOut');
+      if (el) {
+        el.addEventListener('click', function(e){
+          try{ e.preventDefault(); }catch(_){}
+          if (window.logout) { window.logout('vendor'); }
+        });
+      }
+    });
+  </script>
+  <script src="js/adManager.js"></script>
 </body>
 </html>

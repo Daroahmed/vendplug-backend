@@ -17,17 +17,48 @@ const upload = multer({ dest: 'uploads/' });
 
 // ✅ STATIC ROUTES FIRST
 router.get('/shop-vendors', asyncHandler(async (req, res) => {
-  const { state, category } = req.query;
-  if (!state || !category) {
-    return res.status(400).json({ message: 'Missing state or category' });
+  const { state, category, search, minTransactions, page, limit } = req.query;
+
+  const query = {};
+
+  // Optional filters
+  if (category && category.trim() !== '') {
+    query.category = { $regex: new RegExp(`^${category.trim()}$`, 'i') };
+  }
+  if (state && state.trim() !== '') {
+    query.state = state.trim();
+  }
+  if (minTransactions && Number(minTransactions) > 0) {
+    query.totalTransactions = { $gte: Number(minTransactions) };
+  }
+  if (search && search.trim() !== '') {
+    const rx = new RegExp(search.trim(), 'i');
+    query.$or = [
+      { businessName: rx },
+      { shopName: rx },
+      { fullName: rx },
+      { category: rx },
+      { state: rx }
+    ];
   }
 
-  const vendors = await Vendor.find({
-    state,
-    category: { $regex: new RegExp(`^${category}$`, 'i') }
-  }).select('-password');
+  const pageNum = Number(page) > 0 ? Number(page) : 1;
+  const pageSize = Number(limit) > 0 ? Number(limit) : 24;
+  const skip = (pageNum - 1) * pageSize;
 
-  res.json(vendors);
+  const [vendors, total] = await Promise.all([
+    Vendor.find(query)
+      .select('-password')
+      .sort({ totalTransactions: -1, createdAt: -1 })
+      .skip(skip)
+      .limit(pageSize),
+    Vendor.countDocuments(query)
+  ]);
+
+  const totalPages = Math.ceil(total / pageSize) || 1;
+  const hasMore = pageNum < totalPages;
+
+  res.json({ vendors, total, page: pageNum, totalPages, hasMore });
 }));
 
 router.get('/by-vendor', asyncHandler(async (req, res) => {
@@ -57,6 +88,23 @@ router.post("/resolve-account", protectAgent, async (req, res) => {
     businessName: vendor.businessName
   });
 });
+
+// ✅ Get vendor transaction count
+router.get('/:vendorId/transactions', asyncHandler(async (req, res) => {
+  const { vendorId } = req.params;
+  
+  const vendor = await Vendor.findById(vendorId).select('totalTransactions shopName fullName');
+  if (!vendor) {
+    return res.status(404).json({ message: 'Vendor not found' });
+  }
+  
+  res.json({
+    vendorId: vendor._id,
+    shopName: vendor.shopName,
+    fullName: vendor.fullName,
+    totalTransactions: vendor.totalTransactions || 0
+  });
+}));
 
 // ✅ NOW THE DYNAMIC ONES
 

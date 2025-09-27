@@ -1,69 +1,144 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>My Orders | VendPlug</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VendPlug | Agent Orders</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    :root {
-      --primary: #00cc99;
-      --bg-dark: #121212;
-      --card: #1e1e1e;
-      --text-light: #fff;
-      --muted: #aaa;
+    .header { background:#1e1e1e; padding:1rem; position:sticky; top:0; z-index:100; display:flex; align-items:center; box-shadow:0 2px 10px rgba(0,0,0,0.3); }
+    .back-button { background:none; border:none; color:#fff; font-size:1.2rem; margin-right:15px; cursor:pointer; }
+    .header-title { font-size:1.2rem; color:#00cc99; }
+    .header-actions { margin-left:auto; display:flex; align-items:center; gap:12px; }
+    .header-actions a { color:#fff; text-decoration:none; }
+    .notification-icon { position: relative; }
+    .notification-badge {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background-color: #00cc99;
+      color: #000;
+      font-size: 0.7rem;
+      font-weight: bold;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: none;
+      align-items: center;
+      justify-content: center;
     }
-
     body {
-      background-color: var(--bg-dark);
+      background-color: #121212;
       font-family: 'Segoe UI', sans-serif;
-      margin: 0;
-      color: var(--text-light);
+      color: #fff;
+      padding: 1rem;
     }
 
-    header {
-      background-color: var(--card);
-      padding: 1rem;
+    h2 {
       text-align: center;
-      font-size: 1.3rem;
-      color: var(--primary);
-    }
-
-    .container {
-      padding: 1rem;
+      color: #00cc99;
     }
 
     .order-card {
-      background: var(--card);
-      padding: 1rem;
+      background-color: #1e1e1e;
       border-radius: 10px;
-      margin-bottom: 1rem;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 0 10px rgba(0,0,0,0.4);
+      cursor: pointer;
+      transition: transform 0.2s;
     }
 
-    .order-card h4 {
-      margin: 0 0 0.5rem;
-      color: var(--primary);
+    .order-card:hover {
+      transform: scale(1.02);
     }
 
-    .order-card p {
-      margin: 0.25rem 0;
-      color: var(--muted);
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
     }
 
-    .spinner {
-      color: var(--muted);
-      text-align: center;
-      margin-top: 2rem;
+    .order-header h3 {
+      margin: 0;
+    }
+
+    .status-badge {
+      padding: 4px 10px;
+      border-radius: 5px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      text-transform: capitalize;
+    }
+
+    .pending { background: orange; color: black; }
+    .accepted { background: green; color: white; }
+    .rejected { background: red; color: white; }
+    .fulfilled { background: #00cc99; color: black; }
+    .delivered { background: blue; color: white; }
+    .completed { background: purple; color: white; }
+
+    .product-list {
+      margin-top: 10px;
+    }
+
+    .product-list p {
+      margin: 2px 0;
+      font-size: 0.9rem;
+      color: #ccc;
     }
   </style>
 </head>
 <body>
-  <header>🧾 My Orders</header>
-  <div class="container">
-    <div id="spinner" class="spinner">Loading your orders...</div>
-    <div id="orders-list"></div>
+  <div class="header">
+    <button class="back-button" onclick="goBackOrHomeAgent()"><i class="fas fa-arrow-left"></i></button>
+    <div class="header-title" style="flex:1;"></div>
+    <div class="header-actions">
+      <a href="chat.html" title="Messages"><i class="fas fa-comments"></i></a>
+      <!-- Notification icon injected by notifications.js -->
+      <a href="buyer-agent-checkout.html" title="Cart"><i class="fas fa-shopping-cart"></i></a>
+    </div>
   </div>
+  <h2 style="text-align:center; color:#00cc99; margin-top:10px;">Agent Orders</h2>
+
+  <div id="agentOrdersContainer">
+    <!-- Orders will render here -->
+  </div>
+
   <script src="js/config.js"></script>
-  <script src="/js/buyer-agent-orders.js"></script>
+  <script src="js/auth-utils.js"></script>
+  <script src="/js/back-button.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="/js/notifications.js"></script>
+  <script src="/js/cart-badge.js"></script>
+  <script src="js/buyer-agent-orders.js"></script>
+  <script>
+    function goBackOrHomeAgent(){
+      try {
+        if (document.referrer && new URL(document.referrer).origin === window.location.origin) {
+          history.back();
+          return;
+        }
+      } catch(e) {}
+      window.location.href = 'agent-shop.html';
+    }
+    const buyer = JSON.parse(localStorage.getItem("vendplugBuyer"));
+
+
+    const SOCKET_BASE = window.BACKEND_URL || "";
+    const socket = io(SOCKET_BASE, {
+      query: { userId: buyer?._id },
+      transports: ["websocket"],
+    });
+
+    socket.on("buyer-order-update", (data) => {
+      alert(`🔔 ${data.message}`);
+      // ✅ Refresh with correct function
+      fetchOrders();
+    });
+  </script>
+
+  
 </body>
 </html>

@@ -1,15 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
   const accountNumberEl = document.getElementById('accountNumber');
   const balanceEl = document.getElementById('balance');
-  const buyer = JSON.parse(localStorage.getItem('vendplugBuyer'));
+  const buyer = getCurrentUser();
+  const token = getAuthToken();
 
-  if (!buyer || !buyer.token) {
-    alert('Unauthorized. Please log in again.');
-    window.location.href = '/buyer-login.html';
+  if (!buyer || !token) {
+    window.showOverlay && showOverlay({ type:'error', title:'Unauthorized', message:'Please log in again.' });
+    redirectToLogin();
     return;
   }
-
-  const token = buyer.token;
   const resolvedNameEl = document.getElementById('resolvedName');
 
   fetchWallet();
@@ -70,19 +69,55 @@ document.addEventListener('DOMContentLoaded', () => {
         const otherAccount = isSender ? txn.to : txn.from;
         const direction = isSender ? 'Sent to' : 'Received from';
 
-        if (!nameCache[otherAccount]) {
-          try {
-            const lookupRes = await fetch(`${window.BACKEND_URL}/api/wallet/lookup/${otherAccount}`);
-            const lookupData = await lookupRes.json();
-            nameCache[otherAccount] =
-              lookupData.user?.fullName ||
-              lookupData.user?.name ||
-              lookupData.user?.businessName ||
-              'Unknown';
-          } catch {
-            nameCache[otherAccount] = 'Unknown';
+        // Prefer backend-provided initiatorName for incoming funds (accurate sender)
+        let displayName = '';
+        if (!isSender && txn.initiatorName && txn.initiatorName !== 'Unknown') {
+          displayName = txn.initiatorName;
+        } else {
+          // Known system sources (e.g., escrow/paystack)
+          const acctLower = (otherAccount || '').toString().toLowerCase();
+          const knownMap = {
+            escrow: 'Escrow',
+            paystack: 'Paystack',
+            system: 'System',
+            platform: 'VendPlug',
+            vendplug: 'VendPlug',
+          };
+          if (knownMap[acctLower]) {
+            displayName = knownMap[acctLower];
+          }
+
+          // Heuristics from reference string
+          if (!displayName && typeof txn.ref === 'string') {
+            const refUpper = txn.ref.toUpperCase();
+            if (refUpper.includes('PAYSTACK')) displayName = 'Paystack';
+            if (refUpper.includes('VENDPLUG')) displayName = 'VendPlug';
+          }
+
+          // If we still don't have a name, try initiatorType as a hint
+          if (!displayName && txn.initiatorType) {
+            displayName = txn.initiatorType;
+          }
+
+          // Final fallback: resolve counterparty by account number (cached)
+          if (!displayName) {
+            if (!nameCache[otherAccount]) {
+              try {
+                const lookupRes = await fetch(`${window.BACKEND_URL}/api/wallet/lookup/${otherAccount}`);
+                const lookupData = await lookupRes.json();
+                nameCache[otherAccount] =
+                  lookupData.user?.fullName ||
+                  lookupData.user?.name ||
+                  lookupData.user?.businessName ||
+                  '';
+              } catch {
+                nameCache[otherAccount] = '';
+              }
+            }
+            displayName = nameCache[otherAccount] || '';
           }
         }
+        if (!displayName) displayName = 'Unknown';
 
         const card = document.createElement('div');
         card.className = 'transaction-card';
@@ -95,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
               ₦${txn.amount.toLocaleString()}
             </div>
           </div>
-          <div class="transaction-direction">${direction}: ${nameCache[otherAccount]} (${otherAccount})</div>
+          <div class="transaction-direction">${direction}: ${displayName} (${otherAccount})</div>
           <div class="transaction-meta">
             Ref: ${txn.ref}<br />
             Status: ${txn.status}<br />
@@ -111,65 +146,94 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  async function resolveUser() {
-    const acct = document.getElementById('recipientAccount').value.trim();
-    const display = document.getElementById('userNameResolved');
-    resolvedNameEl.value = '';
-    display.textContent = '🔍 Resolving...';
+  // Transfer and resolve functions removed - transfers not used anymore
 
-    if (!acct) {
-      display.textContent = '';
+
+  // Funding Modal Functions
+  function showFundingModal() {
+    document.getElementById('fundingModal').style.display = 'block';
+  }
+
+  function closeFundingModal() {
+    document.getElementById('fundingModal').style.display = 'none';
+    document.getElementById('fundingAmount').value = '';
+  }
+
+  async function initiateFunding() {
+    const amount = Number(document.getElementById('fundingAmount').value);
+    if (!amount || amount < 100) {
+      window.showOverlay && showOverlay({ type:'info', title:'Amount', message:'Please enter a valid amount (minimum ₦100)' });
       return;
     }
 
-    try {
-      const res = await fetch(`${window.BACKEND_URL}/api/wallet/lookup/${acct}`);
-      const data = await res.json();
-
-      const name =
-        data.user?.fullName || data.user?.name || data.user?.businessName;
-
-      if (name && data.role) {
-        display.textContent = `✅ Recipient: ${name} (${data.role})`;
-        resolvedNameEl.value = name;
-      } else {
-        display.textContent = '❌ User not found';
-      }
-    } catch {
-      display.textContent = '⚠️ Error resolving account number';
-    }
-  }
-
-  async function handleTransfer() {
-    const acct = document.getElementById('recipientAccount').value.trim();
-    const amount = Number(document.getElementById('transferAmount').value);
-    if (!acct || amount <= 0) return alert('Enter valid account and amount');
+    const fundBtn = document.querySelector('.fund-btn');
+    fundBtn.classList.add('loading');
 
     try {
-      const res = await fetch(`${window.BACKEND_URL}/api/wallet/transfer`, {
+      // Initialize wallet funding with our new Paystack integration
+      const res = await fetch(`${window.BACKEND_URL}/api/paystack/fund-wallet`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({
-          fromAccountNumber: accountNumberEl.textContent.trim(),
-          toAccountNumber: acct,
+        body: JSON.stringify({ 
           amount,
-        }),
+          email: buyer.email 
+        })
       });
 
-      const data = await res.json();
-      alert(data.message || 'Transfer successful');
-      fetchWallet();
-      fetchTransactions();
-    } catch {
-      alert('Transfer failed');
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to initialize payment');
+      }
+      
+      const paymentData = await res.json();
+      
+      if (!paymentData.success) {
+        throw new Error(paymentData.message || 'Payment initialization failed');
+      }
+
+      const { authorizationUrl, reference } = paymentData.data;
+
+      // Redirect to Paystack payment page
+      console.log('🚀 Redirecting to Paystack:', authorizationUrl);
+      window.location.href = authorizationUrl;
+    } catch (error) {
+      console.error('Payment initialization error:', error);
+      window.showOverlay && showOverlay({ type:'error', title:'Payment', message:'Error initializing payment. Please try again.' });
+      fundBtn.classList.remove('loading');
     }
   }
 
+  // Payment verification function
+  async function verifyPayment(reference) {
+    try {
+      console.log('🔍 Verifying payment:', reference);
+      
+      const verifyRes = await fetch(`${window.BACKEND_URL}/api/paystack/verify-payment?reference=${reference}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const verifyData = await verifyRes.json();
+      
+      if (verifyRes.ok && verifyData.success) {
+        window.showOverlay && showOverlay({ type:'success', title:'Payment', message:'Payment successful! Your wallet has been credited.' });
+        fetchWallet(); // Refresh wallet balance
+        fetchTransactions(); // Refresh transaction history
+        closeFundingModal();
+      } else {
+        throw new Error(verifyData.message || 'Payment verification failed');
+      }
+    } catch (error) {
+      console.error('❌ Payment verification error:', error);
+      window.showOverlay && showOverlay({ type:'error', title:'Payment', message:'Error verifying payment. Please contact support if your wallet is not credited.' });
+    }
+  }
 
   // Global
-  window.handleTransfer = handleTransfer;
-  window.resolveUser = resolveUser;
+  // Removed: handleTransfer, resolveUser
+  window.showFundingModal = showFundingModal;
+  window.closeFundingModal = closeFundingModal;
+  window.initiateFunding = initiateFunding;
 });
