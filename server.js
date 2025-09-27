@@ -1,13 +1,13 @@
-// ✅ Load environment variables
+// ✅ Load environment variables (always from the backend folder)
+const path = require('path');
 const dotenv = require('dotenv');
-dotenv.config({ path: './backend/.env' });
-console.log('✅ Loaded MONGO_URI:', process.env.MONGO_URI);
+dotenv.config({ path: path.join(__dirname, '.env') });
+// console.log('✅ Loaded MONGO_URI:', process.env.MONGO_URI);
 
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-const path = require('path');
 const http = require('http');
 const socketIO = require('socket.io');
 const cloudinary = require('cloudinary').v2;
