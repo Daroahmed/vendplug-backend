@@ -156,55 +156,61 @@ const getDashboardOverview = async (req, res) => {
       }
     }
     
-    // Get counts
+    // Build a reusable createdAt matcher for period filtering
+    const createdMatch = dateFilter.createdAt ? { createdAt: dateFilter.createdAt } : {};
+
+    // Get counts (users remain global; operational metrics honor date filters if provided)
     const totalBuyers = await Buyer.countDocuments();
     const totalVendors = await Vendor.countDocuments();
     const totalAgents = await Agent.countDocuments();
     
-    const totalOrders = await Order.countDocuments();
-    const totalVendorOrders = await VendorOrder.countDocuments();
-    const totalAgentOrders = await AgentOrder.countDocuments();
+    const totalOrders = await Order.countDocuments(createdMatch);
+    const totalVendorOrders = await VendorOrder.countDocuments(createdMatch);
+    const totalAgentOrders = await AgentOrder.countDocuments(createdMatch);
     
-    const pendingPayouts = await PayoutRequest.countDocuments({ status: 'pending' });
-    const processingPayouts = await PayoutRequest.countDocuments({ status: 'processing' });
+    const pendingPayouts = await PayoutRequest.countDocuments({ status: 'pending', ...createdMatch });
+    const processingPayouts = await PayoutRequest.countDocuments({ status: 'processing', ...createdMatch });
     
     // Support ticket counts
     const SupportTicket = require('../models/SupportTicket');
-    const totalSupportTickets = await SupportTicket.countDocuments();
-    const openSupportTickets = await SupportTicket.countDocuments({ status: 'open' });
-    const inProgressSupportTickets = await SupportTicket.countDocuments({ status: 'in_progress' });
-    const resolvedSupportTickets = await SupportTicket.countDocuments({ status: 'resolved' });
+    const totalSupportTickets = await SupportTicket.countDocuments(createdMatch);
+    const openSupportTickets = await SupportTicket.countDocuments({ status: 'open', ...createdMatch });
+    const inProgressSupportTickets = await SupportTicket.countDocuments({ status: 'in_progress', ...createdMatch });
+    const resolvedSupportTickets = await SupportTicket.countDocuments({ status: 'resolved', ...createdMatch });
     
     // Calculate total transaction amounts
     const totalTransactionAmount = await Transaction.aggregate([
-      { $match: { status: 'successful' } },
+      { $match: { status: 'successful', ...createdMatch } },
       { $group: { _id: null, total: { $sum: '$amount' } } }
     ]);
     
     const totalOrderAmount = await Order.aggregate([
+      { $match: { ...createdMatch } },
       { $group: { _id: null, total: { $sum: '$totalAmount' } } }
     ]);
     
     const totalVendorOrderAmount = await VendorOrder.aggregate([
+      { $match: { ...createdMatch } },
       { $group: { _id: null, total: { $sum: '$totalAmount' } } }
     ]);
     
     const totalAgentOrderAmount = await AgentOrder.aggregate([
+      { $match: { ...createdMatch } },
       { $group: { _id: null, total: { $sum: '$totalAmount' } } }
     ]);
     
     const totalPayoutAmount = await PayoutRequest.aggregate([
-      { $match: { status: { $in: ['completed', 'processing'] } } },
+      { $match: { status: { $in: ['completed', 'processing'] }, ...createdMatch } },
       { $group: { _id: null, total: { $sum: '$amount' } } }
     ]);
     
     // Dispute counts
-    const openDisputes = await Dispute.countDocuments({ status: 'open' });
-    const assignedDisputes = await Dispute.countDocuments({ status: 'assigned' });
-    const underReviewDisputes = await Dispute.countDocuments({ status: 'under_review' });
-    const resolvedDisputes = await Dispute.countDocuments({ status: 'resolved' });
-    const escalatedDisputes = await Dispute.countDocuments({ status: 'escalated' });
-    const totalDisputes = await Dispute.countDocuments();
+    const openDisputes = await Dispute.countDocuments({ status: 'open', ...createdMatch });
+    const assignedDisputes = await Dispute.countDocuments({ status: 'assigned', ...createdMatch });
+    const underReviewDisputes = await Dispute.countDocuments({ status: 'under_review', ...createdMatch });
+    const resolvedDisputes = await Dispute.countDocuments({ status: 'resolved', ...createdMatch });
+    const escalatedDisputes = await Dispute.countDocuments({ status: 'escalated', ...createdMatch });
+    const totalDisputes = await Dispute.countDocuments(createdMatch);
     
     console.log('📊 Counts loaded:', { totalBuyers, totalVendors, totalAgents, totalOrders, totalVendorOrders, pendingPayouts, processingPayouts });
     
