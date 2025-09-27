@@ -2,9 +2,9 @@ const jwt = require ('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
 const Buyer = require('../models/Buyer');
 const Agent = require('../models/Agent');
-const Product = require('../models/Product');
 const Vendor = require('../models/vendorModel');
 const Admin = require('../models/Admin');
+const VendorProduct = require('../models/vendorProductModel');
 
 // 🔍 Helper: Extract token from Authorization header
 const extractToken = (req) => {
@@ -90,22 +90,7 @@ const protectVendor = asyncHandler(async (req, res, next) => {
   }
 });
 
-// 🗑️ Delete Product by Agent
-const deleteProduct = async (req, res) => {
-  try {
-    const product = await Product.findById(req.params.id);
-    if (!product) return res.status(404).json({ message: 'Product not found' });
-
-    const agent = req.user;
-    console.log(`🗑️ Agent ${agent.fullName} (${agent._id}) is deleting: ${product.name}`);
-
-    await product.deleteOne();
-    res.status(200).json({ message: 'Product deleted successfully' });
-  } catch (err) {
-    console.error('❌ Delete error:', err.message);
-    res.status(500).json({ message: 'Server error', error: err.message });
-  }
-};
+// (Removed legacy deleteProduct handler for old Product model)
 
 
 const protectAnyUser = asyncHandler(async (req, res, next) => {
@@ -187,7 +172,6 @@ module.exports = {
   protectBuyer,
   protectAgent,
   protectVendor,
-  deleteProduct,
   protectAnyUser,
   deleteVendorProduct
 };
