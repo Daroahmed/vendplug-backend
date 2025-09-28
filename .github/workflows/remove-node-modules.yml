@@ -1,0 +1,40 @@
+name: Remove node_modules (once)
+
+# Run manually from the Actions tab
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  remove-node-modules:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git author
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Remove tracked node_modules directories (if any)
+        run: |
+          # remove top-level node_modules if tracked
+          git rm -r --ignore-unmatch node_modules || true
+
+          # remove any nested node_modules directories tracked
+          find . -type d -name 'node_modules' -prune -print | while read -r d; do
+            git rm -r --ignore-unmatch "$d" || true
+          done
+
+          # If there are staged changes, commit and push them
+          if [ -n "$(git status --porcelain)" ]; then
+            git commit -m "chore: remove tracked node_modules directories"
+            git push
+          else
+            echo "No tracked node_modules directories found — nothing to do."
+          fi
