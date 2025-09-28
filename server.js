@@ -108,6 +108,9 @@ app.use('/api/support', supportRoutes);
 app.use('/api/admin-ads', require('./routes/adminAdRoutes'));
 // ✅ Test route
 app.get('/', (req, res) => res.send('Backend is running 🚀'));
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
 
 // ✅ HTTP Server + Socket.IO
 const server = http.createServer(app);
