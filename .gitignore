@@ -1,39 +1,13 @@
-<<<<<<< HEAD
-﻿node_modules/
-**/node_modules/
-.env
-*.log
-dist/
-build/
-uploads/
-coverage/
-=======
-# Node
+# Node modules
 node_modules/
-npm-debug.log*
-yarn-error.log*
-package-lock.json
+**/node_modules/
 
-# Env
+# Env files
 .env
-.env.local
-.env.*.local
-
-# Build
-dist/
-build/
-
-# Uploads / runtime artifacts
-uploads/
-coverage/
-
-# Editor / OS
-.DS_Store
-.vscode/
-.idea/
 
 # Logs
 *.log
 
-
->>>>>>> origin/main
+# Build outputs
+dist/
+build/
