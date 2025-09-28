@@ -2,7 +2,6 @@ const Admin = require('../models/Admin');
 const Buyer = require('../models/Buyer');
 const Vendor = require('../models/vendorModel');
 const Agent = require('../models/Agent');
-const Order = require('../models/Order');
 const VendorOrder = require('../models/vendorOrderModel');
 const AgentOrder = require('../models/AgentOrder');
 const PayoutRequest = require('../models/PayoutRequest');
