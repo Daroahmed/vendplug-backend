@@ -36,6 +36,7 @@ jobs:
             pm2 describe "$PM2_NAME" >/dev/null 2>&1 || pm2 start server.js --name "$PM2_NAME" --cwd "$PROJECT_PATH"
             pm2 restart "$PM2_NAME" --update-env
             pm2 save
+            
 
             # Local health check (backend port)
             curl -fsS http://127.0.0.1:5000/ | grep -q 'Backend is running' || (echo 'Health check failed' && exit 1)
