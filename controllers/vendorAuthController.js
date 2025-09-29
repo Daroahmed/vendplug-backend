@@ -82,8 +82,9 @@ const registerVendor = asyncHandler(async (req, res) => {
     } catch (e) {
       console.error('⚠️ Failed to persist vendor verification token:', e.message);
     }
-
-    await sendVerificationEmail(email, verificationToken);
+    sendVerificationEmail(email, verificationToken).catch(err => {
+      console.error('❌ Verification email failed:', err?.message || err);
+    });
 
     // Send new user registration notification to admins
     try {
