@@ -62,7 +62,9 @@ const registerBuyer = asyncHandler(async (req, res) => {
         expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
       });
     } catch(e) { console.error('⚠️ Failed to persist buyer verification token:', e.message); }
-    await sendVerificationEmail(email, verificationToken);
+    sendVerificationEmail(email, verificationToken).catch(err => {
+      console.error('❌ Verification email failed:', err?.message || err);
+    });
     console.log("✉️ Verification email sent to:", email);
   } catch (error) {
     console.error("❌ Error sending verification email:", error);

@@ -72,7 +72,9 @@ const registerAgent = async (req, res) => {
       console.error('⚠️ Failed to persist agent verification token:', e.message);
     }
 
-    await sendVerificationEmail(email, verificationToken);
+    sendVerificationEmail(email, verificationToken).catch(err => {
+      console.error('❌ Verification email failed:', err?.message || err);
+    });
 
     // Send new user registration notification to admins
     try {
