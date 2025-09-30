@@ -75,6 +75,7 @@ const staffDisputeRoutes = require('./routes/staffDisputeRoutes');
 const staffAuthRoutes = require('./routes/staffAuthRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const supportRoutes = require('./routes/supportRoutes');
+const productSearchRoutes = require('./routes/productSearchRoutes');
 const autoAssignmentService = require('./services/autoAssignmentService');
 
 
@@ -105,6 +106,7 @@ app.use('/api/staff', staffAuthRoutes);
 app.use('/api/staff', staffDisputeRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/support', supportRoutes);
+app.use('/api/products', productSearchRoutes);
 app.use('/api/admin-ads', require('./routes/adminAdRoutes'));
 // ✅ Test route
 app.get('/', (req, res) => res.send('Backend is running 🚀'));
