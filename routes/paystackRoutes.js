@@ -59,7 +59,7 @@ router.post('/fund-wallet', async (req, res, next) => {
 // Payment verification (public endpoint for Paystack callbacks)
 router.get('/verify-payment', (req, res) => {
   const { reference } = req.query;
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5000';
+  const frontendUrl = process.env.FRONTEND_URL || req.get('origin') || 'http://localhost:5000';
   console.log('🔄 Redirecting old callback URL to frontend:', `${frontendUrl}/payment-success.html?reference=${reference}`);
   res.redirect(`${frontendUrl}/payment-success.html?reference=${reference}`);
 });
