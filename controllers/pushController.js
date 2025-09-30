@@ -2,9 +2,30 @@ const WebPushSubscription = require('../models/WebPushSubscription');
 const webpush = require('web-push');
 
 // Expect VAPID keys from env for production; can be generated locally for dev
-if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
-  webpush.setVapidDetails('mailto:support@vendplug.com', process.env.VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY);
-}
+let vapidInitialized = false;
+(() => {
+  try {
+    const publicKey = process.env.VAPID_PUBLIC_KEY;
+    const privateKey = process.env.VAPID_PRIVATE_KEY;
+    if (!publicKey || !privateKey) {
+      console.warn('⚠️ VAPID keys not set. Push notifications are disabled.');
+      return;
+    }
+
+    // Basic base64url format validation (no '=' padding; only URL-safe chars)
+    const base64UrlRegex = /^[A-Za-z0-9_-]+$/;
+    if (!base64UrlRegex.test(publicKey) || !base64UrlRegex.test(privateKey)) {
+      console.error('⚠️ Invalid VAPID key format. Expected URL-safe Base64 (no =). Push notifications are disabled.');
+      return;
+    }
+
+    webpush.setVapidDetails('mailto:support@vendplug.com', publicKey, privateKey);
+    vapidInitialized = true;
+    console.log('✅ VAPID initialized for Web Push');
+  } catch (err) {
+    console.error('❌ Failed to initialize VAPID. Push notifications disabled:', err.message);
+  }
+})();
 
 exports.getVapidPublicKey = async (req, res) => {
   res.json({ publicKey: process.env.VAPID_PUBLIC_KEY || '' });
@@ -34,7 +55,7 @@ exports.subscribe = async (req, res) => {
 
 exports.sendPush = async ({ userId, userType, title, message, url }) => {
   try {
-    if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) return;
+    if (!vapidInitialized) return;
     const subs = await WebPushSubscription.find({ user: userId, userType });
     await Promise.all(subs.map((s) => webpush.sendNotification({ endpoint: s.endpoint, keys: s.keys }, JSON.stringify({ title, message, url }))
       .catch((err) => {

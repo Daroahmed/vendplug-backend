@@ -163,7 +163,6 @@ const getDashboardOverview = async (req, res) => {
     const totalVendors = await Vendor.countDocuments();
     const totalAgents = await Agent.countDocuments();
     
-    const totalOrders = await Order.countDocuments(createdMatch);
     const totalVendorOrders = await VendorOrder.countDocuments(createdMatch);
     const totalAgentOrders = await AgentOrder.countDocuments(createdMatch);
     
@@ -181,11 +180,6 @@ const getDashboardOverview = async (req, res) => {
     const totalTransactionAmount = await Transaction.aggregate([
       { $match: { status: 'successful', ...createdMatch } },
       { $group: { _id: null, total: { $sum: '$amount' } } }
-    ]);
-    
-    const totalOrderAmount = await Order.aggregate([
-      { $match: { ...createdMatch } },
-      { $group: { _id: null, total: { $sum: '$totalAmount' } } }
     ]);
     
     const totalVendorOrderAmount = await VendorOrder.aggregate([
@@ -211,16 +205,9 @@ const getDashboardOverview = async (req, res) => {
     const escalatedDisputes = await Dispute.countDocuments({ status: 'escalated', ...createdMatch });
     const totalDisputes = await Dispute.countDocuments(createdMatch);
     
-    console.log('📊 Counts loaded:', { totalBuyers, totalVendors, totalAgents, totalOrders, totalVendorOrders, pendingPayouts, processingPayouts });
+    console.log('📊 Counts loaded:', { totalBuyers, totalVendors, totalAgents, totalVendorOrders, totalAgentOrders, pendingPayouts, processingPayouts });
     
     // Get recent orders with proper populate and date filter
-    const recentOrders = await Order.find(dateFilter)
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .populate('buyer', 'fullName email')
-      .populate('agent', 'fullName email')
-      .select('status totalAmount createdAt buyer agent');
-
     const recentVendorOrders = await VendorOrder.find(dateFilter)
       .sort({ createdAt: -1 })
       .limit(5)
@@ -237,7 +224,6 @@ const getDashboardOverview = async (req, res) => {
 
     // Combine all order types and add orderId field
     const allRecentOrders = [
-      ...recentOrders.map(order => ({ ...order.toObject(), orderId: order._id, orderType: 'Order' })),
       ...recentVendorOrders.map(order => ({ ...order.toObject(), orderId: order._id, orderType: 'VendorOrder' })),
       ...recentAgentOrders.map(order => ({ ...order.toObject(), orderId: order._id, orderType: 'AgentOrder' }))
     ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
@@ -271,7 +257,7 @@ const getDashboardOverview = async (req, res) => {
           totalBuyers,
           totalVendors,
           totalAgents,
-          totalOrders: totalOrders + totalVendorOrders + totalAgentOrders,
+          totalOrders: totalVendorOrders + totalAgentOrders,
           totalVendorOrders,
           totalAgentOrders,
           pendingPayouts,
@@ -291,7 +277,7 @@ const getDashboardOverview = async (req, res) => {
         },
         financial: {
           totalTransactionAmount: totalTransactionAmount[0]?.total || 0,
-          totalOrderAmount: (totalOrderAmount[0]?.total || 0) + (totalVendorOrderAmount[0]?.total || 0) + (totalAgentOrderAmount[0]?.total || 0),
+          totalOrderAmount: (totalVendorOrderAmount[0]?.total || 0) + (totalAgentOrderAmount[0]?.total || 0),
           totalVendorOrderAmount: totalVendorOrderAmount[0]?.total || 0,
           totalAgentOrderAmount: totalAgentOrderAmount[0]?.total || 0,
           totalPayoutAmount: totalPayoutAmount[0]?.total || 0,
