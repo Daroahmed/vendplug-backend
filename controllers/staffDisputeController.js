@@ -858,13 +858,13 @@ const processDisputeRefund = async (dispute, refundAmount, resolution, staffId) 
   try {
     // Get the order to find the buyer and vendor/agent
     let order;
-    if (dispute.orderType === 'Order') {
-      order = await Order.findById(dispute.orderId);
-    } else if (dispute.orderType === 'VendorOrder') {
+    if (dispute.orderType === 'VendorOrder') {
       order = await VendorOrder.findById(dispute.orderId);
     } else if (dispute.orderType === 'AgentOrder') {
       const AgentOrder = require('../models/AgentOrder');
       order = await AgentOrder.findById(dispute.orderId);
+    } else {
+      throw new Error('Invalid order type for dispute resolution');
     }
 
     if (!order) {
@@ -875,13 +875,10 @@ const processDisputeRefund = async (dispute, refundAmount, resolution, staffId) 
     if (resolution === 'no_refund' || resolution === 'favor_respondent') {
       // Vendor/Agent wins - credit their wallet
       let vendorAgentId, vendorAgentRole;
-      if (dispute.orderType === 'Order') {
-        vendorAgentId = order.agent;
-        vendorAgentRole = 'agent';
-      } else if (dispute.orderType === 'VendorOrder') {
+      if (dispute.orderType === 'VendorOrder') {
         vendorAgentId = order.vendor;
         vendorAgentRole = 'vendor';
-      } else if (dispute.orderType === 'AgentOrder') {
+      } else {
         vendorAgentId = order.agent;
         vendorAgentRole = 'agent';
       }
@@ -971,13 +968,10 @@ const processDisputeRefund = async (dispute, refundAmount, resolution, staffId) 
       // If partial refund, also credit vendor/agent with remaining amount
       if (resolution === 'partial_refund') {
         let vendorAgentId, vendorAgentRole;
-        if (dispute.orderType === 'Order') {
-          vendorAgentId = order.agent;
-          vendorAgentRole = 'agent';
-        } else if (dispute.orderType === 'VendorOrder') {
+        if (dispute.orderType === 'VendorOrder') {
           vendorAgentId = order.vendor;
           vendorAgentRole = 'vendor';
-        } else if (dispute.orderType === 'AgentOrder') {
+        } else {
           vendorAgentId = order.agent;
           vendorAgentRole = 'agent';
         }

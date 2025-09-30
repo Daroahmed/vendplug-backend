@@ -244,8 +244,8 @@ const getDashboardOverview = async (req, res) => {
       .select('amount status createdAt userId userType bankAccountId');
 
     console.log('📋 Recent data loaded:', { 
-      recentOrders: recentOrders.length, 
       recentVendorOrders: recentVendorOrders.length,
+      recentAgentOrders: recentAgentOrders.length,
       recentTransactions: recentTransactions.length,
       pendingPayouts: pendingPayoutList.length
     });

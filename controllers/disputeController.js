@@ -80,10 +80,7 @@ const createDispute = async (req, res) => {
 
     // Validate order exists and user has access
     let order;
-    if (orderType === 'Order') {
-      console.log('🔍 Looking in Order model...');
-      order = await Order.findById(orderId);
-    } else if (orderType === 'VendorOrder') {
+    if (orderType === 'VendorOrder') {
       console.log('🔍 Looking in VendorOrder model...');
       order = await VendorOrder.findById(orderId);
     } else if (orderType === 'AgentOrder') {
@@ -627,12 +624,12 @@ const processDisputeRefund = async (dispute, refundAmount, resolution) => {
   try {
     // Get the order to find the buyer and vendor/agent
     let order;
-    if (dispute.orderType === 'Order') {
-      order = await Order.findById(dispute.orderId);
-    } else if (dispute.orderType === 'VendorOrder') {
+    if (dispute.orderType === 'VendorOrder') {
       order = await VendorOrder.findById(dispute.orderId);
     } else if (dispute.orderType === 'AgentOrder') {
       order = await AgentOrder.findById(dispute.orderId);
+    } else {
+      throw new Error('Invalid order type for dispute resolution');
     }
 
     if (!order) {
@@ -646,10 +643,8 @@ const processDisputeRefund = async (dispute, refundAmount, resolution) => {
     }
 
     const orderAmount = order.totalAmount || order.amount;
-    const vendorAgentId = dispute.orderType === 'Order' ? order.agent : 
-                         dispute.orderType === 'VendorOrder' ? order.vendor : order.agent;
-    const vendorAgentRole = dispute.orderType === 'Order' ? 'agent' : 
-                           dispute.orderType === 'VendorOrder' ? 'vendor' : 'agent';
+    const vendorAgentId = dispute.orderType === 'VendorOrder' ? order.vendor : order.agent;
+    const vendorAgentRole = dispute.orderType === 'VendorOrder' ? 'vendor' : 'agent';
 
     // Process resolution within escrow system
     if (resolution === 'favor_respondent') {
