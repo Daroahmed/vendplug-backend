@@ -33,8 +33,9 @@ const initializeWalletFunding = async (req, res) => {
     // Generate unique reference
     const reference = `VENDPLUG_${userType.toUpperCase()}_${userId}_${Date.now()}`;
     
-    // Create callback URL for payment verification
-    const callbackUrl = `${process.env.FRONTEND_URL || 'http://localhost:5000'}/payment-success.html?reference=${reference}`;
+    // Create callback URL for payment verification - use dynamic origin
+    const frontendUrl = process.env.FRONTEND_URL || req.get('origin') || 'http://localhost:5000';
+    const callbackUrl = `${frontendUrl}/payment-success.html?reference=${reference}`;
 
     console.log('💰 Initializing wallet funding:', {
       userId,
