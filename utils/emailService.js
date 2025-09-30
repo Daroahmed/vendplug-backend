@@ -1,6 +1,6 @@
 const nodemailer = require('nodemailer');
 
-// Create transporter with Zoho Mail configuration
+// SMTP transporter (fallback when RESEND_API_KEY is not set)
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST || 'smtp.zoho.com',
   port: Number(process.env.EMAIL_PORT) || 587,
@@ -21,9 +21,40 @@ if (!process.env.EMAIL_USER || (!process.env.EMAIL_PASSWORD && !process.env.EMAI
   console.warn('⚠️ Email credentials not configured. Check your .env file.');
 }
 
+// Lightweight HTTP sender using Resend API (preferred in production)
+async function sendViaResend(to, subject, html) {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error('RESEND_API_KEY not configured');
+  }
+
+  const from = process.env.RESEND_FROM || process.env.EMAIL_FROM || process.env.EMAIL_USER;
+  if (!from) {
+    throw new Error('RESEND_FROM/EMAIL_FROM not configured');
+  }
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ from, to: [to], subject, html })
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Resend ${res.status}: ${text}`);
+  }
+}
+
 // Test email connection
 const testConnection = async () => {
   try {
+    // If using Resend, consider connectivity OK (HTTPS client-side; no persistent conn)
+    if (process.env.RESEND_API_KEY) {
+      return true;
+    }
+
     await transporter.verify();
     console.log('✅ Email connection successful');
     return true;
@@ -54,7 +85,41 @@ const testConnection = async () => {
 // Send verification email
 const sendVerificationEmail = async (email, token) => {
   try {
-    // Test connection first
+    // Prefer Resend if configured (no SMTP egress required)
+    if (process.env.RESEND_API_KEY) {
+      let baseUrl = process.env.FRONTEND_URL;
+      if (!baseUrl) {
+        const serverUrl = process.env.SERVER_URL || process.env.BACKEND_URL || 'http://localhost:5000';
+        baseUrl = serverUrl.replace('/api', '');
+      }
+      if (baseUrl.includes('localhost') && process.env.NODE_ENV === 'development') {
+        const devIp = process.env.DEV_IP;
+        if (devIp) {
+          baseUrl = `http://${devIp}:5000`;
+        }
+      }
+      const verificationLink = `${baseUrl}/verify-email.html?token=${token}`;
+      const html = `
+        <h2>Welcome to Vendplug!</h2>
+        <p>Thank you for registering. Please click the link below to verify your email address:</p>
+        <a href="${verificationLink}" style="
+          background-color: #00cc99;
+          color: white;
+          padding: 10px 20px;
+          text-decoration: none;
+          border-radius: 5px;
+          display: inline-block;
+          margin: 10px 0;
+        ">Verify Email</a>
+        <p>If you didn't create an account with Vendplug, please ignore this email.</p>
+        <p>This link will expire in 24 hours.</p>
+      `;
+      await sendViaResend(email, 'Verify Your Vendplug Account', html);
+      console.log('✉️ Verification email sent to (Resend):', email);
+      return true;
+    }
+
+    // SMTP fallback
     const isConnected = await testConnection();
     if (!isConnected) {
       throw new Error('Email service not available');
@@ -117,7 +182,41 @@ const sendVerificationEmail = async (email, token) => {
 // Send password reset email
 const sendPasswordResetEmail = async (email, token) => {
   try {
-    // Test connection first
+    // Prefer Resend if configured
+    if (process.env.RESEND_API_KEY) {
+      let baseUrl = process.env.FRONTEND_URL;
+      if (!baseUrl) {
+        const serverUrl = process.env.SERVER_URL || process.env.BACKEND_URL || 'http://localhost:5000';
+        baseUrl = serverUrl.replace('/api', '');
+      }
+      if (baseUrl.includes('localhost') && process.env.NODE_ENV === 'development') {
+        const devIp = process.env.DEV_IP;
+        if (devIp) {
+          baseUrl = `http://${devIp}:5000`;
+        }
+      }
+      const resetLink = `${baseUrl}/reset-password.html?token=${token}`;
+      const html = `
+        <h2>Password Reset Request</h2>
+        <p>You requested to reset your password. Please click the link below to set a new password:</p>
+        <a href="${resetLink}" style="
+          background-color: #ff6b6b;
+          color: white;
+          padding: 10px 20px;
+          text-decoration: none;
+          border-radius: 5px;
+          display: inline-block;
+          margin: 10px 0;
+        ">Reset Password</a>
+        <p>If you didn't request a password reset, please ignore this email.</p>
+        <p>This link will expire in 1 hour.</p>
+      `;
+      await sendViaResend(email, 'Reset Your Vendplug Password', html);
+      console.log('✉️ Password reset email sent to (Resend):', email);
+      return true;
+    }
+
+    // SMTP fallback
     const isConnected = await testConnection();
     if (!isConnected) {
       throw new Error('Email service not available');
