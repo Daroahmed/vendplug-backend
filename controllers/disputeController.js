@@ -316,6 +316,7 @@ const getDisputeDetails = async (req, res) => {
     }
 
     console.log('🔍 Looking for dispute with ID:', disputeId);
+    console.log('🔍 User info:', { userId, userType });
     
     const dispute = await Dispute.findOne({ disputeId })
       .populate('orderId', 'totalAmount status createdAt items buyer vendor agent')
@@ -327,31 +328,62 @@ const getDisputeDetails = async (req, res) => {
     
     console.log('🔍 Dispute found:', dispute ? 'YES' : 'NO');
     if (dispute) {
-          console.log('🔍 Dispute data:', {
-      disputeId: dispute.disputeId,
-      status: dispute.status,
-      priority: dispute.priority,
-      category: dispute.category,
-      title: dispute.title,
-      description: dispute.description,
-      raisedBy: dispute.raisedBy,
-      raisedByType: dispute.raisedByType
-    });
-  }
+      console.log('🔍 Dispute data:', {
+        disputeId: dispute.disputeId,
+        status: dispute.status,
+        priority: dispute.priority,
+        category: dispute.category,
+        title: dispute.title,
+        description: dispute.description,
+        raisedBy: dispute.raisedBy,
+        raisedByType: dispute.raisedByType,
+        complainant: dispute.complainant,
+        respondent: dispute.respondent
+      });
+    }
 
   if (!dispute) {
     return res.status(404).json({ error: 'Dispute not found' });
   }
 
   // Check if user has access to this dispute
-  const hasAccess = userType === 'Admin' ||
-                   (dispute.raisedBy.toString() === userId && dispute.raisedByType === userType) ||
-                   (dispute.order && (
-                     (dispute.order.buyer && dispute.order.buyer.toString() === userId) ||
-                     (dispute.order.vendor && dispute.order.vendor.toString() === userId)
-                   ));
+  const isAdmin = userType === 'Admin' || userType === 'staff';
+  const isRaisedBy = dispute.raisedBy.toString() === userId.toString() && dispute.raisedByType === userType;
+  const isComplainant = dispute.complainant.userId.toString() === userId.toString() && dispute.complainant.userType === userType;
+  const isRespondent = dispute.respondent.userId.toString() === userId.toString() && dispute.respondent.userType === userType;
+  const isOrderParticipant = dispute.orderId && (
+    (dispute.orderId.buyer && dispute.orderId.buyer.toString() === userId.toString()) ||
+    (dispute.orderId.vendor && dispute.orderId.vendor.toString() === userId.toString()) ||
+    (dispute.orderId.agent && dispute.orderId.agent.toString() === userId.toString())
+  );
+
+  const hasAccess = isAdmin || isRaisedBy || isComplainant || isRespondent || isOrderParticipant;
+
+  console.log('🔍 Access check details:', {
+    isAdmin,
+    isRaisedBy,
+    isComplainant,
+    isRespondent,
+    isOrderParticipant,
+    hasAccess,
+    userId: userId.toString(),
+    userType,
+    disputeRaisedBy: dispute.raisedBy.toString(),
+    disputeRaisedByType: dispute.raisedByType,
+    disputeComplainant: dispute.complainant.userId.toString(),
+    disputeComplainantType: dispute.complainant.userType,
+    disputeRespondent: dispute.respondent.userId.toString(),
+    disputeRespondentType: dispute.respondent.userType,
+    raisedByMatch: dispute.raisedBy.toString() === userId.toString(),
+    complainantMatch: dispute.complainant.userId.toString() === userId.toString(),
+    respondentMatch: dispute.respondent.userId.toString() === userId.toString(),
+    respondentTypeMatch: dispute.respondent.userType === userType,
+    complainantTypeMatch: dispute.complainant.userType === userType,
+    raisedByTypeMatch: dispute.raisedByType === userType
+  });
 
     if (!hasAccess) {
+      console.log('❌ Access denied for user:', { userId, userType });
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -365,7 +397,10 @@ const getDisputeDetails = async (req, res) => {
       messages: filteredMessages
     };
 
-    res.json({ dispute: disputeData });
+    res.json({ 
+      success: true,
+      data: disputeData 
+    });
 
   } catch (error) {
     console.error('❌ Get dispute details error:', error);
