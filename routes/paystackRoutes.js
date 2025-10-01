@@ -59,8 +59,26 @@ router.post('/fund-wallet', async (req, res, next) => {
 // Payment verification (public endpoint for Paystack callbacks)
 router.get('/verify-payment', (req, res) => {
   const { reference } = req.query;
-  const frontendUrl = process.env.FRONTEND_URL || req.get('origin') || 'http://localhost:5000';
-  console.log('🔄 Redirecting old callback URL to frontend:', `${frontendUrl}/payment-success.html?reference=${reference}`);
+  
+  // Prioritize environment variable for frontend URL
+  let frontendUrl = process.env.FRONTEND_URL;
+  
+  // If no environment variable, try to detect from request
+  if (!frontendUrl) {
+    const origin = req.get('origin');
+    const host = req.get('host');
+    const protocol = req.get('x-forwarded-proto') || (req.secure ? 'https' : 'http');
+    
+    if (origin) {
+      frontendUrl = origin;
+    } else if (host) {
+      frontendUrl = `${protocol}://${host}`;
+    } else {
+      frontendUrl = 'http://localhost:5000'; // fallback
+    }
+  }
+  
+  console.log('🔄 Redirecting callback URL to frontend:', `${frontendUrl}/payment-success.html?reference=${reference}`);
   res.redirect(`${frontendUrl}/payment-success.html?reference=${reference}`);
 });
 

@@ -20,6 +20,7 @@ const {
 } = require('../controllers/supportController');
 const { protectAnyUser } = require('../middleware/authMiddleware');
 const { protectStaff } = require('../middleware/staffAuth');
+const { protectSupportStaff } = require('../middleware/supportAuth');
 const { protectAdmin } = require('../middleware/adminAuth');
 
 // User support routes
@@ -38,14 +39,14 @@ router.put('/admin/tickets/:ticketId/assign', protectAdmin, assignTicket);
 router.put('/admin/tickets/:ticketId/status', protectAdmin, updateTicketStatusStaff);
 
 // Staff support routes
-router.get('/stats', protectStaff, getSupportStats);
-router.get('/staff/tickets', protectStaff, getStaffTickets);
-router.get('/staff/tickets/my', protectStaff, getMySupportTickets);
-router.get('/staff/tickets/available', protectStaff, getAvailableSupportTickets);
-router.get('/staff/tickets/:ticketId', protectStaff, getSupportTicket);
-router.get('/staff/tickets/:ticketId/messages', protectStaff, getSupportTicketMessagesStaff);
-router.put('/staff/tickets/:ticketId/assign', protectStaff, assignTicket);
-router.put('/staff/tickets/:ticketId/status', protectStaff, updateTicketStatusStaff);
-router.post('/staff/tickets/:ticketId/message', protectStaff, sendSupportTicketMessage);
+router.get('/stats', protectSupportStaff, getSupportStats);
+router.get('/staff/tickets', protectSupportStaff, getStaffTickets);
+router.get('/staff/tickets/my', protectSupportStaff, getMySupportTickets);
+router.get('/staff/tickets/available', protectSupportStaff, getAvailableSupportTickets);
+router.get('/staff/tickets/:ticketId', protectSupportStaff, getSupportTicket);
+router.get('/staff/tickets/:ticketId/messages', protectSupportStaff, getSupportTicketMessagesStaff);
+router.put('/staff/tickets/:ticketId/assign', protectSupportStaff, assignTicket);
+router.put('/staff/tickets/:ticketId/status', protectSupportStaff, updateTicketStatusStaff);
+router.post('/staff/tickets/:ticketId/message', protectSupportStaff, sendSupportTicketMessage);
 
 module.exports = router;

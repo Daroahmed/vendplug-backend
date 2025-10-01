@@ -33,8 +33,24 @@ const initializeWalletFunding = async (req, res) => {
     // Generate unique reference
     const reference = `VENDPLUG_${userType.toUpperCase()}_${userId}_${Date.now()}`;
     
-    // Create callback URL for payment verification - use dynamic origin
-    const frontendUrl = process.env.FRONTEND_URL || req.get('origin') || 'http://localhost:5000';
+    // Create callback URL for payment verification - prioritize environment variable
+    let frontendUrl = process.env.FRONTEND_URL;
+    
+    // If no environment variable, try to detect from request
+    if (!frontendUrl) {
+      const origin = req.get('origin');
+      const host = req.get('host');
+      const protocol = req.get('x-forwarded-proto') || (req.secure ? 'https' : 'http');
+      
+      if (origin) {
+        frontendUrl = origin;
+      } else if (host) {
+        frontendUrl = `${protocol}://${host}`;
+      } else {
+        frontendUrl = 'http://localhost:5000'; // fallback
+      }
+    }
+    
     const callbackUrl = `${frontendUrl}/payment-success.html?reference=${reference}`;
 
     console.log('💰 Initializing wallet funding:', {
