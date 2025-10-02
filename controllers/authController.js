@@ -43,7 +43,31 @@ const verifyEmail = async (req, res) => {
 
     if (!tokenDoc) {
       console.log('❌ Token not found in database or expired');
-      return res.status(400).json({ message: 'Invalid or expired verification token' });
+      console.log('🔍 Searching for token:', token);
+      console.log('🔍 Current time:', new Date());
+      
+      // Check if token exists but is expired
+      const expiredToken = await Token.findOne({ 
+        token, 
+        type: 'verification'
+      });
+      
+      if (expiredToken) {
+        console.log('🔍 Found expired token:', {
+          id: expiredToken._id,
+          expires: expiredToken.expires,
+          isExpired: expiredToken.expires < new Date()
+        });
+        return res.status(400).json({ 
+          message: 'Verification token has expired. Please request a new verification email.',
+          code: 'TOKEN_EXPIRED'
+        });
+      }
+      
+      return res.status(400).json({ 
+        message: 'Invalid verification token. Please check your email for the correct link.',
+        code: 'TOKEN_INVALID'
+      });
     }
 
     console.log('✅ Token found in database:', tokenDoc._id);
