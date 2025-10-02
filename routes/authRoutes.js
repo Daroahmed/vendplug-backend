@@ -81,4 +81,52 @@ router.get('/test-verify', async (req, res) => {
   }
 });
 
+// Test verification with actual token validation
+router.get('/test-verify-real', async (req, res) => {
+  try {
+    const { token } = req.query;
+    
+    if (!token) {
+      return res.status(400).json({ 
+        message: 'Token is required',
+        query: req.query,
+        url: req.url
+      });
+    }
+    
+    // Test the actual verification logic
+    const Token = require('../models/Token');
+    const tokenDoc = await Token.findOne({ 
+      token, 
+      type: 'verification',
+      expires: { $gt: new Date() }
+    });
+    
+    if (!tokenDoc) {
+      return res.status(400).json({ 
+        message: 'Token not found or expired',
+        token: token.substring(0, 20) + '...',
+        currentTime: new Date(),
+        query: req.query
+      });
+    }
+    
+    res.json({ 
+      message: 'Token is valid',
+      token: token.substring(0, 20) + '...',
+      tokenDoc: {
+        id: tokenDoc._id,
+        userId: tokenDoc.userId,
+        userModel: tokenDoc.userModel,
+        type: tokenDoc.type,
+        expires: tokenDoc.expires,
+        isExpired: tokenDoc.expires < new Date()
+      },
+      query: req.query
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error testing verification', error: error.message });
+  }
+});
+
 module.exports = router;

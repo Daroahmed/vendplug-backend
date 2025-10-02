@@ -49,27 +49,8 @@ const registerBuyer = asyncHandler(async (req, res) => {
   savedBuyer.virtualAccount = wallet.virtualAccount;
   await savedBuyer.save();
 
-  // Send verification email
-  try {
-    const verificationToken = generateToken(savedBuyer._id, "verification");
-    // Persist token so the verify endpoint can find it
-    try {
-      await Token.create({
-        userId: savedBuyer._id,
-        userModel: 'Buyer',
-        token: verificationToken,
-        type: 'verification',
-        expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
-      });
-    } catch(e) { console.error('⚠️ Failed to persist buyer verification token:', e.message); }
-    sendVerificationEmail(email, verificationToken).catch(err => {
-      console.error('❌ Verification email failed:', err?.message || err);
-    });
-    console.log("✉️ Verification email sent to:", email);
-  } catch (error) {
-    console.error("❌ Error sending verification email:", error);
-    // Continue with registration even if email fails
-  }
+  // Note: Verification email is sent by the frontend after registration
+  // This matches the vendor/agent flow pattern
 
   const updatedBuyer = await Buyer.findById(savedBuyer._id).select("-password");
 
