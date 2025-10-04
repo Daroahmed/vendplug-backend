@@ -36,7 +36,7 @@ const agentProductSchema = new mongoose.Schema({
   
       // 👚 Fashion & Lifestyle
       "Boutiques",
-      "Thrift / Okrika / Gongo",
+      "Thrift / Okrika / Gonjo",
       "Tokunbo / Belguim Products",
       "Shoes and Bags",
       "Jewelry & Accessories",
