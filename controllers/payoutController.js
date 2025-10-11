@@ -12,7 +12,7 @@ const requestPayout = async (req, res) => {
 
   try {
     const { amount, bankAccountId } = req.body;
-    const userId = req.user.id;
+    const userId = req.user._id || req.user._id || req.user.id;
     
     // More robust role detection
     let userType;
@@ -38,6 +38,26 @@ const requestPayout = async (req, res) => {
     });
     
     console.log('🔍 Full req.user object:', JSON.stringify(req.user, null, 2));
+    
+    // Debug: Check what bank accounts exist for this user
+    const allBankAccounts = await BankAccount.find({ userId });
+    console.log('🔍 All bank accounts for this user:', allBankAccounts.map(acc => ({
+      _id: acc._id,
+      userType: acc.userType,
+      bankName: acc.bankName,
+      accountNumber: acc.accountNumber,
+      isVerified: acc.isVerified
+    })));
+    
+    // Debug: Check what bank accounts exist with the specific userType
+    const bankAccountsWithUserType = await BankAccount.find({ userId, userType });
+    console.log('🔍 Bank accounts with userType:', bankAccountsWithUserType.map(acc => ({
+      _id: acc._id,
+      userType: acc.userType,
+      bankName: acc.bankName,
+      accountNumber: acc.accountNumber,
+      isVerified: acc.isVerified
+    })));
 
     // Validate amount
     if (!amount || amount <= 0) {
@@ -112,10 +132,6 @@ const requestPayout = async (req, res) => {
     // Deduct from wallet
     wallet.balance -= amount;
     await wallet.save({ session });
-
-    // Sync balance with user model
-    const { syncWalletBalance } = require('./walletHelper');
-    await syncWalletBalance(userId, userRole, wallet.balance);
 
     // Create transaction record
     const transaction = new Transaction({
@@ -198,6 +214,10 @@ const requestPayout = async (req, res) => {
     }
 
     await session.commitTransaction();
+
+    // Sync balance with user model (after transaction is committed)
+    const { syncWalletBalance } = require('./walletHelper');
+    await syncWalletBalance(userId, userRole, wallet.balance);
 
     // Send payout requested notification
     try {
@@ -368,7 +388,7 @@ const processPayouts = async (req, res) => {
 // Get user's payout history
 const getPayoutHistory = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id || req.user.id;
     
     // More robust role detection
     let userType;
@@ -408,7 +428,7 @@ const getPayoutHistory = async (req, res) => {
 const getPayoutDetails = async (req, res) => {
   try {
     const { payoutId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user._id || req.user.id;
     
     // More robust role detection
     let userType;
