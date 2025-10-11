@@ -871,7 +871,7 @@ const reassignEscalatedDispute = async (req, res) => {
 const resolveEscalatedDispute = async (req, res) => {
   try {
     const { disputeId } = req.params;
-    const { decision, reason, refundAmount, notes } = req.body;
+    const { decision, reason, notes } = req.body;
     const adminId = req.admin._id;
 
     const dispute = await Dispute.findOne({ 
@@ -883,36 +883,27 @@ const resolveEscalatedDispute = async (req, res) => {
       return res.status(404).json({ error: 'Escalated dispute not found' });
     }
 
-    // Map frontend resolution types to backend logic (same as staff system)
-    let resolutionType;
-    if (decision === 'refund') {
-      resolutionType = 'favor_complainant';
-    } else if (decision === 'no_refund') {
-      resolutionType = 'favor_respondent';
-    } else if (decision === 'partial_refund') {
-      resolutionType = 'partial_refund';
-    }
-
-    // Update dispute status and resolution (same as staff system)
+    // Update dispute status and resolution
     dispute.status = 'resolved';
     dispute.resolution = {
-      resolution: decision,
+      decision: decision,
       notes: notes || '',
-      refundAmount: refundAmount || 0,
       resolvedBy: adminId,
       resolvedAt: new Date()
     };
     dispute.lastActivity = new Date();
 
-    // Process refund if applicable
-    if (resolutionType) {
-      try {
-        await processDisputeRefund(dispute, refundAmount || 0, resolutionType);
-        console.log(`✅ Escalated dispute refund processed: ${resolutionType} for dispute ${dispute.disputeId}`);
-      } catch (refundError) {
-        console.error('❌ Error processing escalated dispute refund:', refundError);
-        // Continue with resolution even if wallet processing fails
-      }
+    // Process refund using the new dispute resolution logic
+    try {
+      console.log(`🔍 Processing escalated dispute refund: ${decision} for dispute ${dispute.disputeId}`);
+      console.log(`🔍 Dispute orderId: ${dispute.orderId}, orderType: ${dispute.orderType}`);
+      await processDisputeRefund(dispute, 0, decision);
+      console.log(`✅ Escalated dispute refund processed: ${decision} for dispute ${dispute.disputeId}`);
+    } catch (refundError) {
+      console.error('❌ Error processing escalated dispute refund:', refundError);
+      console.error('❌ Refund error details:', refundError.message);
+      console.error('❌ Refund error stack:', refundError.stack);
+      // Continue with resolution even if wallet processing fails
     }
 
     // Add activity log
@@ -926,6 +917,63 @@ const resolveEscalatedDispute = async (req, res) => {
     });
 
     await dispute.save();
+
+    // Send notifications
+    try {
+      const io = req.app.get('io');
+      const { sendNotification } = require('../utils/notificationHelper');
+      
+      // Notify complainant (buyer) with specific resolution details
+      let complainantNotificationType = 'DISPUTE_RESOLVED';
+      let complainantArgs = [dispute.disputeId, decision];
+      
+      if (decision === 'favor_complainant') {
+        complainantNotificationType = 'DISPUTE_FAVOR_COMPLAINANT';
+        complainantArgs = [dispute.disputeId, dispute.order?.totalAmount || dispute.order?.amount];
+      } else if (decision === 'favor_respondent') {
+        complainantNotificationType = 'DISPUTE_FAVOR_RESPONDENT';
+        complainantArgs = [dispute.disputeId];
+      } else if (decision === 'partial_refund') {
+        complainantNotificationType = 'DISPUTE_PARTIAL_REFUND';
+        complainantArgs = [dispute.disputeId, (dispute.order?.totalAmount || dispute.order?.amount) * 0.5];
+      }
+      
+      await sendNotification(io, {
+        recipientId: dispute.complainant.userId,
+        recipientType: dispute.complainant.userType,
+        notificationType: complainantNotificationType,
+        args: complainantArgs,
+        orderId: dispute.orderId
+      });
+
+      // Notify respondent (vendor/agent) with specific resolution details
+      let respondentNotificationType = 'DISPUTE_RESOLVED';
+      let respondentArgs = [dispute.disputeId, decision];
+      
+      if (decision === 'favor_respondent') {
+        respondentNotificationType = 'DISPUTE_FAVOR_RESPONDENT';
+        respondentArgs = [dispute.disputeId];
+      } else if (decision === 'favor_complainant') {
+        respondentNotificationType = 'DISPUTE_FAVOR_COMPLAINANT';
+        respondentArgs = [dispute.disputeId, dispute.order?.totalAmount || dispute.order?.amount];
+      } else if (decision === 'partial_refund') {
+        respondentNotificationType = 'DISPUTE_PARTIAL_REFUND';
+        respondentArgs = [dispute.disputeId, (dispute.order?.totalAmount || dispute.order?.amount) * 0.5];
+      }
+      
+      await sendNotification(io, {
+        recipientId: dispute.respondent.userId,
+        recipientType: dispute.respondent.userType,
+        notificationType: respondentNotificationType,
+        args: respondentArgs,
+        orderId: dispute.orderId
+      });
+
+      console.log(`✅ Escalated dispute resolution notifications sent for dispute ${dispute.disputeId}`);
+    } catch (notifyError) {
+      console.error('❌ Error sending escalated dispute resolution notifications:', notifyError);
+      // Continue with resolution even if notifications fail
+    }
 
     res.json({ message: 'Escalated dispute resolved successfully' });
 
