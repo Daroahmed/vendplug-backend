@@ -119,3 +119,5 @@ Thumbs.db
 
 # Uploads directory (if you want to ignore uploaded files)
 uploads/
+
+.env
