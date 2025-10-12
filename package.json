@@ -2,10 +2,16 @@
   "name": "vendplug-escrow",
   "version": "1.0.0",
   "description": "VendPlug Escrow Backend",
+<<<<<<< HEAD
   "main": "server.js",
   "scripts": {
     "start": "node backend/server.js",
     "dev": "nodemon backend/server.js"
+=======
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js"
+>>>>>>> 60fd84039c2ed84bb645b6be3c2e93aa6b06d65c
   },
   "keywords": [],
   "author": "Ahmed Abdullahi",
@@ -13,6 +19,7 @@
   "dependencies": {
     "axios": "^1.11.0",
     "bcryptjs": "^2.4.3",
+<<<<<<< HEAD
     "cloudinary": "^1.37.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
@@ -31,5 +38,18 @@
     "uuid": "^9.0.1"
 
     
+=======
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "express-async-handler": "^1.2.0",
+    "jsonwebtoken": "^9.0.0",
+    "mongoose": "^7.8.7",
+    "socket.io": "^4.8.1",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+>>>>>>> 60fd84039c2ed84bb645b6be3c2e93aa6b06d65c
   }
 }

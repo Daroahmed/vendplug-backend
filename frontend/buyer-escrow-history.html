@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Escrow Order History - VendPlug</title>
+  <style>
+    :root {
+      --primary-green: #3BA935;
+      --dark-green: #2c7a2c;
+      --light-bg: #f7fdf9;
+      --card-bg: #ffffff;
+      --border: #e0e0e0;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: var(--light-bg);
+      margin: 0;
+      padding: 1rem;
+    }
+
+    header {
+      text-align: center;
+      padding: 1rem;
+      background-color: var(--primary-green);
+      color: white;
+    }
+
+    .section {
+      max-width: 900px;
+      margin: 1.5rem auto;
+      background-color: var(--card-bg);
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      padding: 1.5rem;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f4f4f4;
+      font-weight: bold;
+    }
+
+    .status {
+      font-weight: bold;
+    }
+
+    .status-pending {
+      color: orange;
+    }
+
+    .status-complete {
+      color: green;
+    }
+
+    .status-cancelled {
+      color: red;
+    }
+
+    .status-disputed {
+      color: crimson;
+    }
+
+    @media (max-width: 600px) {
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+
+      th {
+        display: none;
+      }
+
+      td {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        position: relative;
+      }
+
+      td::before {
+        content: attr(data-label);
+        font-weight: bold;
+        display: block;
+        color: #444;
+        margin-bottom: 4px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>My Escrow Orders</h1>
+  </header>
+
+  <section class="section">
+    <h2>Escrow Order History</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Order ID</th>
+          <th>Item</th>
+          <th>Amount</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td data-label="Date">2025-06-25</td>
+          <td data-label="Order ID">ESC3456</td>
+          <td data-label="Item">Mobile Phone</td>
+          <td data-label="Amount">$320.00</td>
+          <td data-label="Status" class="status status-complete">Complete</td>
+        </tr>
+        <tr>
+          <td data-label="Date">2025-06-23</td>
+          <td data-label="Order ID">ESC3433</td>
+          <td data-label="Item">Shoes</td>
+          <td data-label="Amount">$55.00</td>
+          <td data-label="Status" class="status status-pending">Pending</td>
+        </tr>
+        <tr>
+          <td data-label="Date">2025-06-20</td>
+          <td data-label="Order ID">ESC3388</td>
+          <td data-label="Item">Wristwatch</td>
+          <td data-label="Amount">$90.00</td>
+          <td data-label="Status" class="status status-disputed">Disputed</td>
+        </tr>
+        <tr>
+          <td data-label="Date">2025-06-15</td>
+          <td data-label="Order ID">ESC3321</td>
+          <td data-label="Item">Handbag</td>
+          <td data-label="Amount">$110.00</td>
+          <td data-label="Status" class="status status-cancelled">Cancelled</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+</body>
+</html>

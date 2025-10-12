@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Seller Escrow Dashboard - VendPlug</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      background-color: #f4fff8;
+      padding: 2rem;
+      color: #333;
+    }
+
+    h2 {
+      color: #3BA935;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+
+    th {
+      background-color: #3BA935;
+      color: white;
+    }
+
+    tr:hover {
+      background-color: #f9f9f9;
+    }
+
+    .action-btn {
+      padding: 0.5rem 1rem;
+      background-color: #3BA935;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .action-btn:hover {
+      background-color: #2c8d2b;
+    }
+
+    .status {
+      font-weight: bold;
+    }
+
+    .pending { color: #ff9800; }
+    .shipped { color: #2196f3; }
+    .completed { color: #4caf50; }
+  </style>
+</head>
+<body>
+
+  <h2>Escrow Orders (Seller View)</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Order ID</th>
+        <th>Item</th>
+        <th>Buyer</th>
+        <th>Status</th>
+        <th>Date</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>#ES-1021</td>
+        <td>Bluetooth Headphones</td>
+        <td>Ahmed A.</td>
+        <td class="status pending">Awaiting Dispatch</td>
+        <td>June 28, 2025</td>
+        <td><button class="action-btn" onclick="location.href='seller-dispatch-confirm.html'">Confirm Dispatch</button></td>
+      </tr>
+      <tr>
+        <td>#ES-1020</td>
+        <td>Fashion Sneakers</td>
+        <td>Zainab M.</td>
+        <td class="status shipped">Shipped</td>
+        <td>June 26, 2025</td>
+        <td><button class="action-btn" disabled>Waiting for Delivery</button></td>
+      </tr>
+      <tr>
+        <td>#ES-1019</td>
+        <td>Smart Watch</td>
+        <td>Chuka D.</td>
+        <td class="status completed">Completed</td>
+        <td>June 23, 2025</td>
+        <td><button class="action-btn" disabled>Paid</button></td>
+      </tr>
+    </tbody>
+  </table>
+
+</body>
+</html>

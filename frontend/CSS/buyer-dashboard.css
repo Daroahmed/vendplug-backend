@@ -1,0 +1,117 @@
+/* css/buyer-dashboard.css */
+
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: #f9fff9;
+  }
+  
+  header {
+    background: #3BA935;
+    color: white;
+    padding: 1rem;
+    text-align: center;
+  }
+  
+  .search-bar {
+    display: flex;
+    margin-top: 10px;
+    gap: 8px;
+    justify-content: center;
+  }
+  
+  .search-bar input {
+    flex: 1;
+    padding: 8px;
+    border-radius: 8px;
+    border: none;
+    width: 80%;
+  }
+  
+  .search-bar button {
+    background: white;
+    color: #3BA935;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  
+  .categories {
+    display: flex;
+    overflow-x: auto;
+    gap: 10px;
+    padding: 1rem;
+    background: white;
+  }
+  
+  .category-btn {
+    padding: 6px 12px;
+    border: 1px solid #3BA935;
+    border-radius: 20px;
+    background: #f4fff7;
+    color: #3BA935;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  
+  main#productGrid {
+    padding: 1rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1rem;
+  }
+  
+  .product-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1rem;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    text-align: center;
+  }
+  
+  .product-card img {
+    max-width: 100%;
+    border-radius: 8px;
+  }
+  
+  .product-card h4 {
+    margin: 0.5rem 0 0.2rem;
+  }
+  
+  .product-card p {
+    color: #666;
+    font-size: 0.9rem;
+  }
+  
+  .add-btn {
+    margin-top: 0.5rem;
+    background: #3BA935;
+    color: white;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 0;
+  }
+  
+  .bottom-nav a {
+    text-decoration: none;
+    color: #555;
+    font-size: 0.9rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  

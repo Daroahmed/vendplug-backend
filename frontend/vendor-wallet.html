@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VendPlug Wallet - Vendor</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #111;
+      color: #fff;
+      padding: 1rem;
+    }
+    .wallet-card {
+      background-color: #222;
+      border-radius: 1rem;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+    .section-title {
+      margin: 1.5rem 0 0.5rem;
+      font-weight: bold;
+      color: #ccc;
+    }
+    input, button {
+      width: 100%;
+      padding: 0.75rem;
+      margin: 0.5rem 0;
+      border-radius: 0.5rem;
+      border: none;
+    }
+    button {
+      background-color: #04a96d;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #038e5d;
+    }
+    .resolved-user {
+      color: #8f8;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="wallet-card">
+    <h2>Wallet Summary</h2>
+    <p><strong>Account Number:</strong> <span id="accountNumber">Loading...</span></p>
+    <p><strong>Balance:</strong> ₦<span id="balance">Loading...</span></p>
+  </div>
+
+  <div class="wallet-card">
+    <h3 class="section-title">Fund Wallet</h3>
+    <p>Transfer from your bank to the unique account number above. Funds will reflect shortly.</p>
+  </div>
+
+  <div class="wallet-card">
+    <h3 class="section-title">Transfer to Another VendPlug User</h3>
+    <input type="text" id="recipientAccount" placeholder="Recipient Account Number" />
+    <div id="userNameResolved" class="resolved-user"></div>
+    <input type="number" id="transferAmount" placeholder="Amount" />
+    <button onclick="handleTransfer()">Transfer</button>
+  </div>
+
+  <div class="wallet-card">
+    <h3 class="section-title">Withdraw to Bank Account</h3>
+    <input type="number" id="payoutAmount" placeholder="Amount" />
+    <button onclick="handlePayout()">Request Payout</button>
+  </div>
+
+  <div class="wallet-card">
+    <h3 class="section-title">Transaction History</h3>
+    <ul id="transactionsList">
+      <li>Loading...</li>
+    </ul>
+  </div>
+
+  <script src="/js/vendor-wallet.js"></script>
+</body>

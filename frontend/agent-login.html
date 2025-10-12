@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Agent Login | VendPlug</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      --primary-green: #3BA935;
+      --accent-dark: #002b18;
+      --light-bg: #f4fff8;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: var(--light-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .login-container {
+      background: white;
+      padding: 2rem 2.5rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      width: 100%;
+      max-width: 400px;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      color: var(--accent-dark);
+    }
+
+    input, button {
+      display: block;
+      width: 100%;
+      padding: 0.75rem;
+      margin-bottom: 1.2rem;
+      font-size: 1rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--primary-green);
+      box-shadow: 0 0 0 2px rgba(59, 169, 53, 0.2);
+    }
+
+    button {
+      background-color: var(--primary-green);
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.2s ease;
+    }
+
+    button:hover {
+      background-color: #2e8a2b;
+    }
+
+    .error {
+      color: red;
+      text-align: center;
+      font-size: 0.95rem;
+      margin-top: -0.8rem;
+      margin-bottom: 1rem;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 0.85rem;
+      color: #666;
+      margin-top: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-container">
+    <h2>Agent Login</h2>
+
+    <form id="loginForm">
+      <input type="email" id="email" placeholder="Email address" required />
+      <input type="password" id="password" placeholder="Password" required />
+      <p class="error" id="errorMsg"></p>
+      <button type="submit">Login</button>
+    </form>
+
+    <div class="footer">
+      &copy; 2025 VendPlug
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('loginForm');
+    const errorMsg = document.getElementById('errorMsg');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+
+      try {
+        const response = await fetch('/api/agents/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          errorMsg.textContent = data.message || 'Login failed';
+        } else {
+          // ✅ Store all required localStorage items
+          localStorage.setItem('vendplug-token', data.token);
+          localStorage.setItem('vendplugAgent', JSON.stringify(data.agent));
+          localStorage.setItem('role', data.agent.role || 'agent');
+
+          // ✅ Redirect
+          window.location.href = 'agent-dashboard.html';
+        }
+
+      } catch (err) {
+        errorMsg.textContent = 'Something went wrong. Please try again.';
+      }
+    });
+  </script>
+  <script src="js/config.js"></script>
+  <script src="/js/agent-login.js" defer></script>
+
+</body>
+</html>

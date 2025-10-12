@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Confirm Escrow - VendPlug</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f4fff8;
+      margin: 0;
+      padding: 1rem;
+      color: #333;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: 2rem auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+
+    h2 {
+      text-align: center;
+      color: #3BA935;
+    }
+
+    .summary {
+      background: #f9f9f9;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+    }
+
+    .summary p {
+      margin: 0.5rem 0;
+      font-size: 15px;
+    }
+
+    label {
+      display: block;
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+
+    .checkbox-group {
+      margin-top: 1rem;
+      display: flex;
+      align-items: flex-start;
+    }
+
+    .checkbox-group input {
+      margin-right: 10px;
+      margin-top: 3px;
+    }
+
+    button {
+      width: 100%;
+      padding: 1rem;
+      background-color: #3BA935;
+      color: white;
+      border: none;
+      margin-top: 1.5rem;
+      border-radius: 5px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #31912e;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Confirm Escrow Details</h2>
+
+    <div class="summary">
+      <p><strong>Seller:</strong> John Doe (08012345678)</p>
+      <p><strong>Platform:</strong> Instagram</p>
+      <p><strong>Product:</strong> Nike Sneakers, size 42, white/blue</p>
+      <p><strong>Amount:</strong> ₦12,000</p>
+      <p><strong>Expected Delivery:</strong> 2025-07-01</p>
+    </div>
+
+    <div class="checkbox-group">
+      <input type="checkbox" id="agree" required />
+      <label for="agree">I understand that my funds will be held in escrow and released only after I confirm the product has been delivered as agreed.</label>
+    </div>
+
+    <button onclick="confirmEscrow()">Confirm and Proceed</button>
+  </div>
+
+  <script>
+    function confirmEscrow() {
+      const checkbox = document.getElementById('agree');
+      if (!checkbox.checked) {
+        alert('Please agree to the escrow terms.');
+        return;
+      }
+      window.location.href = 'escrow-tracking.html';
+    }
+  </script>
+</body>
+</html>

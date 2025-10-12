@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Escrow Disputes - Admin Panel | VendPlug</title>
+  <style>
+    :root {
+      --primary-green: #3BA935;
+      --danger-red: #e63946;
+      --light-bg: #f9fdfb;
+      --card-bg: #ffffff;
+      --gray: #666;
+      --border: #e0e0e0;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: var(--light-bg);
+      margin: 0;
+      padding: 1rem;
+    }
+
+    header {
+      background-color: var(--primary-green);
+      color: white;
+      text-align: center;
+      padding: 1rem;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 2rem auto;
+      background-color: var(--card-bg);
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1.5rem;
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      background-color: #f4f4f4;
+      font-weight: bold;
+    }
+
+    .badge {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .badge-pending {
+      background-color: orange;
+      color: white;
+    }
+
+    .badge-resolved {
+      background-color: green;
+      color: white;
+    }
+
+    .actions button {
+      margin-right: 0.4rem;
+      padding: 5px 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .btn-review {
+      background-color: #3BA935;
+      color: white;
+    }
+
+    .btn-close {
+      background-color: #e63946;
+      color: white;
+    }
+
+    .search-filter {
+      margin-top: 1rem;
+      text-align: right;
+    }
+
+    .search-filter input {
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      width: 200px;
+    }
+
+    @media (max-width: 700px) {
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+
+      th {
+        display: none;
+      }
+
+      td {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        position: relative;
+      }
+
+      td::before {
+        content: attr(data-label);
+        font-weight: bold;
+        display: block;
+        color: #444;
+        margin-bottom: 4px;
+      }
+
+      .search-filter {
+        text-align: left;
+        margin-bottom: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>VendPlug Admin Portal</h1>
+    <p>Escrow Dispute Management</p>
+  </header>
+
+  <div class="container">
+    <h2>Dispute Cases</h2>
+
+    <div class="search-filter">
+      <input type="text" placeholder="Search by Order ID or Buyer..." />
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Order ID</th>
+          <th>Buyer</th>
+          <th>Seller</th>
+          <th>Reason</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td data-label="Date">2025-06-25</td>
+          <td data-label="Order ID">ESC-8801</td>
+          <td data-label="Buyer">Fatima A.</td>
+          <td data-label="Seller">AdeTech Gadgets</td>
+          <td data-label="Reason">Received wrong product</td>
+          <td data-label="Status"><span class="badge badge-pending">Pending</span></td>
+          <td data-label="Actions" class="actions">
+            <button class="btn-review">Review</button>
+            <button class="btn-close">Close</button>
+          </td>
+        </tr>
+        <tr>
+          <td data-label="Date">2025-06-20</td>
+          <td data-label="Order ID">ESC-8772</td>
+          <td data-label="Buyer">John D.</td>
+          <td data-label="Seller">Naija Styles</td>
+          <td data-label="Reason">Never received item</td>
+          <td data-label="Status"><span class="badge badge-resolved">Resolved</span></td>
+          <td data-label="Actions" class="actions">
+            <button class="btn-review">Review</button>
+            <button class="btn-close" disabled>Closed</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</body>
+</html>
