@@ -8,7 +8,7 @@ const transactionSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['fund', 'transfer', 'withdrawal', 'refund', 'credit'],
+    enum: ['fund', 'transfer', 'withdrawal', 'refund', 'credit', 'commission'],
     required: true,
   },
   status: {
@@ -36,12 +36,12 @@ const transactionSchema = new mongoose.Schema({
  
   description: String,
   initiatedBy: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: mongoose.Schema.Types.Mixed,
     refPath: 'initiatorType',
   },
   initiatorType: {
     type: String,
-    enum: ['Buyer', 'Agent', 'Vendor', 'Admin'],
+    enum: ['Buyer', 'Agent', 'Vendor', 'Admin', 'System'],
   },
   metadata: {
     type: mongoose.Schema.Types.Mixed,
