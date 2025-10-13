@@ -8,6 +8,7 @@ const PayoutRequest = require('../models/PayoutRequest');
 const Transaction = require('../models/Transaction');
 const Dispute = require('../models/Dispute');
 const generateToken = require('../utils/generateToken');
+const { mintRefreshToken, setRefreshCookie } = require('./authController');
 const autoAssignmentService = require('../services/autoAssignmentService');
 const { processDisputeRefund } = require('./disputeController');
 const csv = require('csv-parser');
@@ -105,8 +106,10 @@ const adminLogin = async (req, res) => {
     admin.lastLogin = new Date();
     await admin.save();
 
-    // Generate token
+    // Generate token and refresh token
     const token = generateToken(admin._id, 'admin');
+    const refreshToken = await mintRefreshToken(admin._id, 'Admin');
+    setRefreshCookie(res, refreshToken);
 
     res.status(200).json({
       success: true,
@@ -232,8 +235,38 @@ const getDashboardOverview = async (req, res) => {
     const recentTransactions = await Transaction.find(dateFilter)
       .sort({ createdAt: -1 })
       .limit(10)
-      .populate('initiatedBy', 'fullName email shopName')
       .select('type amount status createdAt initiatedBy initiatorType');
+
+    // Manually populate initiatedBy for non-System transactions
+    for (let transaction of recentTransactions) {
+      if (transaction.initiatorType !== 'System' && transaction.initiatedBy) {
+        try {
+          let model;
+          switch (transaction.initiatorType) {
+            case 'Buyer':
+              model = require('../models/Buyer');
+              break;
+            case 'Vendor':
+              model = require('../models/Vendor');
+              break;
+            case 'Agent':
+              model = require('../models/Agent');
+              break;
+            case 'Admin':
+              model = require('../models/Admin');
+              break;
+          }
+          if (model) {
+            const user = await model.findById(transaction.initiatedBy).select('fullName email shopName');
+            if (user) {
+              transaction.initiatedBy = user;
+            }
+          }
+        } catch (populateError) {
+          console.warn('⚠️ Failed to populate initiatedBy for transaction:', transaction._id, populateError.message);
+        }
+      }
+    }
 
     // Get pending payouts with proper populate
     const pendingPayoutList = await PayoutRequest.find({ status: 'pending' })

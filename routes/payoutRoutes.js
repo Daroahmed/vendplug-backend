@@ -4,7 +4,8 @@ const {
   requestPayout,
   processPayouts,
   getPayoutHistory,
-  getPayoutDetails
+  getPayoutDetails,
+  fixStuckProcessingPayouts
 } = require('../controllers/payoutController');
 const { protectAgent, protectVendor } = require('../middleware/authMiddleware');
 
@@ -52,5 +53,6 @@ router.get('/:payoutId', protectAnyUser, getPayoutDetails);
 
 // Admin/System routes (for processing payouts)
 router.post('/process', processPayouts); // This could be protected with admin middleware later
+router.post('/fix-stuck-processing', fixStuckProcessingPayouts); // Fix stuck processing payouts
 
 module.exports = router;

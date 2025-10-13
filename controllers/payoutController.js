@@ -556,11 +556,111 @@ const initiatePaystackTransfer = async (payoutRequest, bankAccount, amount) => {
   }
 };
 
+// Fix stuck processing payouts (Admin function)
+const fixStuckProcessingPayouts = async (req, res) => {
+  try {
+    console.log('🔧 Fixing stuck processing payouts...');
+    
+    // Find all payouts stuck in processing status for more than 5 minutes
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const stuckPayouts = await PayoutRequest.find({
+      status: 'processing',
+      updatedAt: { $lt: fiveMinutesAgo }
+    });
+
+    console.log(`🔍 Found ${stuckPayouts.length} stuck processing payouts`);
+
+    const results = [];
+    
+    for (const payout of stuckPayouts) {
+      try {
+        // Check if we have a Paystack reference
+        if (payout.paystackReference) {
+          // Assume it was successful if we have a reference
+          payout.status = 'completed';
+          payout.processedAt = new Date();
+          await payout.save();
+
+          // Update transaction status
+          await Transaction.findOneAndUpdate(
+            { ref: { $regex: `PAYOUT_${payout._id}` } },
+            { 
+              status: 'completed',
+              metadata: {
+                ...payout.metadata,
+                fixedAt: new Date(),
+                note: 'Status fixed from stuck processing'
+              }
+            }
+          );
+
+          results.push({ 
+            payoutId: payout._id, 
+            status: 'fixed', 
+            message: 'Marked as completed (had Paystack reference)' 
+          });
+          
+          console.log(`✅ Fixed payout ${payout._id} - marked as completed`);
+        } else {
+          // No Paystack reference - mark as failed
+          payout.status = 'failed';
+          payout.failureReason = 'No Paystack reference found - transfer may have failed';
+          payout.processedAt = new Date();
+          await payout.save();
+
+          // Refund wallet
+          const wallet = await Wallet.findOne({
+            user: payout.userId,
+            role: payout.userType.toLowerCase()
+          });
+
+          if (wallet) {
+            wallet.balance += payout.amount;
+            await wallet.save();
+            console.log(`💰 Refunded ₦${payout.amount} to wallet for failed payout ${payout._id}`);
+          }
+
+          results.push({ 
+            payoutId: payout._id, 
+            status: 'failed', 
+            message: 'Marked as failed - no Paystack reference, refunded wallet' 
+          });
+          
+          console.log(`❌ Fixed payout ${payout._id} - marked as failed and refunded`);
+        }
+
+      } catch (error) {
+        console.error(`❌ Error fixing payout ${payout._id}:`, error);
+        results.push({ 
+          payoutId: payout._id, 
+          status: 'error', 
+          message: error.message 
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Fixed ${results.length} stuck processing payouts`,
+      data: results
+    });
+
+  } catch (error) {
+    console.error('❌ Fix stuck processing payouts error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fix stuck processing payouts',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   requestPayout,
   processPayouts,
   getPayoutHistory,
-  getPayoutDetails
+  getPayoutDetails,
+  fixStuckProcessingPayouts
 };
 
 

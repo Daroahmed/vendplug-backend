@@ -42,6 +42,17 @@ const transactionSchema = new mongoose.Schema({
   initiatorType: {
     type: String,
     enum: ['Buyer', 'Agent', 'Vendor', 'Admin', 'System'],
+    validate: {
+      validator: function(v) {
+        // If initiatorType is 'System', initiatedBy should be 'system' string
+        if (v === 'System') {
+          return this.initiatedBy === 'system';
+        }
+        // For other types, initiatedBy should be an ObjectId
+        return mongoose.Types.ObjectId.isValid(this.initiatedBy);
+      },
+      message: 'Invalid initiator type and initiatedBy combination'
+    }
   },
   metadata: {
     type: mongoose.Schema.Types.Mixed,
