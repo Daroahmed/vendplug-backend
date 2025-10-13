@@ -13,11 +13,7 @@ const fs = require('fs');
 
 
 // ✅ Generate JWT token
-const generateToken = (id, role = "vendor") => {
-  return jwt.sign({ id, role }, process.env.JWT_SECRET || "vendplugSecret", {
-    expiresIn: "30d",
-  });
-};
+const generateToken = require('../utils/generateToken');
 
 // ✅ Register Vendor
 const registerVendor = asyncHandler(async (req, res) => {

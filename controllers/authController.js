@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const Buyer = require('../models/Buyer');
 const Vendor = require('../models/vendorModel');
 const Agent = require('../models/Agent');
+const Admin = require('../models/Admin');
 const Token = require('../models/Token');
 const { sendVerificationEmail, sendPasswordResetEmail } = require('../utils/emailService');
 const crypto = require('crypto');
@@ -536,6 +537,7 @@ async function refreshSession(req, res) {
     let role = 'buyer';
     if (!user) { user = await Vendor.findById(doc.userId); role = user ? 'vendor' : role; }
     if (!user) { user = await Agent.findById(doc.userId); role = user ? 'agent' : role; }
+    if (!user) { user = await Admin.findById(doc.userId); role = user ? 'admin' : role; }
     if (!user) return res.status(401).json({ message: 'User not found' });
 
     // Rotate refresh

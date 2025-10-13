@@ -8,6 +8,7 @@ const PayoutRequest = require('../models/PayoutRequest');
 const Transaction = require('../models/Transaction');
 const Dispute = require('../models/Dispute');
 const generateToken = require('../utils/generateToken');
+const { mintRefreshToken, setRefreshCookie } = require('./authController');
 const autoAssignmentService = require('../services/autoAssignmentService');
 const { processDisputeRefund } = require('./disputeController');
 const csv = require('csv-parser');
@@ -105,8 +106,10 @@ const adminLogin = async (req, res) => {
     admin.lastLogin = new Date();
     await admin.save();
 
-    // Generate token
+    // Generate token and refresh token
     const token = generateToken(admin._id, 'admin');
+    const refreshToken = await mintRefreshToken(admin._id, 'Admin');
+    setRefreshCookie(res, refreshToken);
 
     res.status(200).json({
       success: true,
