@@ -20,6 +20,20 @@ class PaystackService {
   }
 
   /**
+   * Get Paystack wallet balance
+   * @returns {Promise<Object>} - Paystack balance response
+   */
+  async getBalance() {
+    try {
+      const response = await this.httpClient.get('/balance');
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error fetching Paystack balance:', error.response?.data || error.message);
+      throw new Error(`Failed to fetch balance: ${error.response?.data?.message || error.message}`);
+    }
+  }
+
+  /**
    * Initialize a payment transaction for wallet funding
    * @param {Object} paymentData - Payment details
    * @returns {Promise<Object>} - Paystack response with authorization URL

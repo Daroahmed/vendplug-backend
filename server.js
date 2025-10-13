@@ -108,6 +108,14 @@ app.use('/api/chats', chatRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/products', productSearchRoutes);
 app.use('/api/admin-ads', require('./routes/adminAdRoutes'));
+app.use('/api/commission', require('./routes/commissionRoutes'));
+app.use('/api/paystack-wallet', require('./routes/paystackWalletRoutes'));
+
+// ✅ Admin routes
+app.get('/admin/wallet-management', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/paystack-wallet-management.html'));
+});
+
 // ✅ Test route
 app.get('/', (req, res) => res.send('Backend is running 🚀'));
 app.get('/api/health', (req, res) => {

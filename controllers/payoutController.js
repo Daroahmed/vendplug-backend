@@ -3,6 +3,8 @@ const BankAccount = require('../models/BankAccount');
 const Wallet = require('../models/walletModel');
 const Transaction = require('../models/Transaction');
 const { paystackService } = require('../controllers/paystackController');
+const PaystackService = require('../services/paystackService');
+const paystackServiceInstance = new PaystackService();
 const mongoose = require('mongoose');
 
 // Request a payout
@@ -104,17 +106,38 @@ const requestPayout = async (req, res) => {
         message: 'Wallet not found'
       });
     }
+
+    // No additional transfer fee - already handled in order processing (2% commission + ₦10)
+    const transferFee = 0; // No additional fees for payout
+    const netAmount = amount; // Amount user will receive
+    const totalRequired = amount; // Amount user will receive (no additional fees)
     
-    if (wallet.balance < amount) {
+    // Check if wallet has enough balance
+    if (wallet.balance < totalRequired) {
       return res.status(400).json({
         success: false,
-        message: `Insufficient wallet balance. Available: ₦${wallet.balance}, Requested: ₦${amount}`
+        message: `Insufficient wallet balance. Required: ₦${totalRequired}, Available: ₦${wallet.balance}`
       });
     }
 
-    // Calculate transfer fee
-    const transferFee = 50; // ₦50 flat fee
-    const netAmount = amount - transferFee;
+    // Check Paystack wallet balance for instant payout capability
+    let paystackBalance = 0;
+    let canProcessInstantly = false;
+    try {
+      const balanceResponse = await paystackServiceInstance.getBalance();
+      // Convert from kobo to naira (Paystack returns balance in kobo)
+      paystackBalance = balanceResponse.data[0].balance / 100;
+      canProcessInstantly = paystackBalance >= totalRequired;
+      
+      console.log('💰 Paystack balance check:', {
+        paystackBalance,
+        requiredAmount: totalRequired,
+        canProcessInstantly
+      });
+    } catch (balanceError) {
+      console.warn('⚠️ Could not check Paystack balance:', balanceError.message);
+      // Continue with payout request even if balance check fails
+    }
     
     // Create payout request
     const payoutRequest = new PayoutRequest({
@@ -124,13 +147,18 @@ const requestPayout = async (req, res) => {
       amount,
       netAmount,
       transferFee,
-      status: 'pending'
+      status: canProcessInstantly ? 'processing' : 'pending',
+      metadata: {
+        paystackBalance,
+        canProcessInstantly,
+        instantProcessingAvailable: canProcessInstantly
+      }
     });
 
     await payoutRequest.save({ session });
 
-    // Deduct from wallet
-    wallet.balance -= amount;
+    // Deduct total amount (requested + fee) from wallet
+    wallet.balance -= totalRequired;
     await wallet.save({ session });
 
     // Create transaction record
@@ -138,15 +166,16 @@ const requestPayout = async (req, res) => {
       ref: `PAYOUT_${Date.now()}_${userId}`,
       type: 'withdrawal',
       status: 'pending',
-      amount: amount,
+      amount: amount, // Amount user will receive (no additional fees)
       from: wallet.virtualAccount,
       to: bankAccount.accountNumber,
-      description: `Payout to ${bankAccount.bankName} - ${bankAccount.accountName}`,
+      description: `Payout to ${bankAccount.bankName} - ${bankAccount.accountName} (no additional fees)`,
       initiatedBy: userId,
       initiatorType: userType,
       metadata: {
         payoutRequestId: payoutRequest._id,
-        bankAccountId: bankAccount._id
+        bankAccountId: bankAccount._id,
+        note: 'Commission and fees already deducted during order processing'
       }
     });
 
@@ -154,7 +183,7 @@ const requestPayout = async (req, res) => {
 
     // Initiate Paystack transfer
     try {
-      const transferResult = await initiatePaystackTransfer(payoutRequest, bankAccount, netAmount);
+      const transferResult = await initiatePaystackTransfer(payoutRequest, bankAccount, amount);
       
       if (transferResult.success) {
         // Update payout request with Paystack reference
@@ -170,7 +199,7 @@ const requestPayout = async (req, res) => {
         console.log(`🔄 Paystack transfer initiated: ${transferResult.reference}`);
       } else {
         // Transfer failed, refund wallet
-        wallet.balance += amount;
+        wallet.balance += totalRequired;
         await wallet.save({ session });
         
         // Update payout status
@@ -192,7 +221,7 @@ const requestPayout = async (req, res) => {
       }
     } catch (error) {
       // Transfer error, refund wallet
-      wallet.balance += amount;
+      wallet.balance += totalRequired;
       await wallet.save({ session });
       
       // Update payout status
@@ -236,10 +265,15 @@ const requestPayout = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Payout request submitted successfully',
+      message: canProcessInstantly ? 
+        'Payout request submitted and will be processed instantly!' : 
+        'Payout request submitted successfully. Processing may take up to 24 hours.',
       data: {
         payoutRequest,
-        newBalance: wallet.balance
+        newBalance: wallet.balance,
+        instantProcessing: canProcessInstantly,
+        paystackBalance,
+        estimatedProcessingTime: canProcessInstantly ? 'Instant' : 'Up to 24 hours'
       }
     });
 
