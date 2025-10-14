@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
+const payoutController = require('../controllers/payoutController');
 const { protectAdmin, checkPermission, checkAnyPermission } = require('../middleware/adminAuth');
 const upload = require('../middleware/uploadMiddleware');
 
@@ -26,6 +27,14 @@ router.get('/orders', checkPermission('orderManagement'), adminController.getAll
 // Payout management
 router.get('/payouts', checkPermission('payoutManagement'), adminController.getPayoutManagement);
 router.put('/payouts/status', checkPermission('payoutManagement'), adminController.updatePayoutStatus);
+router.post('/payouts/fix-stuck-processing', checkPermission('payoutManagement'), async (req, res) => {
+  payoutController.fixStuckProcessingPayouts(req, res);
+});
+
+// Check and update payout statuses from Paystack
+router.post('/payouts/check-statuses', checkPermission('payoutManagement'), async (req, res) => {
+  payoutController.checkPayoutStatuses(req, res);
+});
 
 // Dispute management
 router.get('/disputes', checkPermission('disputeManagement'), adminController.getDisputeManagement);

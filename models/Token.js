@@ -9,7 +9,7 @@ const tokenSchema = new mongoose.Schema({
   userModel: {
     type: String,
     required: true,
-    enum: ['Buyer', 'Vendor', 'Agent'] // Reference to different user types
+    enum: ['Buyer', 'Vendor', 'Agent', 'Admin'] // Reference to different user types
   },
   token: {
     type: String,
