@@ -25,18 +25,22 @@ const processTransferWebhook = async (req, res) => {
 
     const { event, data } = req.body;
     console.log(`🔔 Paystack webhook received: ${event}`);
+    console.log('📊 Webhook data:', JSON.stringify(data, null, 2));
 
     // Handle different transfer events
     switch (event) {
       case 'transfer.success':
+        console.log('✅ Processing transfer success...');
         await handleTransferSuccess(data);
         break;
       
       case 'transfer.failed':
+        console.log('❌ Processing transfer failure...');
         await handleTransferFailed(data);
         break;
       
       case 'transfer.reversed':
+        console.log('🔄 Processing transfer reversal...');
         await handleTransferReversed(data);
         break;
       
@@ -67,20 +71,26 @@ const handleTransferSuccess = async (transferData) => {
     });
 
     // Find payout request by reference
+    console.log(`🔍 Looking for payout request with reference: ${reference}`);
     const payoutRequest = await PayoutRequest.findOne({
       paystackReference: reference
     });
 
     if (!payoutRequest) {
       console.log(`⚠️ Payout request not found for reference: ${reference}`);
+      console.log('🔍 Available payout references:', await PayoutRequest.find({}, 'paystackReference').limit(10));
       return;
     }
+
+    console.log(`✅ Found payout request: ${payoutRequest._id}, current status: ${payoutRequest.status}`);
 
     // Update payout status
     payoutRequest.status = 'completed';
     payoutRequest.paystackTransferCode = transfer_code;
     payoutRequest.processedAt = new Date();
     await payoutRequest.save();
+    
+    console.log(`✅ Updated payout request ${payoutRequest._id} to completed status`);
 
     // Update transaction status
     await Transaction.findOneAndUpdate(

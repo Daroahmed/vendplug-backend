@@ -90,6 +90,26 @@ const protectVendor = asyncHandler(async (req, res, next) => {
   }
 });
 
+// 🔐 Protect Admin Routes
+const protectAdmin = asyncHandler(async (req, res, next) => {
+  const token = extractToken(req);
+  if (!token) return res.status(401).json({ message: 'Not authorized, no token' });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'vendplugSecret');
+    const admin = await Admin.findById(decoded.id).select('-password');
+    if (!admin) return res.status(401).json({ message: 'Admin not found' });
+
+    req.admin = admin;
+    req.user = { ...admin.toObject(), role: 'admin' };
+
+    next();
+  } catch (err) {
+    console.error('❌ Admin token verification failed:', err.message);
+    res.status(401).json({ message: 'Invalid or expired token' });
+  }
+});
+
 // (Removed legacy deleteProduct handler for old Product model)
 
 
@@ -172,6 +192,7 @@ module.exports = {
   protectBuyer,
   protectAgent,
   protectVendor,
+  protectAdmin,
   protectAnyUser,
   deleteVendorProduct
 };

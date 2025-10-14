@@ -4,7 +4,6 @@ const Wallet = require('../models/walletModel');
 const Transaction = require('../models/Transaction');
 const { paystackService } = require('../controllers/paystackController');
 const PaystackService = require('../services/paystackService');
-const paystackServiceInstance = new PaystackService();
 const mongoose = require('mongoose');
 
 // Request a payout
@@ -124,6 +123,7 @@ const requestPayout = async (req, res) => {
     let paystackBalance = 0;
     let canProcessInstantly = false;
     try {
+      const paystackServiceInstance = new PaystackService();
       const balanceResponse = await paystackServiceInstance.getBalance();
       // Convert from kobo to naira (Paystack returns balance in kobo)
       paystackBalance = balanceResponse.data[0].balance / 100;
@@ -655,12 +655,134 @@ const fixStuckProcessingPayouts = async (req, res) => {
   }
 };
 
+// Check and update payout statuses from Paystack
+const checkPayoutStatuses = async (req, res) => {
+  try {
+    console.log('🔍 Checking payout statuses from Paystack...');
+    
+    const PayoutRequest = require('../models/PayoutRequest');
+    const Transaction = require('../models/Transaction');
+    const Wallet = require('../models/walletModel');
+    const PaystackService = require('../services/paystackService');
+    
+    // Find all processing payouts
+    const processingPayouts = await PayoutRequest.find({
+      status: 'processing',
+      paystackReference: { $exists: true, $ne: null }
+    });
+
+    console.log(`📊 Found ${processingPayouts.length} processing payouts to check`);
+
+    if (processingPayouts.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No processing payouts found',
+        updated: 0
+      });
+    }
+
+    let updatedCount = 0;
+    const paystackService = new PaystackService();
+
+    for (const payout of processingPayouts) {
+      try {
+        console.log(`🔍 Checking payout ${payout._id} with reference: ${payout.paystackReference}`);
+        
+        // Get transfer details from Paystack
+        const transferDetails = await paystackService.getTransfer(payout.paystackReference);
+        console.log(`📊 Transfer status for ${payout.paystackReference}:`, transferDetails.status);
+        
+        if (transferDetails.status === 'success') {
+          // Update payout status to completed
+          payout.status = 'completed';
+          payout.paystackTransferCode = transferDetails.transfer_code;
+          payout.processedAt = new Date();
+          await payout.save();
+
+          // Update transaction status
+          await Transaction.findOneAndUpdate(
+            { ref: { $regex: `PAYOUT_${payout._id}` } },
+            { 
+              status: 'completed',
+              metadata: {
+                ...payout.metadata,
+                paystackTransferCode: transferDetails.transfer_code,
+                completedAt: new Date()
+              }
+            }
+          );
+
+          console.log(`✅ Updated payout ${payout._id} to completed`);
+          updatedCount++;
+          
+        } else if (transferDetails.status === 'failed') {
+          // Update payout status to failed
+          payout.status = 'failed';
+          payout.failureReason = transferDetails.failure_reason || 'Transfer failed';
+          payout.processedAt = new Date();
+          await payout.save();
+
+          // Refund the amount back to vendor's wallet
+          const wallet = await Wallet.findOne({
+            user: payout.userId,
+            role: payout.userType.toLowerCase()
+          });
+
+          if (wallet) {
+            wallet.balance += payout.amount;
+            await wallet.save();
+            console.log(`💰 Refunded ₦${payout.amount} to wallet`);
+          }
+
+          // Update transaction status
+          await Transaction.findOneAndUpdate(
+            { ref: { $regex: `PAYOUT_${payout._id}` } },
+            { 
+              status: 'failed',
+              metadata: {
+                ...payout.metadata,
+                failureReason: transferDetails.failure_reason,
+                failedAt: new Date()
+              }
+            }
+          );
+
+          console.log(`❌ Updated payout ${payout._id} to failed`);
+          updatedCount++;
+          
+        } else {
+          console.log(`⏳ Payout ${payout._id} still processing on Paystack`);
+        }
+        
+      } catch (error) {
+        console.error(`❌ Error checking payout ${payout._id}:`, error.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Updated ${updatedCount} payout statuses`,
+      updated: updatedCount,
+      total: processingPayouts.length
+    });
+
+  } catch (error) {
+    console.error('❌ Error checking payout statuses:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error checking payout statuses',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   requestPayout,
   processPayouts,
   getPayoutHistory,
   getPayoutDetails,
-  fixStuckProcessingPayouts
+  fixStuckProcessingPayouts,
+  checkPayoutStatuses
 };
 
 
