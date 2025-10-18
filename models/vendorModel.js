@@ -29,6 +29,7 @@ const vendorSchema = new mongoose.Schema(
     phoneNumber: { type: String, required: true },
     businessName: { type: String },
     businessAddress: { type: String },
+    cacNumber: { type: String },
     state: { type: String },
     role: { type: String, default: 'vendor' },
 

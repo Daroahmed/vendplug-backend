@@ -29,6 +29,7 @@ const registerVendor = asyncHandler(async (req, res) => {
       cacNumber,
       category,
       state,
+      shopDescription
     } = req.body;
 
     const vendorExists = await Vendor.findOne({ email });
@@ -46,9 +47,10 @@ const registerVendor = asyncHandler(async (req, res) => {
       password, // 👈 DO NOT manually hash it — the model handles it
       businessName,
       businessAddress,
-      cacNumber,
+      cacNumber: cacNumber || undefined, // Make CAC number optional
       category,
       state,
+      shopDescription,
       virtualAccount: tempVirtualAccount,
     });
 
