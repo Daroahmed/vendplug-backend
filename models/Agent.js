@@ -28,6 +28,7 @@ const agentSchema = new mongoose.Schema(
     businessName: { type: String, required: true }, // Changed from shopName to businessName
     phoneNumber: { type: String, required: true },
     businessAddress: { type: String },
+    cacNumber: { type: String },
     state: { type: String },
     role: { type: String, default: 'agent' },
 

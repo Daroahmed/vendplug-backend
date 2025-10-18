@@ -22,8 +22,10 @@ const registerAgent = async (req, res) => {
       phoneNumber,
       password,
       businessAddress,
+      cacNumber,
       category,
       state,
+      businessDescription
     } = req.body;
 
     const agentExists = await Agent.findOne({ email });
@@ -40,8 +42,10 @@ const registerAgent = async (req, res) => {
       phoneNumber,
       password, // 👈 DO NOT manually hash it — the model handles it
       businessAddress,
+      cacNumber: cacNumber || undefined, // Make CAC number optional
       category,
       state,
+      businessDescription,
       virtualAccount: tempVirtualAccount,
     });
 
