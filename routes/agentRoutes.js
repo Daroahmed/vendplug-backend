@@ -15,6 +15,9 @@ const {
   getAgentProfileById,
   getShopView,
   addAgentReview,
+  voteAgentReviewHelpfulness,
+  reportAgentReview,
+  getAgentReviews,
   updateAgentProfile
 } = require("../controllers/agentController");
 const multer = require('multer');
@@ -120,8 +123,11 @@ router.get('/:agentId', getAgentById);
 // ✅ Shop view
 router.get('/:agentId', getShopView);
 
-// ✅ Add review (buyer only)
+// ✅ Review endpoints
 router.post('/:agentId/reviews', protectBuyer, addAgentReview);
+router.get('/:agentId/reviews', getAgentReviews);
+router.post('/:agentId/reviews/:reviewId/vote', protectBuyer, voteAgentReviewHelpfulness);
+router.post('/:agentId/reviews/:reviewId/report', protectBuyer, reportAgentReview);
 
 router.get('/by-category-and-state', getAgentsByCategoryAndState);
 

@@ -65,27 +65,48 @@ const checkoutCart = async (req, res) => {
     // ===============================
     session.startTransaction();
 
-    // Deduct from wallet (escrow hold)
-    wallet.balance -= totalCost;
-    await wallet.save({ session });
+    try {
+      // Deduct from wallet (escrow hold)
+      const oldBalance = wallet.balance;
+      wallet.balance -= totalCost;
+      await wallet.save({ session });
 
-    // ===============================
-    // 5. Log transaction
-    // ===============================
-    await Transaction.create(
-      [
-        {
-          ref: new mongoose.Types.ObjectId().toString(),
-          type: "fund", // must match enum
-          status: "successful",
-          amount: totalCost,
-          description: "Order payment held in escrow",
-          initiatedBy: req.buyer._id,
-          initiatorType: "Buyer"
-        }
-      ],
-      { session }
-    );
+      console.log("💰 Wallet deduction:", {
+        oldBalance,
+        amount: totalCost,
+        newBalance: wallet.balance
+      });
+
+      // ===============================
+      // 5. Log transaction
+      // ===============================
+      await Transaction.create(
+        [
+          {
+            ref: new mongoose.Types.ObjectId().toString(),
+            type: "debit", // Correct type for spending money
+            status: "successful",
+            amount: totalCost,
+            description: "Order payment held in escrow",
+            initiatedBy: req.buyer._id,
+            initiatorType: "Buyer",
+            metadata: {
+              orderType: "vendor_checkout",
+              oldBalance,
+              newBalance: wallet.balance
+            }
+          }
+        ],
+        { session }
+      );
+
+      console.log("✅ Wallet deduction and transaction logged successfully");
+
+    } catch (walletError) {
+      console.error("❌ Wallet operation failed:", walletError);
+      await session.abortTransaction();
+      throw new Error("Failed to process wallet deduction: " + walletError.message);
+    }
 
     // ===============================
     // 6. Group items by vendor
@@ -158,7 +179,19 @@ const checkoutCart = async (req, res) => {
     await session.commitTransaction();
 
     // ===============================
-    // 9. Send notifications
+    // 9. Sync wallet balance with user model (outside transaction)
+    // ===============================
+    try {
+      const { syncWalletBalance } = require('./walletHelper');
+      await syncWalletBalance(req.buyer._id, 'buyer', wallet.balance);
+      console.log("✅ Wallet balance synced with user model");
+    } catch (syncError) {
+      console.error("❌ Wallet sync error:", syncError);
+      // Don't fail the checkout if sync fails
+    }
+
+    // ===============================
+    // 10. Send notifications
     // ===============================
     try {
       const io = req.app.get('io');
