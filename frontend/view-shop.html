@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>Vendor Shop - VendPlug</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/ads.css">
+  <link rel="stylesheet" href="CSS/ads.css">
   
   <style>
     :root {
@@ -716,9 +716,7 @@
         vendorProfileEl.innerHTML = `
           <div class="vendor-details">
             <div class="vendor-info">
-              <h2>${vendor.fullName}</h2>
-              <p><strong>Phone:</strong> <span>${vendor.phoneNumber || 'Not provided'}</span></p>
-              <p><strong>Address:</strong> ${vendor.businessAddress || 'Not provided'}</p>
+              <h2>${vendor.fullName || vendor.businessName || 'Vendor'}</h2>
               <p><strong>State:</strong> ${vendor.state || 'Not specified'}</p>
               <p><strong>Total Transactions:</strong> ${vendor.totalTransactions || 0}</p>
               <div style="margin-top: 15px;" id="messageButtonContainer">

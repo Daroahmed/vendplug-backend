@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Add to Cart
     document.getElementById('addToCartBtn').addEventListener('click', () => {
-      addToCart(product);
+      addToCart(product._id, 1);
     });
 
   } catch (err) {
@@ -51,17 +51,22 @@ function loadProductDetails(product) {
     addBtn.innerHTML = '<i class="fas fa-ban"></i> Out of Stock';
   }
   document.getElementById('productDescription').textContent = product.description;
-  document.getElementById('accountNumber').textContent = product.vendor?.virtualAccount || '';
 }
 
 async function loadVendorDetails(vendorId) {
   try {
+    console.log('Loading vendor details for:', vendorId);
     const res = await fetch(`/api/vendors/${vendorId}`);
-    if (!res.ok) throw new Error("Failed to fetch vendor");
+    if (!res.ok) {
+      console.error('Failed to fetch vendor:', res.status, res.statusText);
+      throw new Error("Failed to fetch vendor");
+    }
     const vendor = await res.json();
+    console.log('Vendor data:', vendor);
 
     // Store all reviews
     allReviews = vendor.reviews || [];
+    console.log('Reviews found:', allReviews.length);
 
     // Show average rating
     const reviewsContainer = document.getElementById('reviewsContainer');
@@ -76,6 +81,11 @@ async function loadVendorDetails(vendorId) {
       document.getElementById('loadMoreReviewsBtn').style.display = 'block';
       document.getElementById('loadMoreReviewsBtn').addEventListener('click', displayMoreReviews);
     }
+
+    // Handle review filtering and sorting
+    document.getElementById('reviewFilter').addEventListener('change', loadFilteredReviews);
+    document.getElementById('reviewSort').addEventListener('change', loadFilteredReviews);
+    document.getElementById('ratingFilter').addEventListener('change', loadFilteredReviews);
 
     // Handle review submission
     document.getElementById('submitReviewBtn').addEventListener('click', async () => {
@@ -119,13 +129,17 @@ async function loadVendorDetails(vendorId) {
 }
 
 function displayMoreReviews() {
+  console.log('displayMoreReviews called, currentReviewIndex:', currentReviewIndex, 'allReviews.length:', allReviews.length);
   const container = document.getElementById('reviewsContainer');
   const endIndex = currentReviewIndex + reviewsPerPage;
 
-  allReviews.slice(currentReviewIndex, endIndex).forEach(r => {
+  const reviewsToShow = allReviews.slice(currentReviewIndex, endIndex);
+  console.log('Reviews to show:', reviewsToShow);
+
+  reviewsToShow.forEach(r => {
     const div = document.createElement('div');
     div.className = 'review';
-    div.innerHTML = `<strong>${r.buyer?.fullName || 'Anonymous'}</strong> - ${r.rating} ★<p>${r.comment}</p>`;
+    div.innerHTML = createReviewHTML(r);
     container.appendChild(div);
   });
 
@@ -137,8 +151,175 @@ function displayMoreReviews() {
   }
 }
 
+function createReviewHTML(review) {
+  const verifiedBadge = review.isVerifiedPurchase ? 
+    '<span class="verified-badge"><i class="fas fa-check-circle"></i> Verified Purchase</span>' : '';
+  
+  const stars = '★'.repeat(review.rating) + '☆'.repeat(5 - review.rating);
+  const date = new Date(review.createdAt).toLocaleDateString();
+  
+  // Get buyer name with fallbacks
+  const buyerName = review.buyerName || 
+                   review.buyer?.fullName || 
+                   review.buyer?.name || 
+                   'Anonymous';
+  
+  return `
+    <div class="review-header">
+      <div class="reviewer-info">
+        <strong class="reviewer-name">${buyerName}</strong>
+        ${verifiedBadge}
+      </div>
+      <div class="review-meta">
+        <span class="review-rating">${stars} (${review.rating}/5)</span>
+        <span class="review-date">${date}</span>
+      </div>
+    </div>
+    <div class="review-content">
+      <p>${review.comment}</p>
+    </div>
+    <div class="review-actions">
+      <button class="helpful-btn" onclick="voteReview('${review._id}', 'helpful')">
+        <i class="fas fa-thumbs-up"></i> Helpful (${review.helpfulVotes || 0})
+      </button>
+      <button class="not-helpful-btn" onclick="voteReview('${review._id}', 'not_helpful')">
+        <i class="fas fa-thumbs-down"></i> Not Helpful (${review.notHelpfulVotes || 0})
+      </button>
+      <button class="report-btn" onclick="reportReview('${review._id}')">
+        <i class="fas fa-flag"></i> Report
+      </button>
+    </div>
+  `;
+}
+
+// Review voting function
+async function voteReview(reviewId, voteType) {
+  const token = getAuthToken();
+  if (!token) {
+    window.showOverlay && showOverlay({ type:'error', title:'Login required', message:'Please log in to vote on reviews.' });
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/vendors/${vendorId}/reviews/${reviewId}/vote`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ voteType })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to vote on review');
+    }
+
+    const data = await response.json();
+    
+    // Update the vote counts in the UI
+    const reviewElement = document.querySelector(`[onclick*="${reviewId}"]`).closest('.review');
+    const helpfulBtn = reviewElement.querySelector('.helpful-btn');
+    const notHelpfulBtn = reviewElement.querySelector('.not-helpful-btn');
+    
+    if (helpfulBtn) {
+      helpfulBtn.innerHTML = `<i class="fas fa-thumbs-up"></i> Helpful (${data.helpfulVotes})`;
+    }
+    if (notHelpfulBtn) {
+      notHelpfulBtn.innerHTML = `<i class="fas fa-thumbs-down"></i> Not Helpful (${data.notHelpfulVotes})`;
+    }
+
+    window.showOverlay && showOverlay({ type:'success', title:'Thank you!', message:'Your vote has been recorded.' });
+  } catch (error) {
+    console.error('Error voting on review:', error);
+    window.showOverlay && showOverlay({ type:'error', title:'Error', message: error.message || 'Failed to vote on review' });
+  }
+}
+
+// Review reporting function
+async function reportReview(reviewId) {
+  const reason = prompt('Please select a reason for reporting this review:\n1. Spam\n2. Inappropriate content\n3. Fake review\n4. Offensive language\n5. Other\n\nEnter the number (1-5):');
+  
+  if (!reason || reason < 1 || reason > 5) {
+    return;
+  }
+
+  const reasons = ['spam', 'inappropriate', 'fake', 'offensive', 'other'];
+  const selectedReason = reasons[reason - 1];
+
+  const token = getAuthToken();
+  if (!token) {
+    window.showOverlay && showOverlay({ type:'error', title:'Login required', message:'Please log in to report reviews.' });
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/vendors/${vendorId}/reviews/${reviewId}/report`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ reason: selectedReason })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to report review');
+    }
+
+    window.showOverlay && showOverlay({ type:'success', title:'Thank you!', message:'Review has been reported for review.' });
+  } catch (error) {
+    console.error('Error reporting review:', error);
+    window.showOverlay && showOverlay({ type:'error', title:'Error', message: error.message || 'Failed to report review' });
+  }
+}
+
+// Load filtered and sorted reviews
+async function loadFilteredReviews() {
+  const filter = document.getElementById('reviewFilter').value;
+  const sort = document.getElementById('reviewSort').value;
+  const rating = document.getElementById('ratingFilter').value;
+  
+  try {
+    const params = new URLSearchParams({
+      filter,
+      sort,
+      rating,
+      page: 1,
+      limit: 10
+    });
+    
+    const response = await fetch(`/api/vendors/${vendorId}/reviews?${params}`);
+    if (!response.ok) throw new Error('Failed to fetch filtered reviews');
+    
+    const data = await response.json();
+    
+    // Clear current reviews
+    const container = document.getElementById('reviewsContainer');
+    container.innerHTML = '';
+    
+    // Reset pagination
+    currentReviewIndex = 0;
+    allReviews = data.reviews;
+    
+    // Display filtered reviews
+    displayMoreReviews();
+    
+    // Update load more button
+    if (allReviews.length > reviewsPerPage) {
+      document.getElementById('loadMoreReviewsBtn').style.display = 'block';
+    } else {
+      document.getElementById('loadMoreReviewsBtn').style.display = 'none';
+    }
+    
+  } catch (error) {
+    console.error('Error loading filtered reviews:', error);
+    window.showOverlay && showOverlay({ type:'error', title:'Error', message: 'Failed to load filtered reviews' });
+  }
+}
+
 // Add to Cart Logic
-// Assuming you have BACKEND_URL and token already
 async function addToCart(productId, quantity = 1) {
   const token = getAuthToken();
 
@@ -148,7 +329,7 @@ async function addToCart(productId, quantity = 1) {
   }
 
   try {
-      const response = await fetch(`${window.BACKEND_URL}/api/vendor-cart`, {
+      const response = await fetch('/api/vendor-cart', {
           method: "POST",
           headers: {
               "Content-Type": "application/json",

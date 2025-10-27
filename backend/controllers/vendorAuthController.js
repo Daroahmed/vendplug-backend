@@ -13,11 +13,7 @@ const fs = require('fs');
 
 
 // ✅ Generate JWT token
-const generateToken = (id, role = "vendor") => {
-  return jwt.sign({ id, role }, process.env.JWT_SECRET || "vendplugSecret", {
-    expiresIn: "30d",
-  });
-};
+const generateToken = require('../utils/generateToken');
 
 // ✅ Register Vendor
 const registerVendor = asyncHandler(async (req, res) => {
@@ -32,7 +28,9 @@ const registerVendor = asyncHandler(async (req, res) => {
       businessAddress,
       cacNumber,
       category,
+      otherCategory,
       state,
+      shopDescription
     } = req.body;
 
     const vendorExists = await Vendor.findOne({ email });
@@ -50,9 +48,11 @@ const registerVendor = asyncHandler(async (req, res) => {
       password, // 👈 DO NOT manually hash it — the model handles it
       businessName,
       businessAddress,
-      cacNumber,
+      cacNumber: cacNumber || undefined, // Make CAC number optional
       category,
+      otherCategory: otherCategory || undefined,
       state,
+      shopDescription,
       virtualAccount: tempVirtualAccount,
     });
 
@@ -82,8 +82,9 @@ const registerVendor = asyncHandler(async (req, res) => {
     } catch (e) {
       console.error('⚠️ Failed to persist vendor verification token:', e.message);
     }
-
-    await sendVerificationEmail(email, verificationToken);
+    sendVerificationEmail(email, verificationToken).catch(err => {
+      console.error('❌ Verification email failed:', err?.message || err);
+    });
 
     // Send new user registration notification to admins
     try {
@@ -175,7 +176,7 @@ const loginVendor = asyncHandler(async (req, res) => {
 // @route   GET /api/vendors/:vendorId
 // @access  Public
 const getVendorById = asyncHandler(async (req, res) => {
-  const vendor = await Vendor.findById(req.params.vendorId);
+  const vendor = await Vendor.findById(req.params.vendorId).populate('reviews.buyer', 'fullName email');
   if (vendor) {
     res.json(vendor);
   } else {
@@ -296,7 +297,7 @@ const getShopView = async (req, res) => {
 // =========================
 const addVendorReview = async (req, res) => {
   try {
-    const { rating, comment } = req.body;
+    const { rating, comment, orderId } = req.body;
     const vendorId = req.params.vendorId;
     const buyerId = req.user._id; // Comes from protectBuyer middleware
 
@@ -305,26 +306,49 @@ const addVendorReview = async (req, res) => {
       return res.status(404).json({ message: 'Vendor not found' });
     }
 
-    // Optional: Prevent duplicate review from same buyer
-    const alreadyReviewed = vendor.reviews.find(
-      (r) => r.buyer.toString() === buyerId.toString()
-    );
-    if (alreadyReviewed) {
-      return res.status(400).json({ message: 'You have already reviewed this vendor' });
+    // Check if buyer exists and get their name
+    const Buyer = require('../models/Buyer');
+    const buyer = await Buyer.findById(buyerId);
+    if (!buyer) {
+      return res.status(404).json({ message: 'Buyer not found' });
     }
 
-    // Add review
-    vendor.reviews.push({
-      buyer: buyerId,
-      rating,
-      comment
-    });
+    const buyerName = buyer.fullName || buyer.name || 'Anonymous';
 
+    // Determine if this is a verified purchase
+    let isVerifiedPurchase = false;
+    if (orderId) {
+      const VendorOrder = require('../models/vendorOrderModel');
+      const order = await VendorOrder.findOne({
+        _id: orderId,
+        buyer: buyerId,
+        vendor: vendorId,
+        status: 'delivered'
+      });
+      isVerifiedPurchase = !!order;
+    }
+
+    // Add review (no duplicate restriction - buyers can leave multiple reviews)
+    const newReview = {
+      buyer: buyerId,
+      buyerName: buyerName,
+      rating,
+      comment,
+      orderId: orderId || null,
+      isVerifiedPurchase,
+      helpfulVotes: 0,
+      notHelpfulVotes: 0,
+      isReported: false,
+      isModerated: false
+    };
+
+    vendor.reviews.push(newReview);
     await vendor.save(); // Average rating is auto-calculated in model
 
     res.status(201).json({
       message: 'Review added successfully',
-      reviews: vendor.reviews,
+      review: newReview,
+      totalReviews: vendor.reviews.length,
       averageRating: vendor.averageRating
     });
   } catch (error) {
@@ -333,6 +357,154 @@ const addVendorReview = async (req, res) => {
   }
 };
 
+// =========================
+// Vote on Review Helpfulness
+// =========================
+const voteReviewHelpfulness = async (req, res) => {
+  try {
+    const { vendorId, reviewId } = req.params;
+    const { voteType } = req.body; // 'helpful' or 'not_helpful'
+    const buyerId = req.user._id;
+
+    const vendor = await Vendor.findById(vendorId);
+    if (!vendor) {
+      return res.status(404).json({ message: 'Vendor not found' });
+    }
+
+    const review = vendor.reviews.id(reviewId);
+    if (!review) {
+      return res.status(404).json({ message: 'Review not found' });
+    }
+
+    // Check if user already voted (you could implement this with a separate votes collection)
+    // For now, we'll allow multiple votes but you might want to restrict this
+
+    if (voteType === 'helpful') {
+      review.helpfulVotes += 1;
+    } else if (voteType === 'not_helpful') {
+      review.notHelpfulVotes += 1;
+    } else {
+      return res.status(400).json({ message: 'Invalid vote type' });
+    }
+
+    await vendor.save();
+
+    res.json({
+      message: 'Vote recorded successfully',
+      helpfulVotes: review.helpfulVotes,
+      notHelpfulVotes: review.notHelpfulVotes
+    });
+  } catch (error) {
+    console.error('Error voting on review:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// =========================
+// Report Review
+// =========================
+const reportReview = async (req, res) => {
+  try {
+    const { vendorId, reviewId } = req.params;
+    const { reason } = req.body;
+    const buyerId = req.user._id;
+
+    const vendor = await Vendor.findById(vendorId);
+    if (!vendor) {
+      return res.status(404).json({ message: 'Vendor not found' });
+    }
+
+    const review = vendor.reviews.id(reviewId);
+    if (!review) {
+      return res.status(404).json({ message: 'Review not found' });
+    }
+
+    // Check if user already reported this review
+    if (review.isReported) {
+      return res.status(400).json({ message: 'Review already reported' });
+    }
+
+    review.isReported = true;
+    review.reportReason = reason;
+
+    await vendor.save();
+
+    res.json({ message: 'Review reported successfully' });
+  } catch (error) {
+    console.error('Error reporting review:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// =========================
+// Get Reviews with Sorting and Filtering
+// =========================
+const getVendorReviews = async (req, res) => {
+  try {
+    const { vendorId } = req.params;
+    const { 
+      sort = 'newest', 
+      filter = 'all', 
+      rating = 'all',
+      page = 1, 
+      limit = 10 
+    } = req.query;
+
+    const vendor = await Vendor.findById(vendorId).populate('reviews.buyer', 'fullName email');
+    if (!vendor) {
+      return res.status(404).json({ message: 'Vendor not found' });
+    }
+
+    let reviews = [...vendor.reviews];
+
+    // Filter by rating
+    if (rating !== 'all') {
+      reviews = reviews.filter(review => review.rating === parseInt(rating));
+    }
+
+    // Filter by verification status
+    if (filter === 'verified') {
+      reviews = reviews.filter(review => review.isVerifiedPurchase);
+    } else if (filter === 'unverified') {
+      reviews = reviews.filter(review => !review.isVerifiedPurchase);
+    }
+
+    // Sort reviews
+    switch (sort) {
+      case 'newest':
+        reviews.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        break;
+      case 'oldest':
+        reviews.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        break;
+      case 'highest_rating':
+        reviews.sort((a, b) => b.rating - a.rating);
+        break;
+      case 'lowest_rating':
+        reviews.sort((a, b) => a.rating - b.rating);
+        break;
+      case 'most_helpful':
+        reviews.sort((a, b) => (b.helpfulVotes - b.notHelpfulVotes) - (a.helpfulVotes - a.notHelpfulVotes));
+        break;
+    }
+
+    // Pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + parseInt(limit);
+    const paginatedReviews = reviews.slice(startIndex, endIndex);
+
+    res.json({
+      reviews: paginatedReviews,
+      totalReviews: reviews.length,
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(reviews.length / limit),
+      averageRating: vendor.averageRating
+    });
+  } catch (error) {
+    console.error('Error getting reviews:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
 
 // ✅ Update Vendor Profile with Cloudinary Image Upload
 const updateVendorProfile = asyncHandler(async (req, res) => {
@@ -393,6 +565,9 @@ module.exports = {
   getVendorProfile,
   getShopView,
   addVendorReview,
+  voteReviewHelpfulness,
+  reportReview,
+  getVendorReviews,
   updateVendorProfile
 };
 

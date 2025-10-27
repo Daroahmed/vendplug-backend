@@ -148,19 +148,72 @@ function clearOtherUserTokens(currentUserType) {
     admin: ["vendplugBuyer", "vendplugAgent", "vendplugVendor", "staff-info"]
   };
   
+  console.log(`🧹 Clearing tokens for other user types, keeping: ${currentUserType}`);
+  console.log(`🔍 Tokens to remove:`, tokensToRemove[currentUserType]);
+  console.log(`🔍 User data to remove:`, userDataToRemove[currentUserType]);
+  
+  // Debug: Show all tokens before cleanup
+  console.log(`🔍 All localStorage keys before cleanup:`, Object.keys(localStorage).filter(key => key.includes('vendplug')));
+  
   if (tokensToRemove[currentUserType]) {
     tokensToRemove[currentUserType].forEach(token => {
-      localStorage.removeItem(token);
+      const existed = localStorage.getItem(token);
+      if (existed) {
+        console.log(`🗑️ Removing token: ${token}`);
+        localStorage.removeItem(token);
+      }
     });
   }
   
   if (userDataToRemove[currentUserType]) {
     userDataToRemove[currentUserType].forEach(data => {
-      localStorage.removeItem(data);
+      const existed = localStorage.getItem(data);
+      if (existed) {
+        console.log(`🗑️ Removing user data: ${data}`);
+        localStorage.removeItem(data);
+      }
     });
   }
   
-  console.log(`🧹 Cleared tokens for other user types, keeping: ${currentUserType}`);
+  console.log(`✅ Token cleanup completed for: ${currentUserType}`);
+}
+
+/**
+ * Automatically clean up conflicting tokens after successful login
+ * Only runs when there's a clear, valid user session
+ */
+function autoCleanupTokens() {
+  const currentUserType = getCurrentUserType();
+  const currentUser = getCurrentUser();
+  
+  // Only cleanup if we have both a user type AND valid user data
+  if (currentUserType && currentUser) {
+    console.log(`🧹 Auto-cleaning tokens for authenticated user: ${currentUserType}`);
+    clearOtherUserTokens(currentUserType);
+  } else {
+    // Don't auto-cleanup on dashboard pages or when no valid session exists
+    console.log('🔍 No valid user session found, skipping token cleanup');
+  }
+}
+
+/**
+ * Clear all authentication tokens and user data
+ */
+function clearAllTokens() {
+  console.log('🧹 Clearing all authentication tokens and user data');
+  clearAuth();
+  localStorage.removeItem('staff-info');
+  console.log('✅ All tokens and user data cleared');
+}
+
+/**
+ * Call this after successful login to clean up conflicting tokens
+ * @param {string} userType - The user type that just logged in
+ */
+function cleanupAfterLogin(userType) {
+  console.log(`🧹 Cleaning up tokens after ${userType} login`);
+  clearOtherUserTokens(userType);
+  console.log(`✅ Token cleanup completed for ${userType}`);
 }
 
 // Export functions for global use
@@ -171,6 +224,9 @@ window.redirectToLogin = redirectToLogin;
 window.getCurrentUser = getCurrentUser;
 window.clearAuth = clearAuth;
 window.clearOtherUserTokens = clearOtherUserTokens;
+window.autoCleanupTokens = autoCleanupTokens;
+window.clearAllTokens = clearAllTokens;
+window.cleanupAfterLogin = cleanupAfterLogin;
 
 // Lightweight global loading overlay
 ;(function(){
@@ -354,6 +410,8 @@ function urlBase64ToUint8Array(base64String) {
   document.addEventListener('DOMContentLoaded', ()=>{
     try{ const s=document.createElement('script'); s.src='/js/push-cta.js'; document.body.appendChild(s);}catch(_){}
     try{ const s2=document.createElement('script'); s2.src='/js/back-button.js'; document.body.appendChild(s2);}catch(_){}
+    // Auto-cleanup only runs after successful login, not on every page load
+    try{ autoCleanupTokens(); }catch(_){}
   });
 })();
 
@@ -361,12 +419,25 @@ function urlBase64ToUint8Array(base64String) {
 ;(function(){
   async function tryRefresh(){
     try {
+      // Skip refresh for admin and staff pages to prevent token conflicts
+      const currentPath = window.location.pathname;
+      if (currentPath.includes('admin') || currentPath.includes('staff')) {
+        console.log(`🔄 Skipping token refresh for admin/staff page: ${currentPath}`);
+        return;
+      }
+      
       const res = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' });
       if (!res.ok) return;
       const data = await res.json().catch(()=>({}));
       if (data?.token && data?.role){
         // Store short-lived access token under role-specific key
-        const map = { buyer:'vendplug-buyer-token', agent:'vendplug-agent-token', vendor:'vendplug-vendor-token' };
+        const map = { 
+          buyer:'vendplug-buyer-token', 
+          agent:'vendplug-agent-token', 
+          vendor:'vendplug-vendor-token',
+          staff:'vendplug-staff-token',
+          admin:'vendplug-admin-token'
+        };
         const k = map[data.role] || 'vendplug-token';
         localStorage.setItem(k, data.token);
       }

@@ -2,19 +2,21 @@ console.log("✅ vendor-auth.js loaded");
 
 const BACKEND = window.BACKEND_URL || "";
 
-// Toggle login/register view
-document.getElementById("showVendorLoginBtn").addEventListener("click", () => {
-  document.getElementById("vendorLoginForm").style.display = "block";
-  document.getElementById("vendorRegisterForm").style.display = "none";
-});
+// Wait for DOM to be ready
+document.addEventListener("DOMContentLoaded", () => {
+  // Toggle login/register view
+  document.getElementById("showVendorLoginBtn").addEventListener("click", () => {
+    document.getElementById("vendorLoginForm").style.display = "block";
+    document.getElementById("vendorRegisterForm").style.display = "none";
+  });
 
-document.getElementById("showVendorRegisterBtn").addEventListener("click", () => {
-  document.getElementById("vendorLoginForm").style.display = "none";
-  document.getElementById("vendorRegisterForm").style.display = "block";
-});
+  document.getElementById("showVendorRegisterBtn").addEventListener("click", () => {
+    document.getElementById("vendorLoginForm").style.display = "none";
+    document.getElementById("vendorRegisterForm").style.display = "block";
+  });
 
-// 🔐 LOGIN
-document.getElementById("vendorLoginForm").addEventListener("submit", async (e) => {
+  // 🔐 LOGIN
+  document.getElementById("vendorLoginForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   showLoading && showLoading();
   const email = document.getElementById("vendorLoginEmail").value;
@@ -39,16 +41,23 @@ document.getElementById("vendorLoginForm").addEventListener("submit", async (e) 
     const vendorData = { ...data.vendor };
     delete vendorData.token; // Remove token from user object
     localStorage.setItem("vendplugVendor", JSON.stringify(vendorData));
+    
+    // Clean up conflicting tokens after successful vendor login
+    if (typeof cleanupAfterLogin === 'function') {
+      cleanupAfterLogin('vendor');
+    }
+    
     window.location.href = "vendor-dashboard.html";
 
   } catch (err) {
     console.error("❌ Vendor login error:", err);
     alert("Login failed. Try again.");
   } finally { hideLoading && hideLoading(); }
-});
+  });
 
-// 📝 REGISTER
-document.getElementById("vendorRegisterForm").addEventListener("submit", async (e) => {
+  // 📝 REGISTER
+  document.getElementById("vendorRegisterForm").addEventListener("submit", async (e) => {
+  console.log("🚀 Registration form submitted!");
   e.preventDefault();
   showLoading && showLoading();
 
@@ -62,16 +71,17 @@ document.getElementById("vendorRegisterForm").addEventListener("submit", async (
   const cacNumber = document.getElementById("vendorCacNumber").value;
 
     // Collect multiple selected categories
-    const categorySelect = document.getElementById("vendorCategory");
+    const categorySelect = document.getElementById("category");
     const selectedCategories = Array.from(categorySelect.selectedOptions).map(opt => opt.value);
   
-    // If "Other" is included, replace it with the custom input
+    // Handle "Other" category properly
     const otherCategoryInput = document.getElementById("otherCategory").value.trim();
     let finalCategories = selectedCategories;
+    let otherCategory = null;
   
     if (selectedCategories.includes("Other") && otherCategoryInput) {
-      finalCategories = selectedCategories.filter(cat => cat !== "Other");
-      finalCategories.push(otherCategoryInput);
+      // Keep "Other" in the categories array, send custom category separately
+      otherCategory = otherCategoryInput;
     }
   
   const state = document.getElementById("vendorState").value;
@@ -86,7 +96,8 @@ document.getElementById("vendorRegisterForm").addEventListener("submit", async (
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         fullName, email, shopName, phoneNumber,
-        password, businessName, businessAddress, cacNumber, category: finalCategory,
+        password, businessName, businessAddress, cacNumber, category: finalCategories,
+        otherCategory,
         state,
         shopDescription
       }),
@@ -125,15 +136,17 @@ document.getElementById("vendorRegisterForm").addEventListener("submit", async (
     errorMsg.textContent = error.message;
     errorMsg.style.display = "block";
   } finally { hideLoading && hideLoading(); }
-});
-// 🔄 Show "Other Category" input when "Other" is selected
-document.getElementById("vendorCategory").addEventListener("change", function() {
-  const otherDiv = document.getElementById("otherCategoryDiv");
-  if (this.value === "Other") {
-    otherDiv.style.display = "block";
-  } else {
-    otherDiv.style.display = "none";
-    document.getElementById("otherCategory").value = ""; // reset if not needed
-  }
+  });
+
+  // 🔄 Show "Other Category" input when "Other" is selected
+  document.getElementById("category").addEventListener("change", function() {
+    const otherDiv = document.getElementById("otherCategoryDiv");
+    if (this.value === "Other") {
+      otherDiv.style.display = "block";
+    } else {
+      otherDiv.style.display = "none";
+      document.getElementById("otherCategory").value = ""; // reset if not needed
+    }
+  });
 });
 

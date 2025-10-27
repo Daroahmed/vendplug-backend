@@ -3,8 +3,8 @@
   try{
     const isTouch = matchMedia('(pointer: coarse)').matches;
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    // Show only on desktop or standalone and when not the root/home
-    const shouldEnable = !isTouch || isStandalone;
+    // Show only on desktop (not mobile/touch devices)
+    const shouldEnable = !isTouch;
     if (!shouldEnable) return;
 
     const style = document.createElement('style');

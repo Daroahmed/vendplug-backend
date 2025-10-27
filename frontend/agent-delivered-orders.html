@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>VendPlug | Delivered Orders</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -223,6 +223,42 @@
       cursor: pointer;
     }
 
+    /* Glowing animation for status update buttons */
+    .btn-secondary.status-action {
+      background: linear-gradient(45deg, #00cc99, #00ffaa, #00cc99);
+      background-size: 200% 200%;
+      animation: glowPulse 2s ease-in-out infinite;
+      box-shadow: 0 0 20px rgba(0, 204, 153, 0.5);
+      border: 2px solid #00cc99;
+      font-weight: bold;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+    }
+
+    @keyframes glowPulse {
+      0% {
+        background-position: 0% 50%;
+        box-shadow: 0 0 20px rgba(0, 204, 153, 0.5);
+        transform: scale(1);
+      }
+      50% {
+        background-position: 100% 50%;
+        box-shadow: 0 0 30px rgba(0, 204, 153, 0.8);
+        transform: scale(1.05);
+      }
+      100% {
+        background-position: 0% 50%;
+        box-shadow: 0 0 20px rgba(0, 204, 153, 0.5);
+        transform: scale(1);
+      }
+    }
+
+    /* Hover effect for status buttons */
+    .btn-secondary.status-action:hover {
+      animation-play-state: paused;
+      transform: scale(1.1);
+      box-shadow: 0 0 40px rgba(0, 204, 153, 1);
+    }
+
     .btn-close {
       background: gray;
       color: white;
@@ -339,7 +375,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h2>Order Details</h2>
-        <button id="closeModalBtn">&times;</button>
+        <button id="closeModalHeaderBtn">&times;</button>
       </div>
       <div id="orderDetails"></div>
       <div class="button-group"></div>

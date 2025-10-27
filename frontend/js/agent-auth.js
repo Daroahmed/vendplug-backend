@@ -41,6 +41,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Store session
         localStorage.setItem("vendplug-agent-token", data.token);
+    
+    // Clean up conflicting tokens after successful agent login
+    if (typeof cleanupAfterLogin === 'function') {
+      cleanupAfterLogin('agent');
+    }
         // Remove token from agent object before storing
         const agentData = { ...data.agent };
         delete agentData.token; // Remove token from user object

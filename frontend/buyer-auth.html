@@ -2,117 +2,557 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>VendPlug | Buyer Auth</title>
   <link rel="stylesheet" href="styles.css" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: 'Segoe UI', sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: #121212;
       color: #fff;
       display: flex;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
-      flex-direction: column;
+      padding: 20px;
     }
+
     .auth-container {
       background: #1e1e1e;
-      padding: 2rem;
-      border-radius: 10px;
+      padding: 3rem 2.5rem;
+      border-radius: 20px;
       width: 100%;
-      max-width: 400px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      max-width: 450px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      border: 1px solid #2c2c2c;
+      position: relative;
+      overflow: hidden;
     }
-    h2 {
+
+    .auth-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #00cc99, #00b386, #00a085);
+    }
+
+    .auth-header {
       text-align: center;
-      color: #00cc99;
+      margin-bottom: 2rem;
     }
-    form {
-      display: none;
+
+    .auth-header h2 {
+      color: #00cc99;
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .auth-header p {
+      color: #bdc3c7;
+      font-size: 1rem;
+      font-weight: 400;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #ecf0f1;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .input-wrapper i {
+      position: absolute;
+      left: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #7f8c8d;
+      font-size: 1.1rem;
+      z-index: 2;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="tel"] {
+      width: 100%;
+      padding: 15px 15px 15px 45px;
+      border: 2px solid #34495e;
+      border-radius: 12px;
+      font-size: 1rem;
+      background: #2c2c2c;
+      color: #ecf0f1;
+      transition: all 0.3s ease;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: #00cc99;
+      box-shadow: 0 0 0 3px rgba(0, 204, 153, 0.2);
+      transform: translateY(-1px);
+    }
+
+    input::placeholder {
+      color: #7f8c8d;
+      font-weight: 400;
+    }
+
+    .password-container {
+      position: relative;
+    }
+
+    .password-toggle {
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: #7f8c8d;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 6px;
+      transition: all 0.3s ease;
+      z-index: 2;
+    }
+
+    .password-toggle:hover {
+      color: #00cc99;
+      background: rgba(0, 204, 153, 0.2);
+    }
+
+    .password-container input {
+      padding-right: 50px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .btn:hover::before {
+      left: 100%;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #00cc99, #00b386);
+      color: #1e1e1e;
+      box-shadow: 0 4px 15px rgba(0, 204, 153, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 204, 153, 0.4);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: #00cc99;
+      border: 2px solid #00cc99;
       margin-top: 1rem;
     }
+
+    .btn-secondary:hover {
+      background: #00cc99;
+      color: #1e1e1e;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(0, 204, 153, 0.3);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: #bdc3c7;
+      border: 2px solid #34495e;
+      margin: 0.5rem 0;
+      font-size: 0.95rem;
+      padding: 12px;
+    }
+
+    .btn-outline:hover {
+      background: #2c2c2c;
+      border-color: #00cc99;
+      color: #00cc99;
+    }
+
+    form {
+      display: none;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+
     form.active {
       display: block;
     }
-    input, button {
-      width: 100%;
-      padding: 10px;
-      margin: 10px 0;
-      border: none;
-      border-radius: 5px;
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
-    input {
-      background: #2c2c2c;
-      color: white;
-    }
-    button {
-      background: #00cc99;
-      color: black;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .toggle {
+
+    .auth-links {
       text-align: center;
-      margin-top: 1rem;
+      margin-top: 1.5rem;
     }
-    .toggle button {
-      background: transparent;
-      color: #00cc99;
-      border: none;
-      font-size: 0.9rem;
-    }
-    .message {
-      text-align: center;
-      margin-top: 10px;
-      font-size: 0.9rem;
-    }
+
     .auth-links a {
       color: #00cc99;
       text-decoration: none;
-      display: block;
-      margin-bottom: 10px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      display: inline-block;
+      margin: 0 10px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      transition: all 0.3s ease;
+    }
+
+    .auth-links a:hover {
+      background: rgba(0, 204, 153, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .toggle-section {
+      text-align: center;
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid #34495e;
+    }
+
+    .toggle-section p {
+      color: #bdc3c7;
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+    }
+
+    .message {
+      text-align: center;
+      margin-top: 1rem;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .message.success {
+      background: rgba(0, 204, 153, 0.2);
+      color: #00b386;
+      border: 1px solid rgba(0, 204, 153, 0.3);
+    }
+
+    .message.error {
+      background: rgba(231, 76, 60, 0.2);
+      color: #e74c3c;
+      border: 1px solid rgba(231, 76, 60, 0.3);
+    }
+
+    .back-link {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: #7f8c8d;
+      text-decoration: none;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 5px;
       transition: color 0.3s ease;
     }
-    .auth-links a:hover {
-      color: #00b386;
+
+    .back-link:hover {
+      color: #00cc99;
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      margin-top: 1rem;
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #00cc99;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Responsive Design */
+    @media (max-width: 480px) {
+      .auth-container {
+        padding: 2rem 1.5rem;
+        margin: 10px;
+      }
+
+      .auth-header h2 {
+        font-size: 1.8rem;
+      }
+
+      .btn {
+        padding: 12px;
+        font-size: 1rem;
+      }
+    }
+
+    /* Form validation styles */
+    .form-group.error input {
+      border-color: #e74c3c;
+      box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.2);
+    }
+
+    .form-group.success input {
+      border-color: #00cc99;
+      box-shadow: 0 0 0 3px rgba(0, 204, 153, 0.2);
+    }
+
+    .error-message {
+      color: #e74c3c;
+      font-size: 0.8rem;
+      margin-top: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .success-message {
+      color: #00cc99;
+      font-size: 0.8rem;
+      margin-top: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
   </style>
 </head>
 <body>
   <div class="auth-container">
-    <h2>Buyer Portal</h2>
+    <a href="auth-selection.html" class="back-link">
+      <i class="fas fa-arrow-left"></i>
+      Back
+    </a>
+
+    <div class="auth-header">
+      <h2>Buyer Portal</h2>
+      <p id="authSubtitle">Welcome back! Please sign in to your account</p>
+    </div>
 
     <!-- Login Form -->
     <form id="buyerLoginForm" class="active">
-      <input id="loginEmail" type="email" placeholder="Email" required />
-      <input id="loginPassword" type="password" placeholder="Password" required />
-      <button type="submit">Login</button>
+      <div class="form-group">
+        <label for="loginEmail">Email Address</label>
+        <div class="input-wrapper">
+          <i class="fas fa-envelope"></i>
+          <input id="loginEmail" type="email" placeholder="Enter your email address" required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="loginPassword">Password</label>
+        <div class="password-container">
+          <div class="input-wrapper">
+            <i class="fas fa-lock"></i>
+            <input id="loginPassword" type="password" placeholder="Enter your password" required />
+          </div>
+          <button type="button" class="password-toggle" onclick="togglePassword('loginPassword', this)">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-sign-in-alt"></i>
+        Sign In
+      </button>
+
+      <div class="loading" id="loginLoading">
+        <div class="spinner"></div>
+        <p>Signing you in...</p>
+      </div>
+
       <div class="message" id="loginMessage"></div>
-      <div class="auth-links" style="margin-top: 15px; text-align: center;">
-        <a href="reset-password.html?role=buyer" style="color: #00cc99; text-decoration: none; display: block; margin-bottom: 10px;">Forgot Password?</a>
-        <a href="verify-email.html" style="color: #00cc99; text-decoration: none; display: block;">Resend Verification Email</a>
+
+      <div class="auth-links">
+        <a href="reset-password.html?role=buyer">Forgot Password?</a>
+        <a href="verify-email.html">Resend Verification Email</a>
       </div>
     </form>
 
     <!-- Register Form -->
     <form id="buyerRegisterForm">
-      <input id="registerFullName" type="text" placeholder="Full Name" required />
-      <input id="registerEmail" type="email" placeholder="Email" required />
-      <input id="registerPhone" type="text" placeholder="Phone Number" required />
-      <input id="registerPassword" type="password" placeholder="Password" required />
-      <button type="submit">Register</button>
+      <div class="form-group">
+        <label for="registerFullName">Full Name</label>
+        <div class="input-wrapper">
+          <i class="fas fa-user"></i>
+          <input id="registerFullName" type="text" placeholder="Enter your full name" required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="registerEmail">Email Address</label>
+        <div class="input-wrapper">
+          <i class="fas fa-envelope"></i>
+          <input id="registerEmail" type="email" placeholder="Enter your email address" required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="registerPhone">Phone Number</label>
+        <div class="input-wrapper">
+          <i class="fas fa-phone"></i>
+          <input id="registerPhone" type="tel" placeholder="Enter your phone number" required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="registerPassword">Password</label>
+        <div class="password-container">
+          <div class="input-wrapper">
+            <i class="fas fa-lock"></i>
+            <input id="registerPassword" type="password" placeholder="Create a strong password" required />
+          </div>
+          <button type="button" class="password-toggle" onclick="togglePassword('registerPassword', this)">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-user-plus"></i>
+        Create Account
+      </button>
+
+      <div class="loading" id="registerLoading">
+        <div class="spinner"></div>
+        <p>Creating your account...</p>
+      </div>
+
       <div class="message" id="registerMessage"></div>
     </form>
 
-    <div class="toggle">
-      <button id="showLoginBtn">Already have an account? Login</button> |
-      <button id="showRegisterBtn">Register instead</button>
+    <div class="toggle-section">
+      <p id="toggleText">Don't have an account yet?</p>
+      <button id="showRegisterBtn" class="btn btn-secondary">
+        <i class="fas fa-user-plus"></i>
+        Create New Account
+      </button>
+      <button id="showLoginBtn" class="btn btn-outline" style="display: none;">
+        <i class="fas fa-sign-in-alt"></i>
+        Sign In Instead
+      </button>
     </div>
   </div>
 
+  <script src="js/config.js"></script>
   <script src="js/auth-utils.js"></script>
   <script src="/js/back-button.js"></script>
+  <script>
+    // Clean up any existing tokens when login page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('🧹 Buyer login page loaded - cleaning up existing tokens');
+      if (typeof clearAllTokens === 'function') {
+        clearAllTokens();
+      }
+      
+      // Initialize form toggle functionality
+      initializeFormToggle();
+    });
+    
+    // Password visibility toggle function with modern icons
+    function togglePassword(inputId, button) {
+      const input = document.getElementById(inputId);
+      const icon = button.querySelector('i');
+      
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+        button.setAttribute('aria-label', 'Hide password');
+      } else {
+        input.type = 'password';
+        icon.className = 'fas fa-eye';
+        button.setAttribute('aria-label', 'Show password');
+      }
+    }
+
+    // Form toggle functionality
+    function initializeFormToggle() {
+      const loginForm = document.getElementById('buyerLoginForm');
+      const registerForm = document.getElementById('buyerRegisterForm');
+      const showLoginBtn = document.getElementById('showLoginBtn');
+      const showRegisterBtn = document.getElementById('showRegisterBtn');
+      const authSubtitle = document.getElementById('authSubtitle');
+      const toggleText = document.getElementById('toggleText');
+
+      showRegisterBtn.addEventListener('click', () => {
+        loginForm.classList.remove('active');
+        registerForm.classList.add('active');
+        showRegisterBtn.style.display = 'none';
+        showLoginBtn.style.display = 'block';
+        authSubtitle.textContent = 'Create your account to get started';
+        toggleText.textContent = 'Already have an account?';
+      });
+
+      showLoginBtn.addEventListener('click', () => {
+        registerForm.classList.remove('active');
+        loginForm.classList.add('active');
+        showLoginBtn.style.display = 'none';
+        showRegisterBtn.style.display = 'block';
+        authSubtitle.textContent = 'Welcome back! Please sign in to your account';
+        toggleText.textContent = 'Don\'t have an account yet?';
+      });
+    }
+  </script>
   <script src="js/buyer-auth.js"></script>
 </body>
 </html>

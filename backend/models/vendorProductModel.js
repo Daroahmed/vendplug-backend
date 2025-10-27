@@ -17,7 +17,7 @@ const vendorProductSchema = new mongoose.Schema({
       "Supermarkets/Groceries and Provisions",
       "Soft Drinks & Water",
       "Kitchen Utensils & Plastics",
-      "Gas Plants",
+      "Tea & Spices",
       "Fruits & Vegetables",
       "Grains", 
 
@@ -38,7 +38,7 @@ const vendorProductSchema = new mongoose.Schema({
   
       // 👚 Fashion & Lifestyle
       "Boutiques",
-      "Thrift / Okrika / Gongo",
+      "Thrift / Okrika / Gonjo",
       "Tokunbo / Belguim Products",
       "Shoes and Bags",
       "Jewelry & Accessories",

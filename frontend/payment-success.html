@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
     <title>Payment Success - Vendplug</title>
     <link rel="stylesheet" href="css/styles.css">
     <style>
@@ -93,7 +93,7 @@
             <h2>Payment Successful!</h2>
             <p>Your wallet has been credited successfully.</p>
             <div class="status-message status-success" id="successMessage"></div>
-            <a href="buyer-wallet.html" class="btn btn-success">Go to Wallet</a>
+            <a href="buyer-wallet.html?from=payment-success" class="btn btn-success">Go to Wallet</a>
         </div>
         
         <div id="errorState" style="display: none;">
@@ -101,7 +101,7 @@
             <h2>Payment Verification Failed</h2>
             <p>There was an issue verifying your payment.</p>
             <div class="status-message status-error" id="errorMessage"></div>
-            <a href="buyer-wallet.html" class="btn">Try Again</a>
+            <a href="buyer-wallet.html?from=payment-success" class="btn">Try Again</a>
         </div>
     </div>
 

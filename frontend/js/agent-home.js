@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
       { name: "Supermarkets/Groceries and Provisions", image: "/assets/groceries.jpg" },
       { name: "Soft Drinks & Water", image: "/assets/soft-drinks.jpg" },
       { name: "Kitchen Utensils & Plastics", image: "/assets/kitchen-utensils.jpg" },
-      { name: "Gas Plants", image: "/assets/gas.jpg" },
+      { name: "Tea & Spices", image: "/assets/tea.jpg" },
       { name: "Fruits & Vegetables", image: "/assets/fruits-vegetables.jpg" },
       { name: "Grains", image: "/assets/grains.jpg" },
     
@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
       // 👚 Fashion & Lifestyle
       { name: "Boutiques", image: "/assets/boutiques.jpg" },
-      { name: "Thrift / Okrika / Gongo", image: "/assets/thrift.jpg" },
+      { name: "Thrift / Okrika / Gonjo", image: "/assets/thrift.jpg" },
       { name: "Tokunbo / Belguim Products", image: "/assets/tokunbo.jpg" },
       { name: "Shoes and Bags", image: "/assets/shoes-bags.jpg" },
       { name: "Jewelry & Accessories", image: "/assets/jewelry.jpg" },

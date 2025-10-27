@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>VendPlug | Manage Products</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     :root {
@@ -331,7 +331,8 @@
 
     @media (max-width: 480px) {
       .product-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
       }
       
       .product-actions {
@@ -419,7 +420,7 @@
   <script src="/js/back-button.js"></script>
   <script>
     
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
       const agent = getCurrentUser();
       const token = getAuthToken();
       const BACKEND = window.BACKEND_URL || "";
@@ -437,14 +438,38 @@
       const submitButtonText = document.getElementById('submitButtonText');
       const toggleFormButton = document.getElementById('toggleForm');
 
-      // 👇 Load category
+      // 👇 Load category (handle both array and string formats)
       if (categorySelect && agent?.category) {
-        categorySelect.innerHTML = `<option value="${agent.category}" selected>${agent.category}</option>`;
+        const categories = Array.isArray(agent.category) ? agent.category : [agent.category];
+        categorySelect.innerHTML = categories.map(cat => 
+          `<option value="${cat}" selected>${cat}</option>`
+        ).join('');
       } else {
         categorySelect.innerHTML = `<option value="" selected>No category found</option>`;
+        // Try to refresh agent data if category is missing
+        await refreshAgentData();
+        return; // Stop execution to prevent further issues
       }
 
       fetchAgentProducts();
+
+      // Function to refresh agent data from server
+      async function refreshAgentData() {
+        try {
+          const response = await fetch(`${BACKEND}/api/agents/profile`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            localStorage.setItem('vendplugAgent', JSON.stringify(data.agent));
+            // Reload the page to refresh the agent data
+            window.location.reload();
+          }
+        } catch (error) {
+          console.error('Failed to refresh agent data:', error);
+        }
+      }
 
       // Toggle form visibility
       toggleFormButton.addEventListener('click', () => {
@@ -466,10 +491,10 @@
         const price = Number(document.getElementById('productPrice').value);
         const description = document.getElementById('productDescription').value;
         const stock = Number(document.getElementById('productStock').value);
-        const category = agent?.category;
+        const category = Array.isArray(agent?.category) ? agent.category[0] : agent?.category;
         const imageFile = document.getElementById('productImage').files[0];
 
-        if (!category) return showOverlay && showOverlay({ type:'error', title:'Missing Category', message:'Agent category is missing' });
+        if (!category) return showOverlay && showOverlay({ type:'error', title:'Missing Category', message:'Agent category is missing. Please sign out and sign in again to refresh your profile data.' });
 
         const formData = new FormData();
         formData.append('name', name);
@@ -661,6 +686,32 @@
       };
 
       window.deleteProduct = deleteProduct;
+
+      // Add photo preview functionality
+      const productImageInput = document.getElementById('productImage');
+      if (productImageInput) {
+        productImageInput.addEventListener('change', function(e) {
+          const file = e.target.files[0];
+          if (file) {
+            // Remove existing preview
+            const existingPreview = document.getElementById('currentImagePreview');
+            if (existingPreview) {
+              existingPreview.remove();
+            }
+            
+            // Create new preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+              const imgPreview = document.createElement('img');
+              imgPreview.id = 'currentImagePreview';
+              imgPreview.src = e.target.result;
+              imgPreview.className = 'current-image-preview';
+              document.querySelector('.file-input').insertAdjacentElement('afterend', imgPreview);
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+      }
     });
   </script>
   

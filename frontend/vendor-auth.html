@@ -2,111 +2,342 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>VendPlug | Vendor Auth</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: 'Segoe UI', sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: #121212;
       color: #fff;
       display: flex;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
-      flex-direction: column;
-      margin: 0;
       padding: 20px;
     }
 
     .auth-container {
       background: #1e1e1e;
-      padding: 2rem;
-      border-radius: 10px;
+      padding: 3rem 2.5rem;
+      border-radius: 20px;
       width: 100%;
-      max-width: 500px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      max-width: 550px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      border: 1px solid #2c2c2c;
+      position: relative;
+      overflow: hidden;
     }
 
-    h2 {
+    .auth-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #00cc99, #00b386, #00a085);
+    }
+
+    .auth-header {
       text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .auth-header h2 {
       color: #00cc99;
-      margin-top: 0;
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .auth-header p {
+      color: #bdc3c7;
+      font-size: 1rem;
+      font-weight: 400;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #ecf0f1;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .input-wrapper i {
+      position: absolute;
+      left: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #7f8c8d;
+      font-size: 1.1rem;
+      z-index: 2;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="tel"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 15px 15px 15px 45px;
+      border: 2px solid #34495e;
+      border-radius: 12px;
+      font-size: 1rem;
+      background: #2c2c2c;
+      color: #ecf0f1;
+      transition: all 0.3s ease;
+      outline: none;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: #00cc99;
+      box-shadow: 0 0 0 3px rgba(0, 204, 153, 0.2);
+      transform: translateY(-1px);
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: #7f8c8d;
+      font-weight: 400;
+    }
+
+    .password-container {
+      position: relative;
+    }
+
+    .password-toggle {
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: #7f8c8d;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 6px;
+      transition: all 0.3s ease;
+      z-index: 2;
+    }
+
+    .password-toggle:hover {
+      color: #00cc99;
+      background: rgba(0, 204, 153, 0.2);
+    }
+
+    .password-container input {
+      padding-right: 50px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .btn:hover::before {
+      left: 100%;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #00cc99, #00b386);
+      color: #1e1e1e;
+      box-shadow: 0 4px 15px rgba(0, 204, 153, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 204, 153, 0.4);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: #00cc99;
+      border: 2px solid #00cc99;
+      margin-top: 1rem;
+    }
+
+    .btn-secondary:hover {
+      background: #00cc99;
+      color: #1e1e1e;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(0, 204, 153, 0.3);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: #bdc3c7;
+      border: 2px solid #34495e;
+      margin: 0.5rem 0;
+      font-size: 0.95rem;
+      padding: 12px;
+    }
+
+    .btn-outline:hover {
+      background: #2c2c2c;
+      border-color: #00cc99;
+      color: #00cc99;
     }
 
     form {
       display: none;
-      margin-top: 1rem;
+      animation: fadeIn 0.5s ease-in-out;
     }
 
     form.active {
       display: block;
     }
 
-    input, button, select, textarea {
-      width: 100%;
-      padding: 12px;
-      margin: 8px 0;
-      border: none;
-      border-radius: 5px;
-      box-sizing: border-box;
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
-    input, select, textarea {
-      background: #2c2c2c;
-      color: white;
-    }
-
-    button {
-      background: #00cc99;
-      color: black;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-
-    button:hover {
-      background: #00b386;
-    }
-
-    .toggle {
+    .auth-links {
       text-align: center;
-      margin-top: 1rem;
+      margin-top: 1.5rem;
     }
 
-    .toggle button {
-      background: transparent;
+    .auth-links a {
       color: #00cc99;
-      border: none;
+      text-decoration: none;
       font-size: 0.9rem;
-      text-decoration: underline;
-      width: auto;
-      padding: 5px;
-      margin: 0 5px;
+      font-weight: 500;
+      display: inline-block;
+      margin: 0 10px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      transition: all 0.3s ease;
     }
 
-    .toggle button:hover {
-      background: transparent;
-      color: #00b386;
+    .auth-links a:hover {
+      background: rgba(0, 204, 153, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .toggle-section {
+      text-align: center;
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid #34495e;
+    }
+
+    .toggle-section p {
+      color: #bdc3c7;
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
     }
 
     .message {
       text-align: center;
-      margin-top: 10px;
+      margin-top: 1rem;
+      padding: 12px;
+      border-radius: 8px;
       font-size: 0.9rem;
-      color: #ff5555;
-      display: none;
+      font-weight: 500;
     }
 
-    label {
-      display: block;
-      margin: 10px 0 5px;
-      color: #ccc;
+    .message.success {
+      background: rgba(0, 204, 153, 0.2);
+      color: #00b386;
+      border: 1px solid rgba(0, 204, 153, 0.3);
+    }
+
+    .message.error {
+      background: rgba(231, 76, 60, 0.2);
+      color: #e74c3c;
+      border: 1px solid rgba(231, 76, 60, 0.3);
+    }
+
+    .back-link {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: #7f8c8d;
+      text-decoration: none;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: color 0.3s ease;
+    }
+
+    .back-link:hover {
+      color: #00cc99;
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      margin-top: 1rem;
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #00cc99;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
 
     .category-hint {
       font-size: 0.8rem;
-      color: #aaa;
+      color: #7f8c8d;
       margin-bottom: 10px;
+      font-style: italic;
     }
 
     .selected-category {
@@ -118,70 +349,227 @@
 
     .category-tag {
       background: #00cc99;
-      color: #000;
-      padding: 5px 10px;
-      border-radius: 15px;
+      color: #1e1e1e;
+      padding: 8px 12px;
+      border-radius: 20px;
       font-size: 0.8rem;
       display: flex;
       align-items: center;
+      gap: 5px;
+      font-weight: 500;
     }
 
     .category-tag button {
       background: transparent;
-      color: #000;
+      color: #1e1e1e;
       border: none;
-      margin-left: 5px;
       padding: 0;
       width: auto;
       font-weight: bold;
       cursor: pointer;
+      font-size: 1.1rem;
+      line-height: 1;
+    }
+
+    .category-tag button:hover {
+      color: #e74c3c;
     }
 
     #otherCategoryDiv {
       margin-top: 10px;
       transition: all 0.3s ease;
     }
+
+    /* Form validation styles */
+    .form-group.error input,
+    .form-group.error select,
+    .form-group.error textarea {
+      border-color: #e74c3c;
+      box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.2);
+    }
+
+    .form-group.success input,
+    .form-group.success select,
+    .form-group.success textarea {
+      border-color: #00cc99;
+      box-shadow: 0 0 0 3px rgba(0, 204, 153, 0.2);
+    }
+
+    .error-message {
+      color: #e74c3c;
+      font-size: 0.8rem;
+      margin-top: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .success-message {
+      color: #00cc99;
+      font-size: 0.8rem;
+      margin-top: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 480px) {
+      .auth-container {
+        padding: 2rem 1.5rem;
+        margin: 10px;
+      }
+
+      .auth-header h2 {
+        font-size: 1.8rem;
+      }
+
+      .btn {
+        padding: 12px;
+        font-size: 1rem;
+      }
+    }
   </style>
 </head>
 <body>
   <div id="global-loading-overlay" class="loading-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:9999"><div class="loading-spinner" style="width:56px;height:56px;border:4px solid rgba(255,255,255,0.25);border-top-color:#00cc99;border-radius:50%;"></div></div>
   <div class="auth-container">
-    <h2>Vendor Portal</h2>
+    <a href="auth-selection.html" class="back-link">
+      <i class="fas fa-arrow-left"></i>
+      Back
+    </a>
+
+    <div class="auth-header">
+      <h2>Vendor Portal</h2>
+      <p id="authSubtitle">Welcome back! Please sign in to your account</p>
+    </div>
 
     <!-- Login Form -->
     <form id="vendorLoginForm" class="active">
-      <input id="vendorLoginEmail" type="email" placeholder="Email" required />
-      <input id="vendorLoginPassword" type="password" placeholder="Password" required />
-      <button type="submit">Login</button>
+      <div class="form-group">
+        <label for="vendorLoginEmail">Email Address</label>
+        <div class="input-wrapper">
+          <i class="fas fa-envelope"></i>
+          <input id="vendorLoginEmail" type="email" placeholder="Enter your email address" required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="vendorLoginPassword">Password</label>
+        <div class="password-container">
+          <div class="input-wrapper">
+            <i class="fas fa-lock"></i>
+            <input id="vendorLoginPassword" type="password" placeholder="Enter your password" required />
+          </div>
+          <button type="button" class="password-toggle" onclick="togglePassword('vendorLoginPassword', this)">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-sign-in-alt"></i>
+        Sign In
+      </button>
+
+      <div class="loading" id="loginLoading">
+        <div class="spinner"></div>
+        <p>Signing you in...</p>
+      </div>
+
       <div class="message" id="loginMessage"></div>
-      <div class="auth-links" style="margin-top: 15px; text-align: center;">
-        <a href="reset-password.html?role=vendor" style="color: #00cc99; text-decoration: none; display: block; margin-bottom: 10px;">Forgot Password?</a>
-        <a href="verify-email.html" style="color: #00cc99; text-decoration: none; display: block;">Resend Verification Email</a>
+
+      <div class="auth-links">
+        <a href="reset-password.html?role=vendor">Forgot Password?</a>
+        <a href="verify-email.html">Resend Verification Email</a>
       </div>
     </form>
 
     <!-- Register Form -->
     <form id="vendorRegisterForm">
-      <input id="vendorFullName" type="text" placeholder="Full Name" required />
-      <input id="vendorEmail" type="email" placeholder="Email" required />
-      <input id="vendorShopName" type="text" placeholder="Shop Name" required />
-      <input id="vendorPhoneNumber" type="text" placeholder="Phone Number" required />
-      <input id="vendorPassword" type="password" placeholder="Password" required />
-      <input id="vendorBusinessName" type="text" placeholder="Business Name" required />
-      <input id="vendorBusinessAddress" type="text" placeholder="Business Address" required />
-      <input id="vendorCacNumber" type="text" placeholder="CAC Number" required />
+      <div class="form-group">
+        <label for="vendorFullName">Full Name</label>
+        <div class="input-wrapper">
+          <i class="fas fa-user"></i>
+          <input id="vendorFullName" type="text" placeholder="Enter your full name" required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="vendorEmail">Email Address</label>
+        <div class="input-wrapper">
+          <i class="fas fa-envelope"></i>
+          <input id="vendorEmail" type="email" placeholder="Enter your email address" required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="vendorShopName">Shop Name</label>
+        <div class="input-wrapper">
+          <i class="fas fa-store"></i>
+          <input id="vendorShopName" type="text" placeholder="Enter your shop name" required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="vendorPhoneNumber">Phone Number</label>
+        <div class="input-wrapper">
+          <i class="fas fa-phone"></i>
+          <input id="vendorPhoneNumber" type="tel" placeholder="Enter your phone number" required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="vendorPassword">Password</label>
+        <div class="password-container">
+          <div class="input-wrapper">
+            <i class="fas fa-lock"></i>
+            <input id="vendorPassword" type="password" placeholder="Create a strong password" required />
+          </div>
+          <button type="button" class="password-toggle" onclick="togglePassword('vendorPassword', this)">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="vendorBusinessName">Business Name</label>
+        <div class="input-wrapper">
+          <i class="fas fa-building"></i>
+          <input id="vendorBusinessName" type="text" placeholder="Enter your business name" required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="vendorBusinessAddress">Business Address</label>
+        <div class="input-wrapper">
+          <i class="fas fa-map-marker-alt"></i>
+          <input id="vendorBusinessAddress" type="text" placeholder="Enter your business address" required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="vendorCacNumber">CAC Number (Optional)</label>
+        <div class="input-wrapper">
+          <i class="fas fa-certificate"></i>
+          <input id="vendorCacNumber" type="text" placeholder="Enter your CAC number (optional)" />
+        </div>
+      </div>
 
       <!-- Category Selection -->
-      <label for="category">Business Categories (Select multiple)</label>
-      <div class="category-hint">Hold Ctrl/Cmd to select multiple categories</div>
-      <select id="category" name="category" multiple size="5" required>
+      <div class="form-group">
+        <label for="category">Business Categories (Select multiple)</label>
+        <div class="category-hint">Hold Ctrl/Cmd to select multiple categories</div>
+        <div class="input-wrapper">
+          <i class="fas fa-tags"></i>
+          <select id="category" name="category" multiple size="5" required>
         <option value="">-- Select Category --</option>
       
         <!-- Everyday Essentials -->
         <option value="Supermarkets/Groceries and Provisions">Supermarkets/Groceries and Provisions</option>
         <option value="Soft Drinks & Water">Soft Drinks & Water</option>
         <option value="Kitchen Utensils & Plastics">Kitchen Utensils & Plastics</option>
-        <option value="Gas Plants">Gas Plants</option>
+        <option value="Tea & Spices">Tea & Spices</option>
         <option value="Fruits & Vegetables">Fruits & Vegetables</option>
         <option value="Grains">Grains</option>
       
@@ -200,7 +588,7 @@
       
         <!-- Fashion & Lifestyle -->
         <option value="Boutiques">Boutiques</option>
-        <option value="Thrift / Okrika / Gongo">Thrift / Okrika / Gongo</option>
+        <option value="Thrift / Okrika / Gonjo">Thrift / Okrika / Gonjo</option>
         <option value="Tokunbo / Belgium Products">Tokunbo / Belgium Products</option>
         <option value="Shoes and Bags">Shoes and Bags</option>
         <option value="Jewelry & Accessories">Jewelry & Accessories</option>
@@ -286,71 +674,104 @@
         
         <!-- Other option -->
         <option value="Other">Other (Not Listed)</option>
-      </select>
+          </select>
+        </div>
+      </div>
 
       <!-- Selected Categories Display -->
       <div class="selected-category" id="selectedCategory"></div>
 
       <!-- Other Category Input -->
       <div id="otherCategoryDiv" style="display:none;">
-        <label for="otherCategory">Specify Category</label>
-        <input type="text" id="otherCategory" placeholder="Enter custom category" />
+        <div class="form-group">
+          <label for="otherCategory">Specify Category</label>
+          <div class="input-wrapper">
+            <i class="fas fa-edit"></i>
+            <input type="text" id="otherCategory" placeholder="Enter custom category" />
+          </div>
+        </div>
       </div>
 
       <!-- Location -->
-      <label for="vendorState">State</label>
-      <select id="vendorState" required>
-        <option value="">Select State</option>
-        <option value="Abia">Abia</option>
-        <option value="Adamawa">Adamawa</option>
-        <option value="Akwa Ibom">Akwa Ibom</option>
-        <option value="Anambra">Anambra</option>
-        <option value="Bauchi">Bauchi</option>
-        <option value="Bayelsa">Bayelsa</option>
-        <option value="Benue">Benue</option>
-        <option value="Borno">Borno</option>
-        <option value="Cross River">Cross River</option>
-        <option value="Delta">Delta</option>
-        <option value="Ebonyi">Ebonyi</option>
-        <option value="Edo">Edo</option>
-        <option value="Ekiti">Ekiti</option>
-        <option value="Enugu">Enugu</option>
-        <option value="FCT">FCT</option>
-        <option value="Gombe">Gombe</option>
-        <option value="Imo">Imo</option>
-        <option value="Jigawa">Jigawa</option>
-        <option value="Kaduna">Kaduna</option>
-        <option value="Kano">Kano</option>
-        <option value="Katsina">Katsina</option>
-        <option value="Kebbi">Kebbi</option>
-        <option value="Kogi">Kogi</option>
-        <option value="Kwara">Kwara</option>
-        <option value="Lagos">Lagos</option>
-        <option value="Nasarawa">Nasarawa</option>
-        <option value="Niger">Niger</option>
-        <option value="Ogun">Ogun</option>
-        <option value="Ondo">O Ondo</option>
-        <option value="Osun">Osun</option>
-        <option value="Oyo">Oyo</option>
-        <option value="Plateau">Plateau</option>
-        <option value="Rivers">Rivers</option>
-        <option value="Sokoto">Sokoto</option>
-        <option value="Taraba">Taraba</option>
-        <option value="Yobe">Yobe</option>
-        <option value="Zamfara">Zamfara</option>
-      </select>
+      <div class="form-group">
+        <label for="vendorState">State</label>
+        <div class="input-wrapper">
+          <i class="fas fa-map"></i>
+          <select id="vendorState" required>
+            <option value="">Select State</option>
+            <option value="Abia">Abia</option>
+            <option value="Adamawa">Adamawa</option>
+            <option value="Akwa Ibom">Akwa Ibom</option>
+            <option value="Anambra">Anambra</option>
+            <option value="Bauchi">Bauchi</option>
+            <option value="Bayelsa">Bayelsa</option>
+            <option value="Benue">Benue</option>
+            <option value="Borno">Borno</option>
+            <option value="Cross River">Cross River</option>
+            <option value="Delta">Delta</option>
+            <option value="Ebonyi">Ebonyi</option>
+            <option value="Edo">Edo</option>
+            <option value="Ekiti">Ekiti</option>
+            <option value="Enugu">Enugu</option>
+            <option value="FCT">FCT</option>
+            <option value="Gombe">Gombe</option>
+            <option value="Imo">Imo</option>
+            <option value="Jigawa">Jigawa</option>
+            <option value="Kaduna">Kaduna</option>
+            <option value="Kano">Kano</option>
+            <option value="Katsina">Katsina</option>
+            <option value="Kebbi">Kebbi</option>
+            <option value="Kogi">Kogi</option>
+            <option value="Kwara">Kwara</option>
+            <option value="Lagos">Lagos</option>
+            <option value="Nasarawa">Nasarawa</option>
+            <option value="Niger">Niger</option>
+            <option value="Ogun">Ogun</option>
+            <option value="Ondo">Ondo</option>
+            <option value="Osun">Osun</option>
+            <option value="Oyo">Oyo</option>
+            <option value="Plateau">Plateau</option>
+            <option value="Rivers">Rivers</option>
+            <option value="Sokoto">Sokoto</option>
+            <option value="Taraba">Taraba</option>
+            <option value="Yobe">Yobe</option>
+            <option value="Zamfara">Zamfara</option>
+          </select>
+        </div>
+      </div>
 
       <!-- Shop Description -->
-      <label for="vendorShopDescription">Shop Description (Optional)</label>
-      <textarea id="vendorShopDescription" rows="3" placeholder="Short Description of Your Shop"></textarea>
+      <div class="form-group">
+        <label for="vendorShopDescription">Shop Description (Optional)</label>
+        <div class="input-wrapper">
+          <i class="fas fa-align-left"></i>
+          <textarea id="vendorShopDescription" rows="3" placeholder="Short description of your shop"></textarea>
+        </div>
+      </div>
 
-      <button type="submit">Register</button>
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-user-plus"></i>
+        Create Account
+      </button>
+
+      <div class="loading" id="registerLoading">
+        <div class="spinner"></div>
+        <p>Creating your account...</p>
+      </div>
+
       <div class="message" id="registerError"></div>
     </form>
 
-    <div class="toggle">
-      <button id="showVendorLoginBtn">Already have an account? Login</button>
-      <button id="showVendorRegisterBtn">Register instead</button>
+    <div class="toggle-section">
+      <p id="toggleText">Don't have an account yet?</p>
+      <button id="showVendorRegisterBtn" class="btn btn-secondary">
+        <i class="fas fa-user-plus"></i>
+        Create New Account
+      </button>
+      <button id="showVendorLoginBtn" class="btn btn-outline" style="display: none;">
+        <i class="fas fa-sign-in-alt"></i>
+        Sign In Instead
+      </button>
     </div>
   </div>
 
@@ -492,24 +913,24 @@
 
       const fullName = document.getElementById("vendorFullName").value;
       const email = document.getElementById("vendorEmail").value;
-      const shopName = document.getElementById("vendorShopName").value;
       const phoneNumber = document.getElementById("vendorPhoneNumber").value;
       const password = document.getElementById("vendorPassword").value;
+      const shopName = document.getElementById("vendorShopName").value;
       const businessName = document.getElementById("vendorBusinessName").value;
       const businessAddress = document.getElementById("vendorBusinessAddress").value;
       const cacNumber = document.getElementById("vendorCacNumber").value;
       const state = document.getElementById("vendorState").value;
       const shopDescription = document.getElementById("vendorShopDescription").value;
 
-      // Get the custom category if "Other" is selected
-      let finalCategory = [...selectedCategory];
+      // Handle "Other" category properly
+      let finalCategories = [...selectedCategory];
+      let otherCategory = null;
       
       if (selectedCategory.includes("Other")) {
         const customCategory = otherCategoryInput.value.trim();
         if (customCategory) {
-          // Replace "Other" with the custom category
-          finalCategory = finalCategory.filter(cat => cat !== "Other");
-          finalCategory.push(customCategory);
+          // Keep "Other" in the categories array, send custom category separately
+          otherCategory = customCategory;
         } else {
           document.getElementById("registerError").textContent = "Please specify your custom category";
           document.getElementById("registerError").style.display = "block";
@@ -518,7 +939,7 @@
       }
 
       // Validate that at least one category is selected
-      if (finalCategory.length === 0) {
+      if (finalCategories.length === 0) {
         document.getElementById("registerError").textContent = "Please select at least one category";
         document.getElementById("registerError").style.display = "block";
         return;
@@ -535,13 +956,14 @@
           body: JSON.stringify({
             fullName, 
             email, 
-            shopName, 
             phoneNumber,
             password, 
+            shopName,
             businessName, 
             businessAddress, 
             cacNumber, 
-            category: finalCategory,
+            category: finalCategories,
+            otherCategory,
             state,
             shopDescription
           }),
@@ -566,6 +988,62 @@
         errorMsg.style.color = "#ff5555";
       } finally { try { hideLoading && hideLoading(); } catch(_) {} }
     });
+  </script>
+  <script>
+    // Clean up any existing tokens when login page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('🧹 Vendor login page loaded - cleaning up existing tokens');
+      if (typeof clearAllTokens === 'function') {
+        clearAllTokens();
+      }
+      
+      // Initialize form toggle functionality
+      initializeFormToggle();
+    });
+    
+    // Password visibility toggle function with modern icons
+    function togglePassword(inputId, button) {
+      const input = document.getElementById(inputId);
+      const icon = button.querySelector('i');
+      
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+        button.setAttribute('aria-label', 'Hide password');
+      } else {
+        input.type = 'password';
+        icon.className = 'fas fa-eye';
+        button.setAttribute('aria-label', 'Show password');
+      }
+    }
+
+    // Form toggle functionality
+    function initializeFormToggle() {
+      const loginForm = document.getElementById('vendorLoginForm');
+      const registerForm = document.getElementById('vendorRegisterForm');
+      const showLoginBtn = document.getElementById('showVendorLoginBtn');
+      const showRegisterBtn = document.getElementById('showVendorRegisterBtn');
+      const authSubtitle = document.getElementById('authSubtitle');
+      const toggleText = document.getElementById('toggleText');
+
+      showRegisterBtn.addEventListener('click', () => {
+        loginForm.classList.remove('active');
+        registerForm.classList.add('active');
+        showRegisterBtn.style.display = 'none';
+        showLoginBtn.style.display = 'block';
+        authSubtitle.textContent = 'Create your vendor account to get started';
+        toggleText.textContent = 'Already have an account?';
+      });
+
+      showLoginBtn.addEventListener('click', () => {
+        registerForm.classList.remove('active');
+        loginForm.classList.add('active');
+        showLoginBtn.style.display = 'none';
+        showRegisterBtn.style.display = 'block';
+        authSubtitle.textContent = 'Welcome back! Please sign in to your account';
+        toggleText.textContent = 'Don\'t have an account yet?';
+      });
+    }
   </script>
 </body>
 </html>

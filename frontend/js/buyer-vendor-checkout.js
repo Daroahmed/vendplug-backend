@@ -1,5 +1,5 @@
 // frontend/js/buyer-vendor-checkout.js
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   // =========================
   // DOM ELEMENTS
   // =========================
@@ -7,12 +7,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const totalEl = document.getElementById('total-amount');
   const walletEl = document.getElementById('wallet-balance');
   const checkoutBtn = document.getElementById('checkout-btn');
-  const locationInput = document.getElementById('pickup-location');
+  const stateInput = document.getElementById('pickup-state');
+  const addressInput = document.getElementById('pickup-address');
 
   // =========================
   // CONFIG & STATE
   // =========================
-  const token = getAuthToken();
   const baseURL = window.BACKEND_URL; // ✅ from config.js
 
   if (!baseURL) {
@@ -21,14 +21,122 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
+  // =========================
+  // TOKEN VALIDATION & REFRESH
+  // =========================
+  let token = getAuthToken();
+  
   if (!token) {
     window.showOverlay && showOverlay({ type:'error', title:'Login required', message:'Please login first' });
     redirectToLogin();
     return;
   }
 
+  // Validate and refresh token on page load
+  try {
+    const response = await fetch(`${baseURL}/api/auth/validate`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (!response.ok) {
+      // Try to refresh token
+      const refreshResponse = await fetch(`${baseURL}/api/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token })
+      });
+
+      if (refreshResponse.ok) {
+        const refreshData = await refreshResponse.json();
+        if (refreshData.token) {
+          // Update token in localStorage
+          const userType = getCurrentUserType();
+          const tokenKey = userType ? `vendplug-${userType}-token` : 'vendplug-token';
+          localStorage.setItem(tokenKey, refreshData.token);
+          token = refreshData.token;
+          console.log('✅ Token refreshed successfully');
+        } else {
+          throw new Error('No new token received');
+        }
+      } else {
+        throw new Error('Token refresh failed');
+      }
+    }
+  } catch (error) {
+    console.error('❌ Token validation failed:', error);
+    window.showOverlay && showOverlay({ 
+      type: 'error', 
+      title: 'Session Expired', 
+      message: 'Please login again to continue' 
+    });
+    setTimeout(() => redirectToLogin(), 2000);
+    return;
+  }
+
   let cart = [];
   let walletBalance = 0;
+
+  // =========================
+  // AUTHENTICATED REQUEST HELPER
+  // =========================
+  async function makeAuthenticatedRequest(url, options = {}) {
+    const currentToken = getAuthToken();
+    const requestOptions = {
+      ...options,
+      headers: {
+        ...options.headers,
+        Authorization: `Bearer ${currentToken}`
+      }
+    };
+
+    try {
+      const response = await fetch(url, requestOptions);
+      
+      if (response.status === 401) {
+        // Token expired, try to refresh
+        const refreshResponse = await fetch(`${baseURL}/api/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: currentToken })
+        });
+
+        if (refreshResponse.ok) {
+          const refreshData = await refreshResponse.json();
+          if (refreshData.token) {
+            // Update token and retry request
+            const userType = getCurrentUserType();
+            const tokenKey = userType ? `vendplug-${userType}-token` : 'vendplug-token';
+            localStorage.setItem(tokenKey, refreshData.token);
+            
+            // Retry with new token
+            const retryOptions = {
+              ...requestOptions,
+              headers: {
+                ...requestOptions.headers,
+                Authorization: `Bearer ${refreshData.token}`
+              }
+            };
+            return await fetch(url, retryOptions);
+          }
+        }
+        
+        // Refresh failed, redirect to login
+        window.showOverlay && showOverlay({ 
+          type: 'error', 
+          title: 'Session Expired', 
+          message: 'Please login again to continue' 
+        });
+        setTimeout(() => redirectToLogin(), 2000);
+        throw new Error('Authentication failed');
+      }
+      
+      return response;
+    } catch (error) {
+      console.error('❌ Authenticated request failed:', error);
+      throw error;
+    }
+  }
 
   // =========================
   // LOAD CART + WALLET
@@ -37,12 +145,8 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       showLoading && showLoading();
       const [cartRes, walletRes] = await Promise.all([
-        fetch(`${baseURL}/api/vendor-cart`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(`${baseURL}/api/wallet/buyer`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+        makeAuthenticatedRequest(`${baseURL}/api/vendor-cart`),
+        makeAuthenticatedRequest(`${baseURL}/api/wallet/buyer`),
       ]);
 
       if (!cartRes.ok || !walletRes.ok) throw new Error('Failed to fetch data');
@@ -139,9 +243,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       if (e.target.classList.contains('remove-btn')) {
-        await fetch(`${baseURL}/api/vendor-cart/${id}`, {
+        await makeAuthenticatedRequest(`${baseURL}/api/vendor-cart/${id}`, {
           method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` },
         });
       }
 
@@ -156,12 +259,9 @@ document.addEventListener('DOMContentLoaded', () => {
           window.showOverlay && showOverlay({ type:'info', title:'Stock limit', message:`Only ${available} available` });
           return;
         }
-        await fetch(`${baseURL}/api/vendor-cart`, {
+        await makeAuthenticatedRequest(`${baseURL}/api/vendor-cart`, {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             productId: id,
             quantity: (item.quantity || 1) + 1,
@@ -174,18 +274,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const newQty = (item.quantity || 1) - 1;
 
         if (newQty > 0) {
-          await fetch(`${baseURL}/api/vendor-cart`, {
+          await makeAuthenticatedRequest(`${baseURL}/api/vendor-cart`, {
             method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ productId: id, quantity: newQty }),
           });
         } else {
-          await fetch(`${baseURL}/api/vendor-cart/${id}`, {
+          await makeAuthenticatedRequest(`${baseURL}/api/vendor-cart/${id}`, {
             method: 'DELETE',
-            headers: { Authorization: `Bearer ${token}` },
           });
         }
       }
@@ -223,8 +319,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================
   checkoutBtn.addEventListener('click', async () => {
     if (checkoutBtn && checkoutBtn.disabled) return;
-    const location = locationInput.value.trim();
-    if (!location) return (window.showOverlay && showOverlay({ type:'error', title:'Pickup location', message:'Please enter pickup location' }));
+    const state = stateInput.value.trim();
+    const address = addressInput.value.trim();
+    
+    if (!state) return (window.showOverlay && showOverlay({ type:'error', title:'Pickup location', message:'Please select your state' }));
+    
+    // Combine state and address details
+    const location = address ? `${state}, ${address}` : state;
 
     const totalAmount = cart.reduce((sum, item) => {
       const qty = item.quantity || 1;
@@ -237,12 +338,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       showLoading && showLoading();
-      const res = await fetch(`${baseURL}/api/vendor-checkout`, {
+      const res = await makeAuthenticatedRequest(`${baseURL}/api/vendor-checkout`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           cartItems: cart.map((i) => ({
             id: i.product?._id,

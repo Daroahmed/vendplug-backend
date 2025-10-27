@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <title>VendPlug - Discover Amazing Products</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/ads.css">
+  <link rel="stylesheet" href="/CSS/ads.css">
   <style>
     :root {
       --primary: #00cc99;
@@ -72,6 +72,96 @@
       display: flex;
       align-items: center;
       gap: 25px;
+    }
+
+    /* Global Search Styles */
+    .search-container {
+      flex: 1;
+      max-width: 500px;
+      margin: 0 2rem;
+      position: relative;
+    }
+
+    .search-box {
+      display: flex;
+      background: var(--bg-card);
+      border: 2px solid var(--bg-secondary);
+      border-radius: 25px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .search-box:focus-within {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(0, 204, 153, 0.1);
+    }
+
+    .search-input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: none;
+      background: transparent;
+      color: var(--text-light);
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    .search-input::placeholder {
+      color: var(--muted);
+    }
+
+    .search-btn {
+      padding: 0.75rem 1rem;
+      background: var(--primary);
+      border: none;
+      color: var(--text-light);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .search-btn:hover {
+      background: #00b894;
+    }
+
+    .search-suggestions {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--bg-card);
+      border: 1px solid var(--bg-secondary);
+      border-radius: 8px;
+      margin-top: 4px;
+      max-height: 300px;
+      overflow-y: auto;
+      z-index: 1000;
+      display: none;
+    }
+
+    .suggestion-item {
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      border-bottom: 1px solid var(--bg-secondary);
+      transition: background 0.2s ease;
+    }
+
+    .suggestion-item:hover {
+      background: var(--bg-secondary);
+    }
+
+    .suggestion-item:last-child {
+      border-bottom: none;
+    }
+
+    .suggestion-product {
+      font-weight: 600;
+      color: var(--text-light);
+      margin-bottom: 0.25rem;
+    }
+
+    .suggestion-vendor {
+      font-size: 0.8rem;
+      color: var(--muted);
     }
 
     .auth-buttons {
@@ -375,6 +465,78 @@
       margin-bottom: 2rem;
     }
 
+    /* Horizontal scroll for active categories */
+    .active-categories-scroll {
+      display: flex;
+      gap: 1rem;
+      overflow-x: auto;
+      padding: 1rem 0;
+      margin-bottom: 2rem;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .active-categories-scroll::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .active-categories-scroll::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+      border-radius: 3px;
+    }
+
+    .active-categories-scroll::-webkit-scrollbar-thumb {
+      background: var(--primary);
+      border-radius: 3px;
+    }
+
+    .active-categories-scroll::-webkit-scrollbar-thumb:hover {
+      background: #00b894;
+    }
+
+    .active-category-card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      border: 2px solid transparent;
+      min-width: 200px;
+      max-width: 200px;
+      flex-shrink: 0;
+    }
+
+    .active-category-card:hover {
+      transform: translateY(-5px);
+      border-color: var(--primary);
+      box-shadow: 0 8px 25px rgba(0, 204, 153, 0.2);
+    }
+
+    .active-category-image {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+      background: var(--bg-secondary);
+    }
+
+    .active-category-info {
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .active-category-name {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-light);
+      margin-bottom: 0.5rem;
+      line-height: 1.3;
+    }
+
+    .active-category-description {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
     .category-card {
       background: var(--bg-card);
       border-radius: 12px;
@@ -433,10 +595,31 @@
       }
 
       .categories-grid {
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
       }
 
+      /* Mobile adjustments for active categories horizontal scroll */
+      .active-category-card {
+        min-width: 160px;
+        max-width: 160px;
+      }
+
+      .active-category-image {
+        height: 100px;
+      }
+
+      .active-category-info {
+        padding: 0.8rem;
+      }
+
+      .active-category-name {
+        font-size: 0.8rem;
+      }
+
+      .active-category-description {
+        font-size: 0.7rem;
+      }
     }
   </style>
 </head>
@@ -448,6 +631,17 @@
         <i class="fas fa-bars"></i>
       </button>
       <h2>Select Category</h2>
+    </div>
+    
+    <!-- Global Product Search Bar -->
+    <div class="search-container">
+      <div class="search-box">
+        <input type="text" id="globalSearchInput" placeholder="Search for products across all vendors..." class="search-input">
+        <button class="search-btn" onclick="performGlobalSearch()">
+          <i class="fas fa-search"></i>
+        </button>
+      </div>
+      <div id="searchSuggestions" class="search-suggestions"></div>
     </div>
     
     <div class="header-actions">
@@ -492,8 +686,7 @@
       <ul class="menu-links">
         <li><a href="buyer-agent-checkout.html"><i class="fas fa-shopping-cart"></i> Cart</a></li>
         <li><a href="buyer-agent-orders.html"><i class="fas fa-clipboard-list"></i> Orders</a></li>
-        <li><a href="buyer-list.html"><i class="fas fa-list"></i> Custom List</a></li>
-      </ul>
+
     </div>
 
     <div class="menu-section">
@@ -504,6 +697,8 @@
         <li><a href="my-disputes.html"><i class="fas fa-clipboard-list"></i> My Disputes</a></li>
         <li><a href="support.html"><i class="fas fa-headset"></i> Support</a></li>
         <li><a href="#" onclick="buyerLogout(event)"><i class="fas fa-sign-out-alt"></i> Sign Out</a></li>
+        <li><a href="index.html"><i class="fas fa-list"></i> About Vendplug</a></li>
+      </ul>
       </ul>
     </div>
   </div>
@@ -537,7 +732,7 @@
     <!-- Category Sections will be dynamically added here -->
     <div id="activeCategoriesSection" class="category-group" style="display:none;">
       <h3 class="group-title">Active Categories Near You</h3>
-      <div id="activeCategoriesGrid" class="categories-grid"></div>
+      <div id="activeCategoriesGrid" class="active-categories-scroll"></div>
     </div>
     <div id="categorySections"></div>
     </main>
@@ -565,6 +760,101 @@
   </script>
   
   <script>
+    // Global Product Search Functionality
+    let searchTimeout;
+    const searchInput = document.getElementById('globalSearchInput');
+    const searchSuggestions = document.getElementById('searchSuggestions');
+
+    // Search input event listeners
+    searchInput.addEventListener('input', function() {
+      const query = this.value.trim();
+      
+      // Clear previous timeout
+      clearTimeout(searchTimeout);
+      
+      if (query.length < 2) {
+        hideSuggestions();
+        return;
+      }
+
+      // Debounce search
+      searchTimeout = setTimeout(() => {
+        searchProducts(query);
+      }, 300);
+    });
+
+    // Hide suggestions when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.search-container')) {
+        hideSuggestions();
+      }
+    });
+
+    // Search products function
+    async function searchProducts(query) {
+      try {
+        const response = await fetch(`${window.BACKEND_URL || window.location.origin}/api/products/search?q=${encodeURIComponent(query)}&limit=5`);
+        const data = await response.json();
+        
+        if (data.success && data.products.length > 0) {
+          showSuggestions(data.products);
+        } else {
+          hideSuggestions();
+        }
+      } catch (error) {
+        console.error('Search error:', error);
+        hideSuggestions();
+      }
+    }
+
+    // Show search suggestions
+    function showSuggestions(products) {
+      searchSuggestions.innerHTML = '';
+      
+      products.forEach(product => {
+        const suggestionItem = document.createElement('div');
+        suggestionItem.className = 'suggestion-item';
+        // For agents, prioritize businessName; for vendors, prioritize shopName
+        const vendorName = product.agent 
+          ? (product.agent?.businessName || product.agent?.fullName || 'Unknown')
+          : (product.vendor?.shopName || product.vendor?.fullName || 'Unknown');
+        
+        suggestionItem.innerHTML = `
+          <div class="suggestion-product">${product.name}</div>
+          <div class="suggestion-vendor">by ${vendorName}</div>
+        `;
+        
+        suggestionItem.addEventListener('click', () => {
+          // Navigate to product detail page
+          window.location.href = `product-detail.html?id=${product._id}`;
+        });
+        
+        searchSuggestions.appendChild(suggestionItem);
+      });
+      
+      searchSuggestions.style.display = 'block';
+    }
+
+    // Hide search suggestions
+    function hideSuggestions() {
+      searchSuggestions.style.display = 'none';
+    }
+
+    // Perform global search (when search button is clicked)
+    function performGlobalSearch() {
+      const query = searchInput.value.trim();
+      if (query.length >= 2) {
+        window.location.href = `search-results.html?q=${encodeURIComponent(query)}`;
+      }
+    }
+
+    // Handle Enter key in search input
+    searchInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        performGlobalSearch();
+      }
+    });
+
     // Unified buyer logout clears tokens and relevant storage, then redirects
     function buyerLogout(e){
       if (e && e.preventDefault) e.preventDefault();
@@ -585,13 +875,41 @@
     }
     // Grouped categories - exact match with buyer-home.html
     const groupedCategories = [
+
+    {
+        groupName: "Electronics & Gadgets",
+        categories: [
+          { name: "Phones & Accessories / Laptops & Computers", image: "/assets/phones.jpg" },
+          { name: "Game Consoles & Accessories", image: "/assets/games.jpg" },
+          { name: "Solar & Inverters", image: "/assets/solar.jpg" },
+          { name: "CCTV & Security Devices", image: "/assets/cctv.jpg" },
+        
+        ]
+      },
+
       {
+        groupName: "Fashion & Lifestyle",
+        categories: [
+        { name: "Textiles & Fabrics", image: "/assets/textiles.jpg" },
+          { name: "Boutiques", image: "/assets/boutiques.jpg" },
+          { name: "Shoes and Bags", image: "/assets/shoes-bags.jpg" },
+          { name: "Thrift / Okrika / Gonjo", image: "/assets/thrift.jpg" },
+          { name: "Perfumes, Incense & Fragrances", image: "/assets/perfumes.jpg" },
+          { name: "Jewelry & Accessories", image: "/assets/jewelry.jpg" },
+          { name: "Cosmetics & Skincare", image: "/assets/cosmetics.jpg" },
+          { name: "Tailoring & Fashion Design", image: "/assets/tailoring.jpg" },
+          { name: "Nigerian Caps e.g. Zana", image: "/assets/caps.jpg" },
+          { name: "Wigs & Hair", image: "/assets/wigs.jpg" },
+        ]
+      },
+      {
+        
         groupName: "Everyday Essentials",
         categories: [
           { name: "Supermarkets/Groceries and Provisions", image: "/assets/groceries.jpg" },
           { name: "Soft Drinks & Water", image: "/assets/soft-drinks.jpg" },
           { name: "Kitchen Utensils & Plastics", image: "/assets/kitchen-utensils.jpg" },
-          { name: "Gas Plants", image: "/assets/gas.jpg" },
+          { name: "Tea & Spices", image: "/assets/tea.jpg" },
           { name: "Fruits & Vegetables", image: "/assets/fruits-vegetables.jpg" },
           { name: "Grains", image: "/assets/grains.jpg" }
         ]
@@ -599,38 +917,36 @@
       {
         groupName: "Meat & Animal Products",
         categories: [
-          { name: "Suya & Balango", image: "/assets/suya.jpg" },
           { name: "Raw Meat Sellers", image: "/assets/meat.jpg" },
           { name: "Poultry (Chicken, Eggs, Turkey)", image: "/assets/poultry.jpg" },
           { name: "Livestock (Goat, Ram, Cow)", image: "/assets/livestock.jpg" },
           { name: "Fish & Seafood", image: "/assets/fish.jpg" }
         ]
       },
+
+   
       {
         groupName: "Food & Hospitality",
         categories: [
           { name: "Restaurants", image: "/assets/restaurants.jpg" },
           { name: "Catering & Small Chops", image: "/assets/catering.jpg" },
+          { name: "Suya, Kebabs & Balango", image: "/assets/suya.jpg" },
           { name: "Hotels & Apartments", image: "/assets/hotels.jpg" },
           { name: "Event Rentals (Canopies, Chairs)", image: "/assets/event-rentals.jpg" }
         ]
       },
+
       {
-        groupName: "Fashion & Lifestyle",
+        groupName: "Health & Beauty",
         categories: [
-          { name: "Boutiques", image: "/assets/boutiques.jpg" },
-          { name: "Thrift / Okrika / Gongo", image: "/assets/thrift.jpg" },
-          { name: "Tokunbo / Belgium Products", image: "/assets/tokunbo.jpg" },
-          { name: "Shoes and Bags", image: "/assets/shoes-bags.jpg" },
-          { name: "Jewelry & Accessories", image: "/assets/jewelry.jpg" },
-          { name: "Tailoring & Fashion Design", image: "/assets/tailoring.jpg" },
-          { name: "Textiles & Fabrics", image: "/assets/textiles.jpg" },
-          { name: "Wigs & Hair", image: "/assets/wigs.jpg" },
-          { name: "Cosmetics & Skincare", image: "/assets/cosmetics.jpg" },
-          { name: "Perfumes & Fragrances", image: "/assets/perfumes.jpg" },
-          { name: "Nigerian Caps e.g. Zana", image: "/assets/caps.jpg" }
+          { name: "Pharmacy & Patent Stores", image: "/assets/pharmacy.jpg" },
+          { name: "Hospital & Medical Equipment", image: "/assets/medical-equipment.jpg" },
+          { name: "Herbal Medicine", image: "/assets/herbal.jpg" },
+          { name: "Maternity & Clinics", image: "/assets/maternity.jpg" },
+          { name: "Fitness & Supplements", image: "/assets/fitness.jpg" }
         ]
       },
+ 
       {
         groupName: "Home & Living",
         categories: [
@@ -638,7 +954,19 @@
           { name: "Home Appliances", image: "/assets/home-appliances.jpg" },
           { name: "Interior Decor & Curtains", image: "/assets/interior.jpg" },
           { name: "Cleaning Services", image: "/assets/cleaning.jpg" },
-          { name: "Flowers & Gardens", image: "/assets/flowers.jpg" }
+          { name: "Flowers & Gardens", image: "/assets/flowers.jpg" },
+          { name: "Tokunbo / Belgium Products", image: "/assets/tokunbo.jpg" },
+        ]
+      },
+
+      {
+        groupName: "Auto & Transport",
+        categories: [
+          { name: "Car Dealers / New, Tokunbo $ Used Cars ", image: "/assets/cars.jpg" },
+          { name: "Car Spare Parts", image: "/assets/spare-parts.jpg" },
+          { name: "Auto Mechanics", image: "/assets/mechanics.jpg" },
+          { name: "Tyres, Batteries & Accessories", image: "/assets/tyres.jpg" },
+          { name: "Car Wash & Detailing", image: "/assets/car-wash.jpg" }
         ]
       },
       {
@@ -655,77 +983,7 @@
           { name: "Carpenters & Artisans", image: "/assets/carpenters.jpg" }
         ]
       },
-      {
-        groupName: "Health & Beauty",
-        categories: [
-          { name: "Pharmacy & Patent Stores", image: "/assets/pharmacy.jpg" },
-          { name: "Hospital & Medical Equipment", image: "/assets/medical-equipment.jpg" },
-          { name: "Herbal Medicine", image: "/assets/herbal.jpg" },
-          { name: "Maternity & Clinics", image: "/assets/maternity.jpg" },
-          { name: "Fitness & Supplements", image: "/assets/fitness.jpg" }
-        ]
-      },
-      {
-        groupName: "Electronics & Gadgets",
-        categories: [
-          { name: "Phones & Accessories / Laptops & Computers", image: "/assets/phones.jpg" },
-          { name: "Solar & Inverters", image: "/assets/solar.jpg" },
-          { name: "CCTV & Security Devices", image: "/assets/cctv.jpg" },
-          { name: "Game Consoles & Accessories", image: "/assets/games.jpg" }
-        ]
-      },
-      {
-        groupName: "Office & Services",
-        categories: [
-          { name: "Printing Press", image: "/assets/printing.jpg" },
-          { name: "Stationery & Office Supplies", image: "/assets/stationery.jpg" },
-          { name: "Internet & Data Services", image: "/assets/internet.jpg" },
-          { name: "Freelancers & Digital Services", image: "/assets/freelancers.jpg" }
-        ]
-      },
-      {
-        groupName: "Auto & Transport",
-        categories: [
-          { name: "Car Dealers / Tokunbo Cars", image: "/assets/cars.jpg" },
-          { name: "Car Spare Parts", image: "/assets/spare-parts.jpg" },
-          { name: "Auto Mechanics", image: "/assets/mechanics.jpg" },
-          { name: "Tyres, Batteries & Accessories", image: "/assets/tyres.jpg" },
-          { name: "Car Wash & Detailing", image: "/assets/car-wash.jpg" }
-        ]
-      },
-      {
-        groupName: "Laundry & Cleaning",
-        categories: [
-          { name: "Laundry Services", image: "/assets/laundry.jpg" },
-          { name: "Dry Cleaning", image: "/assets/dry-cleaning.jpg" },
-          { name: "House Cleaning", image: "/assets/house-cleaning.jpg" }
-        ]
-      },
-      {
-        groupName: "Agriculture",
-        categories: [
-          { name: "Animal Feed & Supplements", image: "/assets/animal-feed.jpg" },
-          { name: "Fish Farming", image: "/assets/fish-farming.jpg" }
-        ]
-      },
-      {
-        groupName: "Pets",
-        categories: [
-          { name: "Pets (Dogs, Cats, Birds)", image: "/assets/pets.jpg" },
-          { name: "Pet Food & Accessories", image: "/assets/pet-food.jpg" },
-          { name: "Veterinary Clinics", image: "/assets/veterinary.jpg" },
-          { name: "Pet Grooming", image: "/assets/pet-grooming.jpg" }
-        ]
-      },
-      {
-        groupName: "Real Estate",
-        categories: [
-          { name: "Real Estate Agents", image: "/assets/real-estate.jpg" },
-          { name: "Rentals & Sales", image: "/assets/rentals.jpg" },
-          { name: "Facility Management", image: "/assets/facility.jpg" },
-          { name: "Movers & Packers", image: "/assets/movers.jpg" }
-        ]
-      },
+
       {
         groupName: "Professional Services",
         categories: [
@@ -737,6 +995,57 @@
           { name: "Tech Repairs", image: "/assets/tech-repairs.jpg" }
         ]
       },
+     
+  
+      {
+        groupName: "Office & Stationery",
+        categories: [
+          { name: "Printing Press", image: "/assets/printing.jpg" },
+          { name: "Stationery & Office Supplies", image: "/assets/stationery.jpg" },
+          { name: "Internet & Data Services", image: "/assets/internet.jpg" },
+          { name: "Freelancers & Digital Services", image: "/assets/freelancers.jpg" }
+        ]
+      },
+
+      
+      {
+        groupName: "Real Estate",
+        categories: [
+          { name: "Real Estate Agents", image: "/assets/real-estate.jpg" },
+          { name: "Rentals & Sales", image: "/assets/rentals.jpg" },
+          { name: "Facility Management", image: "/assets/facility.jpg" },
+          { name: "Movers & Packers", image: "/assets/movers.jpg" }
+        ]
+      },
+
+      {
+        groupName: "Agriculture",
+        categories: [
+          { name: "Animal Feed & Supplements", image: "/assets/animal-feed.jpg" },
+          { name: "Fish Farming", image: "/assets/fish-farming.jpg" }
+        ]
+      },
+      
+   
+      {
+        groupName: "Pets",
+        categories: [
+          { name: "Pets (Dogs, Cats, Birds)", image: "/assets/pets.jpg" },
+          { name: "Pet Food & Accessories", image: "/assets/pet-food.jpg" },
+          { name: "Veterinary Clinics", image: "/assets/veterinary.jpg" },
+          { name: "Pet Grooming", image: "/assets/pet-grooming.jpg" }
+        ]
+      },
+
+      {
+        groupName: "Laundry & Cleaning",
+        categories: [
+          { name: "Laundry Services", image: "/assets/laundry.jpg" },
+          { name: "Dry Cleaning", image: "/assets/dry-cleaning.jpg" },
+          { name: "House Cleaning", image: "/assets/house-cleaning.jpg" }
+        ]
+      },
+
       {
         groupName: "Other",
         categories: [
@@ -855,11 +1164,11 @@
 
         wrapper.style.display = '';
         grid.innerHTML = activeCards.slice(0, 12).map(category => `
-          <div class="category-card" onclick="selectCategory('${category.name}')">
-            <img src="${category.image}" alt="${category.name}" class="category-image" onerror="this.src='https://via.placeholder.com/300x150?text=${encodeURIComponent(category.name)}'">
-            <div class="category-info">
-              <h4 class="category-name">${category.name}</h4>
-              <p class="category-description">${currentMode === 'agent' ? 'Agents' : 'Vendors'} available</p>
+          <div class="active-category-card" onclick="selectCategory('${category.name}')">
+            <img src="${category.image}" alt="${category.name}" class="active-category-image" onerror="this.src='https://via.placeholder.com/300x150?text=${encodeURIComponent(category.name)}'">
+            <div class="active-category-info">
+              <h4 class="active-category-name">${category.name}</h4>
+              <p class="active-category-description">${currentMode === 'agent' ? 'Agents' : 'Vendors'} available</p>
             </div>
           </div>
         `).join('');
@@ -971,6 +1280,46 @@
       } catch (_) {}
       renderActiveCategories();
     });
+
+    // Simple toast notification function
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? '#00cc99' : type === 'error' ? '#ff4444' : '#333'};
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 10000;
+        font-size: 14px;
+        font-weight: 500;
+        animation: slideIn 0.3s ease-out;
+      `;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // Add CSS for toast animations
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+      @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
   </script>
 </body>
 </html>

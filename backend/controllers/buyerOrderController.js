@@ -312,6 +312,13 @@ const confirmReceipt = async (req, res) => {
     const userRole = isAgentOrder ? 'agent' : 'vendor';
     const userType = isAgentOrder ? 'Agent' : 'Vendor';
 
+    // ✅ Calculate fees: 2% commission (capped at ₦1,000) - NO Paystack fee (buyer already paid it)
+    const commissionRate = 0.02; // 2%
+    const maxCommission = 1000; // ₦1,000 cap
+    const commissionAmount = Math.min(Math.round(updatedOrder.totalAmount * commissionRate), maxCommission);
+    const vendorAmount = updatedOrder.totalAmount - commissionAmount;
+    // No additional Paystack fee - buyer already paid it during wallet funding
+
     // ✅ Process payment without separate transaction (simpler approach)
     try {
       // ✅ Increment user's total transactions count
@@ -332,11 +339,21 @@ const confirmReceipt = async (req, res) => {
         throw new Error(`${userType} wallet not found`);
       }
 
-      console.log('💰 Current wallet balance:', wallet.balance);
-      console.log('💵 Order amount to add:', updatedOrder.totalAmount);
+      console.log(`💰 Processing automatic payout for ${userRole}:`, {
+        userId: userId.toString(),
+        orderAmount: updatedOrder.totalAmount,
+        commissionAmount,
+        commissionRate: `${(commissionAmount / updatedOrder.totalAmount * 100).toFixed(2)}%`,
+        vendorAmount,
+        capped: commissionAmount === maxCommission,
+        note: 'Paystack fees already paid by buyer during wallet funding'
+      });
 
-      // Update wallet balance
-      const newBalance = Number(wallet.balance || 0) + Number(updatedOrder.totalAmount);
+      console.log('💰 Current wallet balance:', wallet.balance);
+      console.log('💵 Vendor amount to add (after 2% commission):', vendorAmount);
+
+      // Update wallet balance with net amount (after commission)
+      const newBalance = Number(wallet.balance || 0) + Number(vendorAmount);
       console.log('🏦 New balance will be:', newBalance);
       
       wallet.balance = newBalance;
@@ -347,20 +364,50 @@ const confirmReceipt = async (req, res) => {
       const { syncWalletBalance } = require('./walletHelper');
       await syncWalletBalance(userId, userRole, newBalance);
 
-      // ✅ Log transaction
+      // ✅ Log vendor transaction (net amount after commission)
       await Transaction.create([{
         ref: new mongoose.Types.ObjectId().toString(),
         type: "transfer",
         status: "successful",
-        amount: updatedOrder.totalAmount,
-        description: "Order payment released from escrow",
+        amount: vendorAmount,
+        description: `Order payment released from escrow (after ${(commissionAmount / updatedOrder.totalAmount * 100).toFixed(2)}% commission${commissionAmount === maxCommission ? ' - capped at ₦1,000' : ''})`,
         from: "escrow",
         to: wallet.virtualAccount,
         initiatedBy: userId,
-        initiatorType: userType
+        initiatorType: userType,
+        metadata: {
+          orderId: updatedOrder._id,
+          originalAmount: updatedOrder.totalAmount,
+          commissionAmount,
+          commissionRate: commissionAmount / updatedOrder.totalAmount,
+          maxCommission,
+          capped: commissionAmount === maxCommission
+        }
       }]);
 
-      console.log('✅ Payment processed successfully');
+      // ✅ Log commission transaction for platform tracking
+      await Transaction.create({
+        ref: `COMMISSION_${updatedOrder._id}`,
+        type: "commission",
+        status: "successful",
+        amount: commissionAmount,
+        description: `${(commissionAmount / updatedOrder.totalAmount * 100).toFixed(2)}% commission from order ${updatedOrder._id}${commissionAmount === maxCommission ? ' (capped at ₦1,000)' : ''}`,
+        from: userId,
+        to: "platform",
+        initiatedBy: "system",
+        initiatorType: "System",
+        metadata: {
+          orderId: updatedOrder._id,
+          orderType: isAgentOrder ? 'agent' : 'vendor',
+          commissionRate: commissionAmount / updatedOrder.totalAmount,
+          maxCommission,
+          capped: commissionAmount === maxCommission,
+          vendorAmount,
+          note: 'Paystack fees already paid by buyer during wallet funding'
+        }
+      });
+
+      console.log('✅ Payment processed successfully with commission tracking');
 
     } catch (error) {
       console.error('❌ Payment processing failed:', error);
@@ -439,8 +486,17 @@ const confirmReceipt = async (req, res) => {
 
     return res.json({
       success: true,
-      message: "Delivery confirmed. Funds moved to vendor payout queue.",
-      order: updatedOrder
+      message: `Delivery confirmed. Vendor received ₦${vendorAmount} (after ${(commissionAmount / updatedOrder.totalAmount * 100).toFixed(2)}% commission${commissionAmount === maxCommission ? ' - capped at ₦1,000' : ''}). Platform earned ₦${commissionAmount} commission.`,
+      order: updatedOrder,
+      paymentDetails: {
+        originalAmount: updatedOrder.totalAmount,
+        vendorAmount,
+        commissionAmount,
+        commissionRate: `${(commissionAmount / updatedOrder.totalAmount * 100).toFixed(2)}%`,
+        maxCommission,
+        capped: commissionAmount === maxCommission,
+        note: 'Paystack fees already paid by buyer during wallet funding'
+      }
     });
 
   } catch (error) {

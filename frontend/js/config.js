@@ -9,6 +9,9 @@ window.FRONTEND_URL = window.location.hostname === "localhost"
   ? "http://localhost:5000"
   : window.location.origin;
 
+// Socket.IO configuration - always use same-origin
+window.SOCKET_URL = window.location.origin;
+
 // Paystack configuration
 window.PAYSTACK_PUBLIC_KEY = window.location.hostname === "localhost"
   ? "pk_test_your_test_public_key_here"

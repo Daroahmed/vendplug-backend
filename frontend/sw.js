@@ -1,12 +1,17 @@
 // Basic VendPlug Service Worker
-const CACHE_NAME = 'vendplug-app-shell-v3';
+const CACHE_NAME = 'vendplug-app-shell-v7.3';
 const APP_SHELL = [
   '/',
   '/public-buyer-home.html',
   '/offline.html',
-  '/css/ads.css',
+  '/CSS/ads.css',
   '/js/auth-utils.js',
-  '/js/cart-badge.js'
+  '/js/cart-badge.js',
+  '/js/adManager.js',
+  '/js/config.js',
+  '/manifest.webmanifest',
+  '/logo.png',
+  '/favicon.ico'
 ];
 
 self.addEventListener('install', (event) => {
@@ -65,7 +70,20 @@ self.addEventListener('fetch', (event) => {
         const copy = res.clone();
         caches.open(CACHE_NAME).then((c) => c.put(req, copy));
         return res;
-      }).catch(() => caches.match(req))
+      }).catch(async () => {
+        const cached = await caches.match(req);
+        if (cached) return cached;
+        // Fallback to offline page for app shell scripts if not cached
+        if (req.url.endsWith('/js/pwa-register.js')) {
+          const offlineResponse = await caches.match('/offline.html');
+          if (offlineResponse) return offlineResponse;
+          return new Response('/* PWA registration script not available */', { 
+            status: 503, 
+            headers: { 'Content-Type': 'application/javascript' } 
+          });
+        }
+        return new Response('/* script fetch failed */', { status: 503, headers: { 'Content-Type': 'application/javascript' } });
+      })
     );
     return;
   }

@@ -2,13 +2,13 @@ const Admin = require('../models/Admin');
 const Buyer = require('../models/Buyer');
 const Vendor = require('../models/vendorModel');
 const Agent = require('../models/Agent');
-const Order = require('../models/Order');
 const VendorOrder = require('../models/vendorOrderModel');
 const AgentOrder = require('../models/AgentOrder');
 const PayoutRequest = require('../models/PayoutRequest');
 const Transaction = require('../models/Transaction');
 const Dispute = require('../models/Dispute');
 const generateToken = require('../utils/generateToken');
+const { mintRefreshToken, setRefreshCookie } = require('./authController');
 const autoAssignmentService = require('../services/autoAssignmentService');
 const { processDisputeRefund } = require('./disputeController');
 const csv = require('csv-parser');
@@ -106,8 +106,10 @@ const adminLogin = async (req, res) => {
     admin.lastLogin = new Date();
     await admin.save();
 
-    // Generate token
+    // Generate token and refresh token
     const token = generateToken(admin._id, 'admin');
+    const refreshToken = await mintRefreshToken(admin._id, 'Admin');
+    setRefreshCookie(res, refreshToken);
 
     res.status(200).json({
       success: true,
@@ -164,7 +166,6 @@ const getDashboardOverview = async (req, res) => {
     const totalVendors = await Vendor.countDocuments();
     const totalAgents = await Agent.countDocuments();
     
-    const totalOrders = await Order.countDocuments(createdMatch);
     const totalVendorOrders = await VendorOrder.countDocuments(createdMatch);
     const totalAgentOrders = await AgentOrder.countDocuments(createdMatch);
     
@@ -182,11 +183,6 @@ const getDashboardOverview = async (req, res) => {
     const totalTransactionAmount = await Transaction.aggregate([
       { $match: { status: 'successful', ...createdMatch } },
       { $group: { _id: null, total: { $sum: '$amount' } } }
-    ]);
-    
-    const totalOrderAmount = await Order.aggregate([
-      { $match: { ...createdMatch } },
-      { $group: { _id: null, total: { $sum: '$totalAmount' } } }
     ]);
     
     const totalVendorOrderAmount = await VendorOrder.aggregate([
@@ -212,16 +208,9 @@ const getDashboardOverview = async (req, res) => {
     const escalatedDisputes = await Dispute.countDocuments({ status: 'escalated', ...createdMatch });
     const totalDisputes = await Dispute.countDocuments(createdMatch);
     
-    console.log('📊 Counts loaded:', { totalBuyers, totalVendors, totalAgents, totalOrders, totalVendorOrders, pendingPayouts, processingPayouts });
+    console.log('📊 Counts loaded:', { totalBuyers, totalVendors, totalAgents, totalVendorOrders, totalAgentOrders, pendingPayouts, processingPayouts });
     
     // Get recent orders with proper populate and date filter
-    const recentOrders = await Order.find(dateFilter)
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .populate('buyer', 'fullName email')
-      .populate('agent', 'fullName email')
-      .select('status totalAmount createdAt buyer agent');
-
     const recentVendorOrders = await VendorOrder.find(dateFilter)
       .sort({ createdAt: -1 })
       .limit(5)
@@ -238,7 +227,6 @@ const getDashboardOverview = async (req, res) => {
 
     // Combine all order types and add orderId field
     const allRecentOrders = [
-      ...recentOrders.map(order => ({ ...order.toObject(), orderId: order._id, orderType: 'Order' })),
       ...recentVendorOrders.map(order => ({ ...order.toObject(), orderId: order._id, orderType: 'VendorOrder' })),
       ...recentAgentOrders.map(order => ({ ...order.toObject(), orderId: order._id, orderType: 'AgentOrder' }))
     ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
@@ -247,8 +235,38 @@ const getDashboardOverview = async (req, res) => {
     const recentTransactions = await Transaction.find(dateFilter)
       .sort({ createdAt: -1 })
       .limit(10)
-      .populate('initiatedBy', 'fullName email shopName')
       .select('type amount status createdAt initiatedBy initiatorType');
+
+    // Manually populate initiatedBy for non-System transactions
+    for (let transaction of recentTransactions) {
+      if (transaction.initiatorType !== 'System' && transaction.initiatedBy) {
+        try {
+          let model;
+          switch (transaction.initiatorType) {
+            case 'Buyer':
+              model = require('../models/Buyer');
+              break;
+            case 'Vendor':
+              model = require('../models/Vendor');
+              break;
+            case 'Agent':
+              model = require('../models/Agent');
+              break;
+            case 'Admin':
+              model = require('../models/Admin');
+              break;
+          }
+          if (model) {
+            const user = await model.findById(transaction.initiatedBy).select('fullName email shopName');
+            if (user) {
+              transaction.initiatedBy = user;
+            }
+          }
+        } catch (populateError) {
+          console.warn('⚠️ Failed to populate initiatedBy for transaction:', transaction._id, populateError.message);
+        }
+      }
+    }
 
     // Get pending payouts with proper populate
     const pendingPayoutList = await PayoutRequest.find({ status: 'pending' })
@@ -259,8 +277,8 @@ const getDashboardOverview = async (req, res) => {
       .select('amount status createdAt userId userType bankAccountId');
 
     console.log('📋 Recent data loaded:', { 
-      recentOrders: recentOrders.length, 
       recentVendorOrders: recentVendorOrders.length,
+      recentAgentOrders: recentAgentOrders.length,
       recentTransactions: recentTransactions.length,
       pendingPayouts: pendingPayoutList.length
     });
@@ -272,7 +290,7 @@ const getDashboardOverview = async (req, res) => {
           totalBuyers,
           totalVendors,
           totalAgents,
-          totalOrders: totalOrders + totalVendorOrders + totalAgentOrders,
+          totalOrders: totalVendorOrders + totalAgentOrders,
           totalVendorOrders,
           totalAgentOrders,
           pendingPayouts,
@@ -292,7 +310,7 @@ const getDashboardOverview = async (req, res) => {
         },
         financial: {
           totalTransactionAmount: totalTransactionAmount[0]?.total || 0,
-          totalOrderAmount: (totalOrderAmount[0]?.total || 0) + (totalVendorOrderAmount[0]?.total || 0) + (totalAgentOrderAmount[0]?.total || 0),
+          totalOrderAmount: (totalVendorOrderAmount[0]?.total || 0) + (totalAgentOrderAmount[0]?.total || 0),
           totalVendorOrderAmount: totalVendorOrderAmount[0]?.total || 0,
           totalAgentOrderAmount: totalAgentOrderAmount[0]?.total || 0,
           totalPayoutAmount: totalPayoutAmount[0]?.total || 0,
@@ -886,7 +904,7 @@ const reassignEscalatedDispute = async (req, res) => {
 const resolveEscalatedDispute = async (req, res) => {
   try {
     const { disputeId } = req.params;
-    const { decision, reason, refundAmount, notes } = req.body;
+    const { decision, reason, notes } = req.body;
     const adminId = req.admin._id;
 
     const dispute = await Dispute.findOne({ 
@@ -898,36 +916,27 @@ const resolveEscalatedDispute = async (req, res) => {
       return res.status(404).json({ error: 'Escalated dispute not found' });
     }
 
-    // Map frontend resolution types to backend logic (same as staff system)
-    let resolutionType;
-    if (decision === 'refund') {
-      resolutionType = 'favor_complainant';
-    } else if (decision === 'no_refund') {
-      resolutionType = 'favor_respondent';
-    } else if (decision === 'partial_refund') {
-      resolutionType = 'partial_refund';
-    }
-
-    // Update dispute status and resolution (same as staff system)
+    // Update dispute status and resolution
     dispute.status = 'resolved';
     dispute.resolution = {
-      resolution: decision,
+      decision: decision,
       notes: notes || '',
-      refundAmount: refundAmount || 0,
       resolvedBy: adminId,
       resolvedAt: new Date()
     };
     dispute.lastActivity = new Date();
 
-    // Process refund if applicable
-    if (resolutionType) {
-      try {
-        await processDisputeRefund(dispute, refundAmount || 0, resolutionType);
-        console.log(`✅ Escalated dispute refund processed: ${resolutionType} for dispute ${dispute.disputeId}`);
-      } catch (refundError) {
-        console.error('❌ Error processing escalated dispute refund:', refundError);
-        // Continue with resolution even if wallet processing fails
-      }
+    // Process refund using the new dispute resolution logic
+    try {
+      console.log(`🔍 Processing escalated dispute refund: ${decision} for dispute ${dispute.disputeId}`);
+      console.log(`🔍 Dispute orderId: ${dispute.orderId}, orderType: ${dispute.orderType}`);
+      await processDisputeRefund(dispute, 0, decision);
+      console.log(`✅ Escalated dispute refund processed: ${decision} for dispute ${dispute.disputeId}`);
+    } catch (refundError) {
+      console.error('❌ Error processing escalated dispute refund:', refundError);
+      console.error('❌ Refund error details:', refundError.message);
+      console.error('❌ Refund error stack:', refundError.stack);
+      // Continue with resolution even if wallet processing fails
     }
 
     // Add activity log
@@ -941,6 +950,63 @@ const resolveEscalatedDispute = async (req, res) => {
     });
 
     await dispute.save();
+
+    // Send notifications
+    try {
+      const io = req.app.get('io');
+      const { sendNotification } = require('../utils/notificationHelper');
+      
+      // Notify complainant (buyer) with specific resolution details
+      let complainantNotificationType = 'DISPUTE_RESOLVED';
+      let complainantArgs = [dispute.disputeId, decision];
+      
+      if (decision === 'favor_complainant') {
+        complainantNotificationType = 'DISPUTE_FAVOR_COMPLAINANT';
+        complainantArgs = [dispute.disputeId, dispute.order?.totalAmount || dispute.order?.amount];
+      } else if (decision === 'favor_respondent') {
+        complainantNotificationType = 'DISPUTE_FAVOR_RESPONDENT';
+        complainantArgs = [dispute.disputeId];
+      } else if (decision === 'partial_refund') {
+        complainantNotificationType = 'DISPUTE_PARTIAL_REFUND';
+        complainantArgs = [dispute.disputeId, (dispute.order?.totalAmount || dispute.order?.amount) * 0.5];
+      }
+      
+      await sendNotification(io, {
+        recipientId: dispute.complainant.userId,
+        recipientType: dispute.complainant.userType,
+        notificationType: complainantNotificationType,
+        args: complainantArgs,
+        orderId: dispute.orderId
+      });
+
+      // Notify respondent (vendor/agent) with specific resolution details
+      let respondentNotificationType = 'DISPUTE_RESOLVED';
+      let respondentArgs = [dispute.disputeId, decision];
+      
+      if (decision === 'favor_respondent') {
+        respondentNotificationType = 'DISPUTE_FAVOR_RESPONDENT';
+        respondentArgs = [dispute.disputeId];
+      } else if (decision === 'favor_complainant') {
+        respondentNotificationType = 'DISPUTE_FAVOR_COMPLAINANT';
+        respondentArgs = [dispute.disputeId, dispute.order?.totalAmount || dispute.order?.amount];
+      } else if (decision === 'partial_refund') {
+        respondentNotificationType = 'DISPUTE_PARTIAL_REFUND';
+        respondentArgs = [dispute.disputeId, (dispute.order?.totalAmount || dispute.order?.amount) * 0.5];
+      }
+      
+      await sendNotification(io, {
+        recipientId: dispute.respondent.userId,
+        recipientType: dispute.respondent.userType,
+        notificationType: respondentNotificationType,
+        args: respondentArgs,
+        orderId: dispute.orderId
+      });
+
+      console.log(`✅ Escalated dispute resolution notifications sent for dispute ${dispute.disputeId}`);
+    } catch (notifyError) {
+      console.error('❌ Error sending escalated dispute resolution notifications:', notifyError);
+      // Continue with resolution even if notifications fail
+    }
 
     res.json({ message: 'Escalated dispute resolved successfully' });
 

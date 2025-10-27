@@ -191,8 +191,16 @@ function openOrderModal(orderId) {
 
   orderModal.style.display = "flex";
 
-  // Attach close listener
+  // Attach close listeners
   document.getElementById("closeModalBtn")?.addEventListener("click", closeOrderModal);
+  document.getElementById("closeModalHeaderBtn")?.addEventListener("click", closeOrderModal);
+  
+  // Close modal when clicking outside of it
+  orderModal.addEventListener("click", (e) => {
+    if (e.target === orderModal) {
+      closeOrderModal();
+    }
+  });
 
   document.getElementById("openDisputeBtn")?.addEventListener("click", () => showDisputeModal(order));
 }
@@ -228,8 +236,7 @@ function copyToClipboard(text) {
 ---------------------------- */
 document.getElementById("applyFilters")?.addEventListener("click", fetchDeliveredOrders);
 
-// Allow closing the modal by clicking backdrop or pressing Escape
-orderModal?.addEventListener('click', (e)=>{ if (e.target === orderModal) closeOrderModal(); });
+// Allow closing the modal by pressing Escape
 window.addEventListener('keydown', (e)=>{ if (e.key === 'Escape' && orderModal?.style.display === 'flex') closeOrderModal(); });
 
 /* ---------------------------
@@ -239,6 +246,9 @@ fetchDeliveredOrders();
 
 function closeOrderModal() {
   orderModal.style.display = 'none';
+  // Clear the order details to prevent stale data
+  orderDetails.innerHTML = "";
+  currentOrderId = null;
 }
 
 /* ---------------------------

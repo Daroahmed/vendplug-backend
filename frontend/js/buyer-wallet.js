@@ -3,6 +3,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const balanceEl = document.getElementById('balance');
   const buyer = getCurrentUser();
   const token = getAuthToken();
+  
+  // Store actual balance for toggle functionality
+  let actualBalance = '0';
 
   if (!buyer || !token) {
     window.showOverlay && showOverlay({ type:'error', title:'Unauthorized', message:'Please log in again.' });
@@ -27,10 +30,14 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const data = await res.json();
       accountNumberEl.textContent = data.virtualAccount || 'Not available';
-      balanceEl.textContent = Number(data.balance || 0).toLocaleString('en-NG');
+      actualBalance = Number(data.balance || 0).toLocaleString('en-NG');
+      balanceEl.textContent = actualBalance;
+      // Expose balance globally for toggle function
+      window.actualBalance = actualBalance;
     } catch (err) {
       accountNumberEl.textContent = 'Error';
       balanceEl.textContent = 'Error';
+      actualBalance = 'Error';
     }
   }
 
@@ -119,12 +126,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (!displayName) displayName = 'Unknown';
 
+        // Determine transaction type display
+        let transactionTypeDisplay = txn.type;
+        if (txn.ref && txn.ref.includes('DISP_ESCROW')) {
+          if (txn.ref.includes('REFUND')) {
+            transactionTypeDisplay = 'Dispute Refund';
+          } else if (txn.ref.includes('PARTIAL')) {
+            transactionTypeDisplay = 'Partial Dispute Refund';
+          } else if (txn.ref.includes('NO_ACTION')) {
+            transactionTypeDisplay = 'Dispute Resolution';
+          } else {
+            transactionTypeDisplay = 'Dispute Resolution';
+          }
+        } else if (txn.ref && txn.ref.includes('PAYSTACK')) {
+          transactionTypeDisplay = 'Wallet Funding';
+        }
+
         const card = document.createElement('div');
         card.className = 'transaction-card';
         card.innerHTML = `
           <div class="transaction-header">
             <div class="transaction-type ${txn.status === 'failed' ? 'transaction-failed' : 'transaction-success'}">
-              ${txn.type}
+              ${transactionTypeDisplay}
             </div>
             <div class="transaction-amount">
               ₦${txn.amount.toLocaleString()}
@@ -166,7 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const fundBtn = document.querySelector('.fund-btn');
+    const fundBtn = document.querySelector('.fund-button');
     fundBtn.classList.add('loading');
 
     try {
@@ -194,7 +217,22 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error(paymentData.message || 'Payment initialization failed');
       }
 
-      const { authorizationUrl, reference } = paymentData.data;
+      const { authorizationUrl, reference, requestedAmount, paystackFee, totalAmountToPay } = paymentData.data;
+
+      // Show fee breakdown before redirecting
+      const feeCapInfo = paystackFee >= 2000 ? ' (capped at ₦2,000)' : '';
+      const confirmed = confirm(
+        `💰 Payment Summary:\n\n` +
+        `Amount to wallet: ₦${requestedAmount}\n` +
+        `Paystack fees: ₦${paystackFee} (1.5% + ₦100)${feeCapInfo}\n` +
+        `Total to pay: ₦${totalAmountToPay}\n\n` +
+        `Proceed to payment?`
+      );
+
+      if (!confirmed) {
+        fundBtn.classList.remove('loading');
+        return;
+      }
 
       // Redirect to Paystack payment page
       console.log('🚀 Redirecting to Paystack:', authorizationUrl);

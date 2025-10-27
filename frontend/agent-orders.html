@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>VendPlug | Agent Orders</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -173,8 +173,19 @@
       border-radius: 12px;
       padding: 1.5rem;
       width: 90%;
-      max-width: 500px;
+      max-width: 800px;
       text-align: left;
+      display: flex;
+      gap: 2rem;
+    }
+
+    .modal-left {
+      flex: 1;
+    }
+
+    .modal-right {
+      flex: 1;
+      min-width: 300px;
     }
 
     .modal-header {
@@ -217,6 +228,42 @@
   margin: 4px;
   border-radius: 6px;
   cursor: pointer;
+}
+
+/* Glowing animation for status update buttons */
+.btn-secondary.status-action {
+  background: linear-gradient(45deg, #00cc99, #00ffaa, #00cc99);
+  background-size: 200% 200%;
+  animation: glowPulse 2s ease-in-out infinite;
+  box-shadow: 0 0 20px rgba(0, 204, 153, 0.5);
+  border: 2px solid #00cc99;
+  font-weight: bold;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+}
+
+@keyframes glowPulse {
+  0% {
+    background-position: 0% 50%;
+    box-shadow: 0 0 20px rgba(0, 204, 153, 0.5);
+    transform: scale(1);
+  }
+  50% {
+    background-position: 100% 50%;
+    box-shadow: 0 0 30px rgba(0, 204, 153, 0.8);
+    transform: scale(1.05);
+  }
+  100% {
+    background-position: 0% 50%;
+    box-shadow: 0 0 20px rgba(0, 204, 153, 0.5);
+    transform: scale(1);
+  }
+}
+
+/* Hover effect for status buttons */
+.btn-secondary.status-action:hover {
+  animation-play-state: paused;
+  transform: scale(1.1);
+  box-shadow: 0 0 40px rgba(0, 204, 153, 1);
 }
 .btn-danger {
   background: #dc3545;
@@ -314,6 +361,111 @@
   font-size: 10px;
 }
 
+/* Process Flow Styles */
+.process-flow {
+  background: #121212;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.process-step {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #333;
+  position: relative;
+}
+
+.process-step:last-child {
+  border-bottom: none;
+}
+
+.step-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.step-content {
+  flex: 1;
+}
+
+.step-title {
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.step-description {
+  font-size: 0.8rem;
+  color: #aaa;
+  margin: 0;
+}
+
+.next-action-hint {
+  background: #00cc99;
+  color: #000;
+  padding: 0.5rem;
+  border-radius: 6px;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* Step States */
+.process-step.completed .step-icon {
+  background: #00cc99;
+  color: #000;
+}
+
+.process-step.current .step-icon {
+  background: #007bff;
+  color: white;
+  animation: pulse 2s infinite;
+}
+
+.process-step.pending .step-icon {
+  background: #444;
+  color: #888;
+}
+
+.process-step.next .step-icon {
+  background: #ffc107;
+  color: #000;
+}
+
+.process-step.completed .step-title {
+  color: #00cc99;
+}
+
+.process-step.current .step-title {
+  color: #007bff;
+}
+
+.process-step.pending .step-title {
+  color: #888;
+}
+
+.process-step.next .step-title {
+  color: #ffc107;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
   </style>
 </head>
 <body>
@@ -355,15 +507,20 @@
   <!-- Order Details Modal -->
   <div id="orderModal">
     <div class="modal-content">
-      <div class="modal-header">
-        <h2>Order Details</h2>
-        <button id="closeModalBtn">&times;</button>
-      </div>
-      <div id="orderDetails"></div>
-      <div class="button-group">
-        <div class="button-group">
+      <div class="modal-left">
+        <div class="modal-header">
+          <h2>Order Details</h2>
+          <button id="closeModalHeaderBtn">&times;</button>
         </div>
-        
+        <div id="orderDetails"></div>
+        <div class="button-group">
+          <div class="button-group">
+          </div>
+          
+        </div>
+      </div>
+      <div class="modal-right">
+        <div id="processFlow"></div>
       </div>
     </div>
   </div>

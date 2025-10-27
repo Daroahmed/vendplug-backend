@@ -1,5 +1,4 @@
 const Dispute = require('../models/Dispute');
-const Order = require('../models/Order');
 const VendorOrder = require('../models/vendorOrderModel');
 const AgentOrder = require('../models/AgentOrder');
 const Buyer = require('../models/Buyer');
@@ -10,26 +9,17 @@ const Notification = require('../models/Notification');
 const Wallet = require('../models/walletModel');
 const Transaction = require('../models/Transaction');
 
-// Helper function to send notifications
+// Helper function to send notifications (legacy - use notificationHelper instead)
 const sendNotification = async (io, userId, userType, title, message, type = 'info') => {
   try {
-    const notification = new Notification({
+    const { sendNotification: sendNotificationHelper } = require('../utils/notificationHelper');
+    
+    await sendNotificationHelper(io, {
       recipientId: userId,
       recipientType: userType,
-      title,
-      message,
-      type
+      notificationType: 'DISPUTE_RESOLVED', // Default type
+      args: [title, message]
     });
-    await notification.save();
-    
-    if (io) {
-      io.to(`${userType.toLowerCase()}_${userId}`).emit('notification', {
-        title,
-        message,
-        type,
-        timestamp: new Date()
-      });
-    }
   } catch (error) {
     console.error('❌ Notification error:', error);
   }
@@ -81,10 +71,7 @@ const createDispute = async (req, res) => {
 
     // Validate order exists and user has access
     let order;
-    if (orderType === 'Order') {
-      console.log('🔍 Looking in Order model...');
-      order = await Order.findById(orderId);
-    } else if (orderType === 'VendorOrder') {
+    if (orderType === 'VendorOrder') {
       console.log('🔍 Looking in VendorOrder model...');
       order = await VendorOrder.findById(orderId);
     } else if (orderType === 'AgentOrder') {
@@ -133,11 +120,10 @@ const createDispute = async (req, res) => {
       return res.status(403).json({ error: 'You are not authorized to dispute this order' });
     }
 
-    // Check if dispute already exists for this order
+    // Check if dispute already exists for this order (any status)
     const existingDispute = await Dispute.findOne({
       orderId,
-      orderType,
-      status: { $in: ['open', 'under_review'] }
+      orderType
     });
 
     if (existingDispute) {
@@ -213,26 +199,23 @@ const createDispute = async (req, res) => {
     const io = req.app.get('io');
     
     // Notify respondent
-    await sendNotification(
-      io,
-      respondentUserId,
-      respondentUserType,
-      'New Dispute Opened',
-      `A dispute has been opened against you for order ${orderId}`,
-      'warning'
-    );
+    const { sendNotification: sendNotificationHelper } = require('../utils/notificationHelper');
+    await sendNotificationHelper(io, {
+      recipientId: respondentUserId,
+      recipientType: respondentUserType,
+      notificationType: 'DISPUTE_CREATED',
+      args: [dispute.disputeId, orderId]
+    });
 
     // Notify all admins
     const admins = await Admin.find({ isActive: true });
     for (const admin of admins) {
-      await sendNotification(
-        io,
-        admin._id,
-        'Admin',
-        'New Dispute Requires Review',
-        `Dispute ${dispute.disputeId} has been opened and requires review`,
-        'urgent'
-      );
+      await sendNotificationHelper(io, {
+        recipientId: admin._id,
+        recipientType: 'Admin',
+        notificationType: 'ADMIN_DISPUTE_ESCALATED',
+        args: [dispute.disputeId, 'New dispute requires review']
+      });
     }
 
     // Trigger immediate auto-assignment
@@ -282,13 +265,10 @@ const getUserDisputes = async (req, res) => {
     .populate('raisedBy', 'fullName email shopName businessName')
     .populate('complainant.userId', 'fullName email shopName businessName')
     .populate('respondent.userId', 'fullName email shopName businessName')
+    .populate('resolution.resolvedBy', 'fullName email')
     .sort({ createdAt: -1 });
 
     console.log('🔍 Found disputes:', disputes.length);
-    if (disputes.length > 0) {
-      console.log('🔍 First dispute orderId:', disputes[0].orderId);
-      console.log('🔍 First dispute orderType:', disputes[0].orderType);
-    }
 
     res.json({ disputes });
 
@@ -320,6 +300,7 @@ const getDisputeDetails = async (req, res) => {
     }
 
     console.log('🔍 Looking for dispute with ID:', disputeId);
+    console.log('🔍 User info:', { userId, userType });
     
     const dispute = await Dispute.findOne({ disputeId })
       .populate('orderId', 'totalAmount status createdAt items buyer vendor agent')
@@ -331,31 +312,62 @@ const getDisputeDetails = async (req, res) => {
     
     console.log('🔍 Dispute found:', dispute ? 'YES' : 'NO');
     if (dispute) {
-          console.log('🔍 Dispute data:', {
-      disputeId: dispute.disputeId,
-      status: dispute.status,
-      priority: dispute.priority,
-      category: dispute.category,
-      title: dispute.title,
-      description: dispute.description,
-      raisedBy: dispute.raisedBy,
-      raisedByType: dispute.raisedByType
-    });
-  }
+      console.log('🔍 Dispute data:', {
+        disputeId: dispute.disputeId,
+        status: dispute.status,
+        priority: dispute.priority,
+        category: dispute.category,
+        title: dispute.title,
+        description: dispute.description,
+        raisedBy: dispute.raisedBy,
+        raisedByType: dispute.raisedByType,
+        complainant: dispute.complainant,
+        respondent: dispute.respondent
+      });
+    }
 
   if (!dispute) {
     return res.status(404).json({ error: 'Dispute not found' });
   }
 
   // Check if user has access to this dispute
-  const hasAccess = userType === 'Admin' ||
-                   (dispute.raisedBy.toString() === userId && dispute.raisedByType === userType) ||
-                   (dispute.order && (
-                     (dispute.order.buyer && dispute.order.buyer.toString() === userId) ||
-                     (dispute.order.vendor && dispute.order.vendor.toString() === userId)
-                   ));
+  const isAdmin = userType === 'Admin' || userType === 'staff';
+  const isRaisedBy = dispute.raisedBy.toString() === userId.toString() && dispute.raisedByType === userType;
+  const isComplainant = dispute.complainant.userId.toString() === userId.toString() && dispute.complainant.userType === userType;
+  const isRespondent = dispute.respondent.userId.toString() === userId.toString() && dispute.respondent.userType === userType;
+  const isOrderParticipant = dispute.orderId && (
+    (dispute.orderId.buyer && dispute.orderId.buyer.toString() === userId.toString()) ||
+    (dispute.orderId.vendor && dispute.orderId.vendor.toString() === userId.toString()) ||
+    (dispute.orderId.agent && dispute.orderId.agent.toString() === userId.toString())
+  );
+
+  const hasAccess = isAdmin || isRaisedBy || isComplainant || isRespondent || isOrderParticipant;
+
+  console.log('🔍 Access check details:', {
+    isAdmin,
+    isRaisedBy,
+    isComplainant,
+    isRespondent,
+    isOrderParticipant,
+    hasAccess,
+    userId: userId.toString(),
+    userType,
+    disputeRaisedBy: dispute.raisedBy.toString(),
+    disputeRaisedByType: dispute.raisedByType,
+    disputeComplainant: dispute.complainant.userId.toString(),
+    disputeComplainantType: dispute.complainant.userType,
+    disputeRespondent: dispute.respondent.userId.toString(),
+    disputeRespondentType: dispute.respondent.userType,
+    raisedByMatch: dispute.raisedBy.toString() === userId.toString(),
+    complainantMatch: dispute.complainant.userId.toString() === userId.toString(),
+    respondentMatch: dispute.respondent.userId.toString() === userId.toString(),
+    respondentTypeMatch: dispute.respondent.userType === userType,
+    complainantTypeMatch: dispute.complainant.userType === userType,
+    raisedByTypeMatch: dispute.raisedByType === userType
+  });
 
     if (!hasAccess) {
+      console.log('❌ Access denied for user:', { userId, userType });
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -369,7 +381,10 @@ const getDisputeDetails = async (req, res) => {
       messages: filteredMessages
     };
 
-    res.json({ dispute: disputeData });
+    res.json({ 
+      success: true,
+      data: disputeData 
+    });
 
   } catch (error) {
     console.error('❌ Get dispute details error:', error);
@@ -415,14 +430,13 @@ const addMessage = async (req, res) => {
     const otherParty = dispute.complainant.userId.toString() === userId ? 
                       dispute.respondent : dispute.complainant;
 
-    await sendNotification(
-      io,
-      otherParty.userId,
-      otherParty.userType,
-      'New Message in Dispute',
-      `New message added to dispute ${dispute.disputeId}`,
-      'info'
-    );
+    const { sendNotification: sendNotificationHelper } = require('../utils/notificationHelper');
+    await sendNotificationHelper(io, {
+      recipientId: otherParty.userId,
+      recipientType: otherParty.userType,
+      notificationType: 'DISPUTE_MESSAGE',
+      args: [dispute.disputeId]
+    });
 
     res.json({ message: 'Message added successfully' });
 
@@ -528,14 +542,13 @@ const assignDispute = async (req, res) => {
 
     // Notify assigned admin
     const io = req.app.get('io');
-    await sendNotification(
-      io,
-      assignedTo,
-      'Admin',
-      'Dispute Assigned',
-      `Dispute ${dispute.disputeId} has been assigned to you`,
-      'info'
-    );
+    const { sendNotification: sendNotificationHelper } = require('../utils/notificationHelper');
+    await sendNotificationHelper(io, {
+      recipientId: assignedTo,
+      recipientType: 'Admin',
+      notificationType: 'DISPUTE_ASSIGNED',
+      args: [dispute.disputeId, 'Admin'] // Using 'Admin' as staff name for now
+    });
 
     res.json({ message: 'Dispute assigned successfully' });
 
@@ -560,16 +573,15 @@ const resolveDispute = async (req, res) => {
     // Resolve the dispute
     await dispute.resolve(decision, reason, refundAmount, adminId, notes);
 
-    // Process refund if applicable
-    if (decision === 'no_refund' || (refundAmount > 0 && (decision === 'favor_complainant' || decision === 'partial_refund' || decision === 'full_refund'))) {
-      await processDisputeRefund(dispute, refundAmount || 0, decision);
-    }
+    // Process refund for all dispute resolutions (money is always in escrow)
+    // Always use the actual order amount for security
+    await processDisputeRefund(dispute, 0, decision);
 
     // Send notifications
     const io = req.app.get('io');
     const { sendNotification } = require('../utils/notificationHelper');
     
-    // Notify complainant with specific resolution details
+    // Notify complainant (buyer) with specific resolution details
     let complainantNotificationType = 'DISPUTE_RESOLVED';
     let complainantArgs = [dispute.disputeId, decision];
     
@@ -592,7 +604,7 @@ const resolveDispute = async (req, res) => {
       orderId: dispute.orderId
     });
 
-    // Notify respondent with specific resolution details
+    // Notify respondent (vendor/agent) with specific resolution details
     let respondentNotificationType = 'DISPUTE_RESOLVED';
     let respondentArgs = [dispute.disputeId, decision];
     
@@ -626,19 +638,24 @@ const resolveDispute = async (req, res) => {
 // Helper function to process dispute refunds within escrow system
 const processDisputeRefund = async (dispute, refundAmount, resolution) => {
   try {
+    console.log(`🔍 processDisputeRefund called with resolution: ${resolution}, refundAmount: ${refundAmount}`);
+    console.log(`🔍 Dispute ID: ${dispute.disputeId}, Order ID: ${dispute.orderId}, Order Type: ${dispute.orderType}`);
+    
     // Get the order to find the buyer and vendor/agent
     let order;
-    if (dispute.orderType === 'Order') {
-      order = await Order.findById(dispute.orderId);
-    } else if (dispute.orderType === 'VendorOrder') {
+    if (dispute.orderType === 'VendorOrder') {
       order = await VendorOrder.findById(dispute.orderId);
     } else if (dispute.orderType === 'AgentOrder') {
       order = await AgentOrder.findById(dispute.orderId);
+    } else {
+      throw new Error('Invalid order type for dispute resolution');
     }
 
     if (!order) {
       throw new Error('Order not found for dispute resolution');
     }
+
+    console.log(`🔍 Order found: ${order._id}, Status: ${order.status}, Amount: ${order.totalAmount || order.amount}`);
 
     // Check if order is still in escrow or pending (disputes only allowed for orders in escrow or pending)
     const escrowStatuses = ['pending', 'accepted', 'preparing', 'out_for_delivery', 'delivered'];
@@ -647,17 +664,100 @@ const processDisputeRefund = async (dispute, refundAmount, resolution) => {
     }
 
     const orderAmount = order.totalAmount || order.amount;
-    const vendorAgentId = dispute.orderType === 'Order' ? order.agent : 
-                         dispute.orderType === 'VendorOrder' ? order.vendor : order.agent;
-    const vendorAgentRole = dispute.orderType === 'Order' ? 'agent' : 
-                           dispute.orderType === 'VendorOrder' ? 'vendor' : 'agent';
+    const vendorAgentId = dispute.orderType === 'VendorOrder' ? order.vendor : order.agent;
+    const vendorAgentRole = dispute.orderType === 'VendorOrder' ? 'vendor' : 'agent';
+
+    console.log(`🔍 Order Amount: ${orderAmount}, Vendor/Agent ID: ${vendorAgentId}, Role: ${vendorAgentRole}`);
 
     // Process resolution within escrow system
-    if (resolution === 'favor_respondent') {
-      // Vendor/Agent wins - money stays in escrow, will be released to them
-      // No wallet movement needed - money is already in escrow
+    if (resolution === 'no_action') {
+      // No action - refund buyer (money goes back to buyer from escrow)
+      const buyerWallet = await Wallet.findOne({ 
+        user: order.buyer, 
+        role: 'buyer' 
+      });
+
+      if (!buyerWallet) {
+        throw new Error('Buyer wallet not found');
+      }
+
+      // Credit buyer's wallet with full order amount from escrow
+      buyerWallet.balance += orderAmount;
+      await buyerWallet.save();
+
+      // Create transaction record for buyer refund from escrow
+      const transaction = new Transaction({
+        ref: `DISP_ESCROW_NO_ACTION_${dispute.disputeId}_${Date.now()}`,
+        type: 'credit',
+        status: 'successful',
+        amount: orderAmount,
+        to: order.buyer.toString(),
+        description: `Dispute resolved with no action - refund from escrow - ${dispute.disputeId}`,
+        initiatedBy: dispute.resolution.resolvedBy,
+        initiatorType: 'Admin',
+        metadata: {
+          disputeId: dispute.disputeId,
+          orderId: order._id,
+          orderType: dispute.orderType,
+          resolution: 'no_action',
+          source: 'escrow'
+        }
+      });
+
+      await transaction.save();
       
-      // Update order status to resolved (money will be released to vendor/agent)
+      // Update order status to resolved
+      order.status = 'resolved';
+      order.resolvedAt = new Date();
+      order.resolution = {
+        type: 'no_action',
+        disputeId: dispute.disputeId,
+        resolvedBy: dispute.resolution.resolvedBy,
+        resolvedAt: new Date(),
+        escrowAction: 'refunded_to_buyer'
+      };
+      await order.save();
+
+      console.log(`✅ Dispute resolved with no action: ${orderAmount} refunded to buyer ${order.buyer} from escrow`);
+
+    } else if (resolution === 'favor_respondent') {
+      console.log(`🔍 Processing favor_respondent resolution - Fund Vendor/Agent`);
+      // Vendor/Agent wins - credit their wallet from escrow
+      const vendorAgentWallet = await Wallet.findOne({ 
+        user: vendorAgentId, 
+        role: vendorAgentRole 
+      });
+
+      if (!vendorAgentWallet) {
+        throw new Error(`${vendorAgentRole} wallet not found`);
+      }
+
+      // Credit vendor/agent's wallet with full order amount from escrow
+      vendorAgentWallet.balance += orderAmount;
+      await vendorAgentWallet.save();
+
+      // Create transaction record for vendor/agent credit from escrow
+      const transaction = new Transaction({
+        ref: `DISP_ESCROW_WIN_${dispute.disputeId}_${Date.now()}`,
+        type: 'credit',
+        status: 'successful',
+        amount: orderAmount,
+        to: vendorAgentId.toString(),
+        description: `Dispute resolved in favor of ${vendorAgentRole} from escrow - ${dispute.disputeId}`,
+        initiatedBy: dispute.resolution.resolvedBy,
+        initiatorType: 'Admin',
+        metadata: {
+          disputeId: dispute.disputeId,
+          orderId: order._id,
+          orderType: dispute.orderType,
+          resolution: 'favor_respondent',
+          source: 'escrow'
+        }
+      });
+
+      await transaction.save();
+      
+      // Update order status to resolved
       order.status = 'resolved';
       order.resolvedAt = new Date();
       order.resolution = {
@@ -665,13 +765,14 @@ const processDisputeRefund = async (dispute, refundAmount, resolution) => {
         disputeId: dispute.disputeId,
         resolvedBy: dispute.resolution.resolvedBy,
         resolvedAt: new Date(),
-        escrowAction: 'release_to_vendor_agent'
+        escrowAction: 'released_to_vendor_agent'
       };
       await order.save();
 
-      console.log(`✅ Dispute resolved in favor of ${vendorAgentRole}: Money in escrow will be released to ${vendorAgentId}`);
+      console.log(`✅ Dispute resolved - Fund Vendor/Agent: ${orderAmount} credited to ${vendorAgentId} from escrow`);
 
     } else if (resolution === 'favor_complainant') {
+      console.log(`🔍 Processing favor_complainant resolution - Refund Buyer`);
       // Buyer wins - refund from escrow
       const buyerWallet = await Wallet.findOne({ 
         user: order.buyer, 
@@ -682,8 +783,11 @@ const processDisputeRefund = async (dispute, refundAmount, resolution) => {
         throw new Error('Buyer wallet not found');
       }
 
+      // Always use the actual order amount for security
+      const refundToBuyer = orderAmount;
+      
       // Credit buyer's wallet from escrow
-      buyerWallet.balance += orderAmount;
+      buyerWallet.balance += refundToBuyer;
       await buyerWallet.save();
 
       // Create transaction record for buyer refund from escrow
@@ -691,7 +795,7 @@ const processDisputeRefund = async (dispute, refundAmount, resolution) => {
         ref: `DISP_ESCROW_REFUND_${dispute.disputeId}_${Date.now()}`,
         type: 'credit',
         status: 'successful',
-        amount: orderAmount,
+        amount: refundToBuyer,
         to: order.buyer.toString(),
         description: `Dispute refund from escrow - ${dispute.disputeId}`,
         initiatedBy: dispute.resolution.resolvedBy,
@@ -716,16 +820,17 @@ const processDisputeRefund = async (dispute, refundAmount, resolution) => {
         resolvedBy: dispute.resolution.resolvedBy,
         resolvedAt: new Date(),
         escrowAction: 'refund_to_buyer',
-        refundAmount: orderAmount
+        refundAmount: refundToBuyer
       };
       await order.save();
 
-      console.log(`✅ Dispute resolved in favor of buyer: ${orderAmount} refunded from escrow to buyer ${order.buyer}`);
+      console.log(`✅ Dispute resolved - Refund Buyer: ${refundToBuyer} refunded from escrow to buyer ${order.buyer}`);
 
     } else if (resolution === 'partial_refund') {
-      // Partial refund - split escrow money
-      const buyerRefundAmount = refundAmount || (orderAmount * 0.5); // Default to 50% if not specified
-      const vendorAgentAmount = orderAmount - buyerRefundAmount;
+      console.log(`🔍 Processing partial_refund resolution - Split 50/50`);
+      // Partial refund - split escrow money (50/50 split)
+      const buyerRefundAmount = orderAmount * 0.5; // Always 50% to buyer
+      const vendorAgentAmount = orderAmount * 0.5; // Always 50% to vendor/agent
 
       // Credit buyer's wallet with partial refund
       const buyerWallet = await Wallet.findOne({ 
@@ -808,6 +913,9 @@ const processDisputeRefund = async (dispute, refundAmount, resolution) => {
       await order.save();
 
       console.log(`✅ Dispute resolved with partial refund: ${buyerRefundAmount} to buyer, ${vendorAgentAmount} to ${vendorAgentRole}`);
+    } else {
+      console.error(`❌ Unknown resolution type: ${resolution}`);
+      throw new Error(`Unknown resolution type: ${resolution}. Expected: no_action, favor_respondent, favor_complainant, or partial_refund`);
     }
 
   } catch (error) {

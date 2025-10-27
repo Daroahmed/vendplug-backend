@@ -70,6 +70,7 @@ class StaffDisputeDashboard {
             
             // Update UI
             document.getElementById('staffName').textContent = this.currentStaff.fullName;
+            document.getElementById('staffRole').textContent = this.currentStaff.role || 'Staff';
             
             // Show/hide manager features
             if (this.currentStaff.permissions?.disputeAssignment) {
@@ -78,6 +79,9 @@ class StaffDisputeDashboard {
 
         } catch (error) {
             console.error('Error loading staff info:', error);
+            // Show fallback values
+            document.getElementById('staffName').textContent = 'Staff Member';
+            document.getElementById('staffRole').textContent = 'Staff';
             throw error;
         }
     }
@@ -1340,12 +1344,10 @@ class StaffDisputeDashboard {
         const resolution = document.getElementById('resolutionDecision').value;
         const reason = document.getElementById('resolutionReason').value;
         const notes = document.getElementById('resolutionNotes').value;
-        const refundAmount = document.getElementById('refundAmount').value;
 
         console.log('🔍 Resolution:', resolution);
         console.log('🔍 Reason:', reason);
         console.log('🔍 Notes:', notes);
-        console.log('🔍 Refund Amount:', refundAmount);
 
         if (!resolution) {
             this.showError('Please select a resolution decision');
@@ -1368,8 +1370,7 @@ class StaffDisputeDashboard {
                 body: JSON.stringify({
                     resolution,
                     reason,
-                    notes,
-                    refundAmount: refundAmount ? parseFloat(refundAmount) : 0
+                    notes
                 })
             });
 

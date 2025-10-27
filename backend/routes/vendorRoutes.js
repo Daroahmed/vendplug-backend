@@ -6,7 +6,7 @@ const asyncHandler = require('express-async-handler');
 const { protectAgent, protectVendor,protectBuyer } = require("../middleware/authMiddleware");
 const { registerVendor, loginVendor } = require("../controllers/vendorAuthController.js");
 const { getVendorStats } = require('../controllers/vendorAuthController.js');
-const { getShopView, addVendorReview } = require('../controllers/vendorAuthController');
+const { getShopView, addVendorReview, voteReviewHelpfulness, reportReview, getVendorReviews } = require('../controllers/vendorAuthController');
 const { getVendorsByCategoryAndState } = require('../controllers/vendorAuthController');
 const { updateVendorProfile } = require("../controllers/vendorAuthController");
 const {
@@ -119,8 +119,11 @@ router.get('/:vendorId', getVendorById);
 // ✅ Shop view
 router.get('/:vendorId', getShopView);
 
-// ✅ Add review (buyer only)
+// ✅ Review endpoints
 router.post('/:vendorId/reviews', protectBuyer, addVendorReview);
+router.get('/:vendorId/reviews', getVendorReviews);
+router.post('/:vendorId/reviews/:reviewId/vote', protectBuyer, voteReviewHelpfulness);
+router.post('/:vendorId/reviews/:reviewId/report', protectBuyer, reportReview);
 
 router.get('/by-category-and-state', getVendorsByCategoryAndState);
 

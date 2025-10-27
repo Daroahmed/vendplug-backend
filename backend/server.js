@@ -53,7 +53,6 @@ const buyerRoutes = require('./routes/buyerRoutes');
 const agentRoutes = require('./routes/agentRoutes');
 const buyerOrderRoutes = require('./routes/buyerOrderRoutes');
 const vendorOrderRoutes = require('./routes/vendorOrderRoutes');
-const productRoutes = require('./routes/productRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const vendorProductRoutes = require("./routes/vendorProductRoutes");
 const walletRoutes = require('./routes/walletRoutes');
@@ -76,6 +75,7 @@ const staffDisputeRoutes = require('./routes/staffDisputeRoutes');
 const staffAuthRoutes = require('./routes/staffAuthRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const supportRoutes = require('./routes/supportRoutes');
+const productSearchRoutes = require('./routes/productSearchRoutes');
 const autoAssignmentService = require('./services/autoAssignmentService');
 
 
@@ -84,7 +84,6 @@ app.use('/api/buyers', buyerRoutes);
 app.use('/api/agents', agentRoutes);
 app.use('/api/buyer-orders', buyerOrderRoutes);
 app.use('/api/vendor-orders', vendorOrderRoutes);
-app.use('/api/products', productRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/vendors', vendorRoutes);
 app.use('/api/wallet', walletRoutes);
@@ -107,9 +106,21 @@ app.use('/api/staff', staffAuthRoutes);
 app.use('/api/staff', staffDisputeRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/support', supportRoutes);
+app.use('/api/products', productSearchRoutes);
 app.use('/api/admin-ads', require('./routes/adminAdRoutes'));
+app.use('/api/commission', require('./routes/commissionRoutes'));
+app.use('/api/paystack-wallet', require('./routes/paystackWalletRoutes'));
+
+// ✅ Admin routes
+app.get('/admin/wallet-management', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/paystack-wallet-management.html'));
+});
+
 // ✅ Test route
 app.get('/', (req, res) => res.send('Backend is running 🚀'));
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
 
 // ✅ HTTP Server + Socket.IO
 const server = http.createServer(app);

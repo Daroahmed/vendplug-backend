@@ -3,6 +3,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const balanceEl = document.getElementById('balance');
   const agent = getCurrentUser();
   const token = getAuthToken();
+  
+  // Store actual balance for toggle functionality
+  let actualBalance = '0';
 
   if (!agent || !token) {
     window.showOverlay && showOverlay({ type:'error', title:'Unauthorized', message:'Please log in again.' });
@@ -27,10 +30,14 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const data = await res.json();
       accountNumberEl.textContent = data.virtualAccount || 'Not available';
-      balanceEl.textContent = Number(data.balance || 0).toLocaleString('en-NG');
+      actualBalance = Number(data.balance || 0).toLocaleString('en-NG');
+      balanceEl.textContent = actualBalance;
+      // Expose balance globally for toggle function
+      window.actualBalance = actualBalance;
     } catch (err) {
       accountNumberEl.textContent = 'Error';
       balanceEl.textContent = 'Error';
+      actualBalance = 'Error';
     }
   }
 
@@ -104,12 +111,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (!displayName) displayName = 'Unknown';
 
+        // Determine transaction type display
+        let transactionTypeDisplay = txn.type;
+        if (txn.ref && txn.ref.includes('DISP_ESCROW')) {
+          if (txn.ref.includes('WIN')) {
+            transactionTypeDisplay = 'Dispute Resolution Credit';
+          } else if (txn.ref.includes('PARTIAL')) {
+            transactionTypeDisplay = 'Partial Dispute Credit';
+          } else {
+            transactionTypeDisplay = 'Dispute Resolution';
+          }
+        } else if (txn.ref && txn.ref.includes('PAYSTACK')) {
+          transactionTypeDisplay = 'Wallet Funding';
+        }
+
         const card = document.createElement('div');
         card.className = 'transaction-card';
         card.innerHTML = `
           <div class="transaction-header">
             <div class="transaction-type ${txn.status === 'failed' ? 'transaction-failed' : 'transaction-success'}">
-              ${txn.type}
+              ${transactionTypeDisplay}
             </div>
             <div class="transaction-amount">
               ₦${txn.amount.toLocaleString()}

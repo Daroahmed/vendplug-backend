@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
     <title>Messages - VendPlug</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -461,6 +461,142 @@
             transform: none;
         }
 
+        /* Loading States */
+        .btn-send.loading {
+            background: var(--primary);
+            cursor: not-allowed;
+            position: relative;
+        }
+
+        .btn-send.loading i {
+            display: none;
+        }
+
+        .btn-send.loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--bg-dark);
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .btn-attach.loading {
+            color: var(--primary);
+            cursor: not-allowed;
+            position: relative;
+        }
+
+        .btn-attach.loading i {
+            display: none;
+        }
+
+        .btn-attach.loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--primary);
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .message-input.loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .upload-progress {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            min-width: 300px;
+            text-align: center;
+        }
+
+        .upload-progress h3 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .upload-progress p {
+            color: var(--muted);
+            margin-bottom: 1rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .upload-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        .upload-status i {
+            color: var(--primary);
+        }
+
+        .upload-status.success i {
+            color: #00cc99;
+        }
+
+        .upload-status.error i {
+            color: #ff6b6b;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Message sending indicator */
+        .message-sending {
+            opacity: 0.7;
+            position: relative;
+        }
+
+        .message-sending::after {
+            content: '';
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 12px;
+            height: 12px;
+            border: 2px solid var(--bg-dark);
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
         /* Mobile Responsive */
         @media (max-width: 768px) {
             .chat-sidebar {
@@ -669,9 +805,11 @@
                 console.log('⚠️ No auth found, using mock user ID:', currentUserId);
             }
 
-            // Initialize Socket.IO connection
-            socket = io('http://localhost:5000', {
-                transports: ['websocket', 'polling']
+            // Initialize Socket.IO connection (same-origin)
+            socket = io({
+                path: '/socket.io',
+                transports: ['websocket', 'polling'],
+                withCredentials: true
             });
 
             // Socket event listeners
@@ -1212,14 +1350,36 @@
                 return;
             }
 
-            // Disable send button
+            // Show loading state
             const sendButton = document.getElementById('sendButton');
+            const messageInputContainer = document.querySelector('.message-input');
+            
             sendButton.disabled = true;
+            sendButton.classList.add('loading');
+            messageInputContainer.classList.add('loading');
+
+            // Add temporary message with loading indicator
+            const tempMessage = {
+                id: 'temp_' + Date.now(),
+                content: content,
+                senderId: currentUserId,
+                timestamp: new Date(),
+                type: 'text',
+                isTemporary: true
+            };
+
+            // Add temporary message to UI
+            const messagesContainer = document.getElementById('chatMessages');
+            const tempMessageElement = createMessageElement(tempMessage);
+            tempMessageElement.classList.add('message-sending');
+            messagesContainer.appendChild(tempMessageElement);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
             const token = getAuthToken();
             if (!token) {
                 console.log('No auth token found, cannot send message');
-                sendButton.disabled = false;
+                removeLoadingState();
+                tempMessageElement.remove();
                 return;
             }
 
@@ -1242,14 +1402,16 @@
                     
                     console.log('Message sent successfully:', message);
                     
+                    // Remove temporary message
+                    tempMessageElement.remove();
+                    
                     // Add to local messages
                     if (!messages[currentChatId]) {
                         messages[currentChatId] = [];
                     }
                     messages[currentChatId].push(message);
 
-                    // Render message
-                    const messagesContainer = document.getElementById('chatMessages');
+                    // Render actual message
                     const messageElement = createMessageElement(message);
                     messagesContainer.appendChild(messageElement);
                     messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -1264,17 +1426,26 @@
                     console.log('Message added to UI and chat list updated');
                 } else {
                     console.error('Failed to send message:', response.status);
+                    tempMessageElement.remove();
                     window.showOverlay && showOverlay({ type:'error', title:'Message', message:'Failed to send message. Please try again.' });
                 }
             } catch (error) {
                 console.error('Error sending message:', error);
+                tempMessageElement.remove();
                 window.showOverlay && showOverlay({ type:'error', title:'Message', message:'Error sending message. Please try again.' });
             } finally {
-                // Clear input and re-enable button
-                messageInput.value = '';
-                autoResizeTextarea(messageInput);
-                sendButton.disabled = false;
+                removeLoadingState();
             }
+        }
+
+        // Remove loading state
+        function removeLoadingState() {
+            const sendButton = document.getElementById('sendButton');
+            const messageInputContainer = document.querySelector('.message-input');
+            
+            sendButton.disabled = false;
+            sendButton.classList.remove('loading');
+            messageInputContainer.classList.remove('loading');
         }
 
         // Handle new message
@@ -1416,6 +1587,10 @@
             
             if (!files || files.length === 0) return;
 
+            // Show loading state for attach button
+            const attachButton = document.querySelector('.btn-attach');
+            attachButton.classList.add('loading');
+
             const formData = new FormData();
             Array.from(files).forEach(file => {
                 formData.append('attachments', file);
@@ -1431,21 +1606,94 @@
                 fileNames: Array.from(files).map(f => f.name)
             });
 
-            uploadFiles(formData);
+            // Show upload progress modal
+            showUploadProgress(files);
+            
+            uploadFiles(formData, files);
             
             // Clear the input
             event.target.value = '';
         }
 
+        // Show upload progress modal
+        function showUploadProgress(files) {
+            const modal = document.createElement('div');
+            modal.className = 'upload-progress';
+            modal.id = 'uploadProgressModal';
+            
+            const fileNames = Array.from(files).map(f => f.name).join(', ');
+            const totalSize = Array.from(files).reduce((sum, file) => sum + file.size, 0);
+            
+            modal.innerHTML = `
+                <h3>📤 Uploading Files</h3>
+                <p>${files.length} file(s) - ${formatFileSize(totalSize)}</p>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="uploadProgressFill"></div>
+                </div>
+                <div class="upload-status" id="uploadStatus">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Preparing upload...</span>
+                </div>
+                <div style="margin-top: 1rem; font-size: 0.8rem; color: var(--muted);">
+                    ${fileNames.length > 50 ? fileNames.substring(0, 50) + '...' : fileNames}
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Simulate progress (since we can't track real progress with fetch)
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress > 90) progress = 90;
+                
+                const progressFill = document.getElementById('uploadProgressFill');
+                if (progressFill) {
+                    progressFill.style.width = progress + '%';
+                }
+            }, 200);
+            
+            // Store interval for cleanup
+            modal.progressInterval = progressInterval;
+        }
+
+        // Update upload status
+        function updateUploadStatus(status, message, isSuccess = false) {
+            const statusElement = document.getElementById('uploadStatus');
+            if (statusElement) {
+                const icon = isSuccess ? 'fas fa-check-circle' : 'fas fa-exclamation-circle';
+                statusElement.innerHTML = `<i class="${icon}"></i><span>${message}</span>`;
+                statusElement.className = `upload-status ${isSuccess ? 'success' : 'error'}`;
+            }
+        }
+
+        // Hide upload progress modal
+        function hideUploadProgress() {
+            const modal = document.getElementById('uploadProgressModal');
+            if (modal) {
+                if (modal.progressInterval) {
+                    clearInterval(modal.progressInterval);
+                }
+                modal.remove();
+            }
+            
+            // Remove loading state from attach button
+            const attachButton = document.querySelector('.btn-attach');
+            attachButton.classList.remove('loading');
+        }
+
         // Upload files to server
-        async function uploadFiles(formData) {
+        async function uploadFiles(formData, files) {
             const token = getAuthToken();
             if (!token) {
-                window.showOverlay && showOverlay({ type:'info', title:'Login required', message:'Please log in to upload files.' });
+                updateUploadStatus('error', 'Login required to upload files');
+                setTimeout(hideUploadProgress, 2000);
                 return;
             }
 
             try {
+                updateUploadStatus('loading', 'Uploading files...');
+                
                 const response = await fetch(`/api/chats/${currentChatId}/messages`, {
                     method: 'POST',
                     headers: {
@@ -1462,13 +1710,25 @@
 
                 console.log('Files uploaded successfully');
                 
+                // Complete progress bar
+                const progressFill = document.getElementById('uploadProgressFill');
+                if (progressFill) {
+                    progressFill.style.width = '100%';
+                }
+                
+                updateUploadStatus('success', 'Files uploaded successfully!', true);
+                
                 // Reload messages to show the uploaded files
                 await loadMessages(currentChatId);
                 await loadChats(); // Update chat list
+                
+                // Hide modal after success
+                setTimeout(hideUploadProgress, 1500);
 
             } catch (error) {
                 console.error('Error uploading files:', error);
-                window.showOverlay && showOverlay({ type:'error', title:'Upload', message:'Failed to upload files. Please try again.' });
+                updateUploadStatus('error', 'Upload failed. Please try again.');
+                setTimeout(hideUploadProgress, 3000);
             }
         }
 

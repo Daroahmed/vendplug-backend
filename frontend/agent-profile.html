@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>VendPlug | Agent Profile</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -89,6 +89,11 @@
   <h2>Agent Profile</h2>
 
   <div class="profile-container">
+
+    <label for="brandImage">Brand Image</label>
+    <input type="file" id="brandImage" accept="image/*" />
+    <img id="brandPreview" alt="Brand Preview" />
+    
     <label for="fullName">Full Name</label>
     <input type="text" id="fullName" disabled />
 
@@ -109,10 +114,6 @@
 
     <label for="businessDescription">Business Description</label>
     <input type="text" id="businessDescription" />
-
-    <label for="brandImage">Brand Image</label>
-    <input type="file" id="brandImage" accept="image/*" />
-    <img id="brandPreview" alt="Brand Preview" />
 
     <button onclick="updateProfile()">Save Changes</button>
 

@@ -9,13 +9,57 @@ const vendorReviewSchema = new mongoose.Schema(
       ref: 'Buyer',
       required: true,
     },
+    buyerName: {
+      type: String,
+      required: false, // Make optional for backward compatibility
+    },
     rating: {
       type: Number,
       required: true,
       min: 1,
       max: 5,
     },
-    comment: { type: String, trim: true },
+    comment: { 
+      type: String, 
+      trim: true,
+      maxlength: 1000
+    },
+    orderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'VendorOrder',
+      required: false, // Optional - for verified purchases
+    },
+    isVerifiedPurchase: {
+      type: Boolean,
+      default: false,
+    },
+    helpfulVotes: {
+      type: Number,
+      default: 0,
+    },
+    notHelpfulVotes: {
+      type: Number,
+      default: 0,
+    },
+    isReported: {
+      type: Boolean,
+      default: false,
+    },
+    reportReason: {
+      type: String,
+      enum: ['spam', 'inappropriate', 'fake', 'offensive', 'other'],
+    },
+    isModerated: {
+      type: Boolean,
+      default: false,
+    },
+    moderatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Admin',
+    },
+    moderatedAt: {
+      type: Date,
+    },
   },
   { timestamps: true }
 );
@@ -29,6 +73,7 @@ const vendorSchema = new mongoose.Schema(
     phoneNumber: { type: String, required: true },
     businessName: { type: String },
     businessAddress: { type: String },
+    cacNumber: { type: String },
     state: { type: String },
     role: { type: String, default: 'vendor' },
 
@@ -47,7 +92,7 @@ const vendorSchema = new mongoose.Schema(
         "Supermarkets/Groceries and Provisions",
         "Soft Drinks & Water",
         "Kitchen Utensils & Plastics",
-        "Gas Plants",
+        "Tea & Spices",
         "Fruits & Vegetables",
         "Grains", 
 
@@ -68,7 +113,7 @@ const vendorSchema = new mongoose.Schema(
     
         // 👚 Fashion & Lifestyle
         "Boutiques",
-        "Thrift / Okrika / Gongo",
+        "Thrift / Okrika / Gonjo",
         "Tokunbo / Belguim Products",
         "Shoes and Bags",
         "Jewelry & Accessories",
@@ -159,7 +204,7 @@ const vendorSchema = new mongoose.Schema(
     otherCategory: {
       type: String,
       required: function () {
-        return this.category === "Other";
+        return this.category && this.category.includes("Other");
       }
     },
     

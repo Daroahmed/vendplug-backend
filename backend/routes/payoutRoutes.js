@@ -1,12 +1,13 @@
 const express = require('express');
 const router = express.Router();
+const payoutController = require('../controllers/payoutController');
 const {
   requestPayout,
   processPayouts,
   getPayoutHistory,
   getPayoutDetails
-} = require('../controllers/payoutController');
-const { protectAgent, protectVendor } = require('../middleware/authMiddleware');
+} = payoutController;
+const { protectAgent, protectVendor, protectAdmin } = require('../middleware/authMiddleware');
 
 // Combined middleware for both agents and vendors
 const protectAnyUser = async (req, res, next) => {
@@ -52,5 +53,97 @@ router.get('/:payoutId', protectAnyUser, getPayoutDetails);
 
 // Admin/System routes (for processing payouts)
 router.post('/process', processPayouts); // This could be protected with admin middleware later
+// Fix stuck processing payouts - define function inline to avoid circular dependency
+router.post('/fix-stuck-processing', protectAdmin, async (req, res) => {
+  try {
+       const Payout = require('../models/payoutModel');
+    const Transaction = require('../models/Transaction');
+    const PaystackService = require('../services/paystackService');
+    
+    // Find payouts stuck in processing for more than 30 minutes
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+    const stuckPayouts = await Payout.find({
+      status: 'processing',
+      createdAt: { $lt: thirtyMinutesAgo }
+    });
+
+    if (stuckPayouts.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No stuck processing payouts found',
+        fixed: 0
+      });
+    }
+
+    let fixedCount = 0;
+    const paystackService = new PaystackService();
+
+    for (const payout of stuckPayouts) {
+      try {
+        // Check Paystack transfer status
+        const transferDetails = await paystackService.getTransfer(payout.paystackTransferCode);
+        
+        if (transferDetails.status === 'success') {
+          // Update payout status to completed
+          await Payout.findByIdAndUpdate(payout._id, {
+            status: 'completed',
+            completedAt: new Date(),
+            paystackResponse: transferDetails
+          });
+
+          // Create transaction record
+          await Transaction.create({
+            type: 'withdrawal',
+            amount: payout.amount,
+            status: 'completed',
+            initiatedBy: payout.vendorId,
+            initiatorType: 'Vendor',
+            description: `Payout completed - ${payout.paystackTransferCode}`,
+            reference: payout.paystackTransferCode
+          });
+
+          fixedCount++;
+        } else if (transferDetails.status === 'failed') {
+          // Update payout status to failed
+          await Payout.findByIdAndUpdate(payout._id, {
+            status: 'failed',
+            failedAt: new Date(),
+            paystackResponse: transferDetails
+          });
+
+          // Refund the amount back to vendor's wallet
+          await Transaction.create({
+            type: 'refund',
+            amount: payout.amount,
+            status: 'completed',
+            initiatedBy: payout.vendorId,
+            initiatorType: 'Vendor',
+            description: `Payout failed - refunded to wallet - ${payout.paystackTransferCode}`,
+            reference: payout.paystackTransferCode
+          });
+
+          fixedCount++;
+        }
+      } catch (error) {
+        console.error(`Error checking payout ${payout._id}:`, error);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Fixed ${fixedCount} stuck processing payouts`,
+      fixed: fixedCount,
+      total: stuckPayouts.length
+    });
+
+  } catch (error) {
+    console.error('Error fixing stuck processing payouts:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fixing stuck processing payouts',
+      error: error.message
+    });
+  }
+});
 
 module.exports = router;

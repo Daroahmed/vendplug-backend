@@ -1,18 +1,66 @@
 {
-  "name": "VendPlug",
+  "name": "VendPlug - Secure Escrow Platform",
   "short_name": "VendPlug",
+  "description": "Secure escrow platform for buyers, vendors, and agents",
   "start_url": "/public-buyer-home.html",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false,
   "background_color": "#121212",
   "theme_color": "#00cc99",
+  "categories": ["business", "shopping", "finance"],
+  "lang": "en",
+  "dir": "ltr",
   "icons": [
-    { "src": "/favicon.png", "sizes": "256x256", "type": "image/png" },
-    { "src": "/favicon.ico", "sizes": "48x48", "type": "image/x-icon" }
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
   ],
   "shortcuts": [
-    { "name": "Cart (Vendors)", "url": "/buyer-vendor-checkout.html" },
-    { "name": "My Orders", "url": "/buyer-vendor-orders.html" },
-    { "name": "Support", "url": "/support.html" }
+    {
+      "name": "Cart (Vendors)",
+      "short_name": "Cart",
+      "description": "View your vendor cart",
+      "url": "/buyer-vendor-checkout.html",
+      "icons": [{ "src": "/logo.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "My Orders",
+      "short_name": "Orders",
+      "description": "View your orders",
+      "url": "/buyer-vendor-orders.html",
+      "icons": [{ "src": "/logo.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Support",
+      "short_name": "Support",
+      "description": "Get help and support",
+      "url": "/support.html",
+      "icons": [{ "src": "/logo.png", "sizes": "96x96" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/logo.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
   ]
 }
 

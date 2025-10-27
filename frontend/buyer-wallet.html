@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <title>VendPlug Wallet</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=0.8, maximum-scale=1.0, user-scalable=no"/>
+  <link rel="manifest" href="/manifest.webmanifest">
   <style>
     :root {
       --primary: #00cc99;
@@ -13,225 +14,281 @@
       --muted: #aaa;
       --success: #28a745;
       --fail: #dc3545;
+      --wallet-gradient: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
+    }
+
+    * {
+      box-sizing: border-box;
     }
 
     body {
       margin: 0;
-      font-family: 'Segoe UI', sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: var(--bg-dark);
       color: var(--text-light);
-      padding: 1rem;
+      padding: 0.8rem;
+      min-height: 100vh;
+      overflow-x: hidden;
     }
 
-    h2 {
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .page-title {
       color: var(--primary);
-      font-size: 1.5rem;
+      font-size: 1.8rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    /* Smart Navigation Styles */
+    .smart-navigation {
+      background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+      border: 1px solid rgba(0, 204, 153, 0.3);
+      border-radius: 15px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 15px rgba(0, 204, 153, 0.1);
+      animation: slideDown 0.3s ease-out;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .nav-breadcrumb {
       margin-bottom: 1rem;
     }
 
-    .flex-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .card {
-      background: var(--card);
-      padding: 1rem;
-      border-radius: 10px;
-      flex: 1;
-      min-width: 250px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    }
-
-    .card-title {
-      font-weight: bold;
+    .nav-text {
       color: var(--primary);
-      margin-bottom: 0.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
-    .card span {
-      font-size: 1.2rem;
-      font-weight: bold;
-    }
-
-    .copy-btn {
+    .breadcrumb-path {
       margin-top: 0.5rem;
-      background: none;
-      border: 1px solid var(--primary);
-      color: var(--primary);
-      padding: 0.4rem 0.75rem;
-      border-radius: 6px;
-      cursor: pointer;
     }
 
-    .form-section {
-      background: var(--card);
-      padding: 1rem;
+    .breadcrumb-item {
+      color: var(--muted);
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .nav-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.8rem 1.5rem;
+      border: none;
       border-radius: 10px;
-      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      min-width: 140px;
+      justify-content: center;
     }
 
-    .form-section h3 {
-      margin-top: 0;
-      color: var(--primary);
+    .nav-btn-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, #00ffcc 100%);
+      color: #000;
+      box-shadow: 0 4px 15px rgba(0, 204, 153, 0.3);
     }
 
-    label {
-      display: block;
-      margin: 0.75rem 0 0.3rem;
-      font-size: 0.95rem;
+    .nav-btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 204, 153, 0.4);
     }
 
-    input, textarea, button {
-      width: 100%;
-      padding: 0.7rem;
-      margin-top: 0.25rem;
-      background: #1a1a1a;
-      border: 1px solid #333;
-      border-radius: 6px;
-      font-size: 0.95rem;
+    .nav-btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-light);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .nav-btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateY(-1px);
+    }
+
+    .nav-btn i {
+      font-size: 1rem;
+    }
+
+    /* Modern Wallet Card */
+    .wallet-card {
+      background: var(--wallet-gradient);
+      border-radius: 20px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .wallet-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), #00ffcc, var(--primary));
+      opacity: 0.8;
+    }
+
+    .wallet-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 2rem;
+    }
+
+    .account-info {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .account-number {
+      font-size: 1.1rem;
+      font-weight: 600;
       color: var(--text-light);
     }
 
-    button {
-      background: var(--primary);
-      color: #000;
-      font-weight: bold;
-      margin-top: 1rem;
+    .copy-icon {
+      width: 20px;
+      height: 20px;
       cursor: pointer;
+      opacity: 0.7;
+      transition: opacity 0.3s ease;
     }
 
-    #userNameResolved {
-      font-style: italic;
-      font-size: 0.85rem;
-      color: var(--muted);
-      margin-top: 4px;
+    .copy-icon:hover {
+      opacity: 1;
     }
 
-    .transaction-card {
-      border: 1px solid #333;
-      border-radius: 8px;
-      margin-bottom: 1rem;
-      overflow: hidden;
-      background: var(--card);
-    }
-
-    .transaction-header {
-      padding: 0.75rem 1rem;
-      cursor: pointer;
+    .account-status {
       display: flex;
-      justify-content: space-between;
-      font-weight: bold;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(0, 204, 153, 0.1);
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      border: 1px solid rgba(0, 204, 153, 0.3);
     }
 
-    .transaction-header.success {
-      color: var(--success);
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--primary);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
     }
 
-    .transaction-header.failed {
-      color: var(--fail);
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
     }
 
-    .transaction-details {
-      padding: 0.75rem 1rem;
+    .status-text {
+      font-size: 0.9rem;
+      color: var(--primary);
+      font-weight: 500;
+    }
+
+    .wallet-icon {
+      width: 24px;
+      height: 24px;
+      margin-bottom: 1rem;
+      opacity: 0.8;
+    }
+
+    .balance-section {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .balance-label {
       font-size: 0.9rem;
       color: var(--muted);
-      display: none;
-      border-top: 1px solid #444;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
-    .transaction-card.active .transaction-details {
-      display: block;
-    }
-
-    /* Modal Styles */
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 1000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(4px);
-    }
-
-    .modal-content {
-      background-color: var(--card);
-      margin: 15% auto;
-      padding: 0;
-      border-radius: 12px;
-      width: 90%;
-      max-width: 500px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-      animation: modalSlide 0.3s ease-out;
-    }
-
-    @keyframes modalSlide {
-      from { transform: translateY(-20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-
-    .modal-header {
-      padding: 1rem;
-      border-bottom: 1px solid #333;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .modal-header h3 {
-      margin: 0;
-      color: var(--primary);
-    }
-
-    .close {
-      color: var(--muted);
-      font-size: 1.5rem;
-      font-weight: bold;
-      cursor: pointer;
-      padding: 0 0.5rem;
-    }
-
-    .close:hover {
+    .balance-amount {
+      font-size: 2.5rem;
+      font-weight: 700;
       color: var(--text-light);
+      margin-bottom: 0.5rem;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     }
 
-    .modal-body {
-      padding: 1rem;
+    .balance-toggle {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      opacity: 0.7;
+      transition: opacity 0.3s ease;
     }
 
-    .form-group {
-      margin-bottom: 1rem;
+    .balance-toggle:hover {
+      opacity: 1;
     }
 
-    .fund-btn {
-      background: var(--primary);
+    .fund-button {
+      background: linear-gradient(135deg, var(--primary) 0%, #00ffcc 100%);
       color: #000;
       border: none;
-      padding: 0.8rem 1rem;
-      border-radius: 6px;
-      font-weight: bold;
+      padding: 1rem 2rem;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
       cursor: pointer;
       width: 100%;
       transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0, 204, 153, 0.3);
     }
 
-    .fund-btn:hover {
+    .fund-button:hover {
       transform: translateY(-2px);
-      box-shadow: 0 2px 8px rgba(0, 204, 153, 0.3);
+      box-shadow: 0 6px 20px rgba(0, 204, 153, 0.4);
+    }
+
+    .fund-button:active {
+      transform: translateY(0);
     }
 
     /* Loading State */
-    .fund-btn.loading {
+    .fund-button.loading {
       position: relative;
       color: transparent;
     }
 
-    .fund-btn.loading::after {
+    .fund-button.loading::after {
       content: "";
       position: absolute;
       left: 50%;
@@ -249,68 +306,362 @@
       to { transform: translate(-50%, -50%) rotate(360deg); }
     }
 
-    @media (max-width: 600px) {
-      .card {
-        min-width: 100%;
+    /* Filter Section */
+    .filter-section {
+      background: var(--card);
+      padding: 1.5rem;
+      border-radius: 15px;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .filter-title {
+      color: var(--primary);
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+
+    .filter-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 1rem;
+      align-items: end;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-group label {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+
+    .form-group input {
+      padding: 0.8rem;
+      background: #2a2a2a;
+      border: 1px solid #444;
+      border-radius: 8px;
+      color: var(--text-light);
+      font-size: 0.9rem;
+      transition: border-color 0.3s ease;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .filter-btn {
+      background: var(--primary);
+      color: #000;
+      border: none;
+      padding: 0.8rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .filter-btn:hover {
+      background: #00ffcc;
+      transform: translateY(-1px);
+    }
+
+    /* Transaction History */
+    .transaction-section {
+      background: var(--card);
+      padding: 1.5rem;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .transaction-title {
+      color: var(--primary);
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+
+    .transaction-card {
+      border: 1px solid #333;
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      overflow: hidden;
+      background: #2a2a2a;
+      transition: all 0.3s ease;
+    }
+
+    .transaction-card:hover {
+      border-color: var(--primary);
+      box-shadow: 0 2px 10px rgba(0, 204, 153, 0.1);
+    }
+
+    .transaction-header {
+      padding: 1rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600;
+    }
+
+    .transaction-header.success {
+      color: var(--success);
+    }
+
+    .transaction-header.failed {
+      color: var(--fail);
+    }
+
+    .transaction-details {
+      padding: 1rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+      display: none;
+      border-top: 1px solid #444;
+      background: #1a1a1a;
+    }
+
+    .transaction-card.active .transaction-details {
+      display: block;
+    }
+
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+    }
+
+    .modal-content {
+      background-color: var(--card);
+      margin: 10% auto;
+      padding: 0;
+      border-radius: 20px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      animation: modalSlide 0.3s ease-out;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    @keyframes modalSlide {
+      from { transform: translateY(-30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid #333;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      color: var(--primary);
+      font-size: 1.3rem;
+    }
+
+    .close {
+      color: var(--muted);
+      font-size: 1.8rem;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 0.5rem;
+      transition: color 0.3s ease;
+    }
+
+    .close:hover {
+      color: var(--text-light);
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+    }
+
+    .modal-body .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-body input {
+      width: 100%;
+      padding: 1rem;
+      background: #2a2a2a;
+      border: 1px solid #444;
+      border-radius: 10px;
+      color: var(--text-light);
+      font-size: 1rem;
+    }
+
+    .modal-body input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      body {
+        padding: 0.5rem;
       }
+
+      .smart-navigation {
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .nav-buttons {
+        flex-direction: column;
+        gap: 0.8rem;
+      }
+
+      .nav-btn {
+        width: 100%;
+        min-width: auto;
+        padding: 1rem;
+      }
+
+      .wallet-card {
+        padding: 1.5rem;
+        border-radius: 15px;
+      }
+
+      .wallet-header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+      }
+
+      .account-status {
+        align-self: flex-end;
+      }
+
+      .balance-amount {
+        font-size: 2rem;
+      }
+
+      .filter-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .filter-btn {
+        width: 100%;
+        padding: 1rem;
+      }
+
       .modal-content {
-        margin: 10% auto;
+        margin: 5% auto;
         width: 95%;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .page-title {
+        font-size: 1.5rem;
+      }
+
+      .wallet-card {
+        padding: 1rem;
+      }
+
+      .balance-amount {
+        font-size: 1.8rem;
+      }
+
+      .account-number {
+        font-size: 1rem;
       }
     }
   </style>
 </head>
 <body>
+  <div class="container">
+    <!-- Smart Navigation -->
+    <div class="smart-navigation" id="smartNavigation" style="display: none;">
+      <div class="nav-breadcrumb">
+        <div class="breadcrumb-trail" id="breadcrumbTrail">
+          <span class="nav-text">Quick Navigation</span>
+        </div>
+      </div>
+      <div class="nav-buttons">
+        <button class="nav-btn nav-btn-primary" id="backToCheckout" onclick="goBackToCheckout()">
+          <i class="fas fa-arrow-left"></i>
+          <span id="checkoutButtonText">Back to Checkout</span>
+        </button>
+        <button class="nav-btn nav-btn-secondary" onclick="goToHome()">
+          <i class="fas fa-home"></i>
+          <span>Home</span>
+        </button>
+      </div>
+    </div>
 
-  <h2>VendPlug Wallet</h2>
+    <h1 class="page-title">VendPlug Wallet</h1>
 
-  <!-- Wallet Info + Filter -->
-  <div class="flex-row">
-    <div class="card">
-      <div class="card-title">Account Number</div>
-      <span id="accountNumber">Loading...</span>
-      <button class="copy-btn" onclick="copyAccount()">Copy</button>
-      <p style="margin-top: 1rem;">Balance: ₦<span id="balance">0</span></p>
-      <button class="fund-btn" onclick="showFundingModal()" style="margin-top: 1rem; background: var(--primary);">
-        Fund Wallet
+    <!-- Modern Wallet Card -->
+    <div class="wallet-card">
+      <div class="wallet-header">
+        <div class="account-info">
+          <span class="account-number" id="accountNumber">Loading...</span>
+          <svg class="copy-icon" onclick="copyAccount()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+        </div>
+        <div class="account-status">
+          <div class="status-dot"></div>
+          <span class="status-text">Active</span>
+        </div>
+      </div>
+
+      <div class="balance-section">
+        <div class="balance-label">Available Balance</div>
+        <div class="balance-amount">₦<span id="balance">0</span></div>
+        <svg class="balance-toggle" onclick="toggleBalance()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+      </div>
+
+      <button class="fund-button" onclick="showFundingModal()">
+        Fund Account
       </button>
     </div>
 
-    <div class="card">
-      <div class="card-title">Filter Transactions</div>
-      <label for="startDate">Start Date</label>
-      <input type="date" id="startDate" />
-      <label for="endDate">End Date</label>
-      <input type="date" id="endDate" />
-      <button id="filterBtn">Apply Filter</button>
+    <!-- Filter Section -->
+    <div class="filter-section">
+      <h3 class="filter-title">Filter Transactions</h3>
+      <div class="filter-grid">
+        <div class="form-group">
+          <label for="startDate">Start Date</label>
+          <input type="date" id="startDate" />
+        </div>
+        <div class="form-group">
+          <label for="endDate">End Date</label>
+          <input type="date" id="endDate" />
+        </div>
+        <button class="filter-btn" id="filterBtn">Apply Filter</button>
+      </div>
+    </div>
+
+    <!-- Transaction History -->
+    <div class="transaction-section">
+      <h3 class="transaction-title">Transaction History</h3>
+      <div id="transactionsList">Loading...</div>
     </div>
   </div>
-
-  <!-- Transfer Section removed: wallet is debited during orders -->
-
-  <!-- Transactions -->
-  <div class="form-section">
-    <h3>Transaction History</h3>
-    <div id="transactionsList">Loading...</div>
-  </div>
-
-  <script>
-    function copyAccount() {
-      const acct = document.getElementById('accountNumber').textContent.trim();
-      navigator.clipboard.writeText(acct).then(() => {
-        window.showOverlay && showOverlay({ type:'success', title:'Copied', message:'Account number copied!' });
-      });
-    }
-
-    // Toggle collapse for transactions
-    document.addEventListener("click", function (e) {
-      const header = e.target.closest(".transaction-header");
-      if (header) {
-        const card = header.closest(".transaction-card");
-        card.classList.toggle("active");
-      }
-    });
-  </script>
 
   <!-- Funding Modal -->
   <div id="fundingModal" class="modal" style="display: none;">
@@ -324,12 +675,136 @@
           <label for="fundingAmount">Amount (₦)</label>
           <input type="number" id="fundingAmount" min="100" step="100" placeholder="Enter amount">
         </div>
-        <button onclick="initiateFunding()" class="fund-btn">
+        <button class="fund-button" onclick="initiateFunding()">
           Proceed to Payment
         </button>
       </div>
     </div>
   </div>
+
+  <script>
+    // Smart Navigation System
+    let checkoutContext = null;
+
+    function initializeSmartNavigation() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const referrer = document.referrer;
+      const smartNav = document.getElementById('smartNavigation');
+      const checkoutButton = document.getElementById('backToCheckout');
+      const checkoutButtonText = document.getElementById('checkoutButtonText');
+      const breadcrumbTrail = document.getElementById('breadcrumbTrail');
+
+      // Check URL parameters first (more reliable)
+      const source = urlParams.get('from');
+      if (source) {
+        if (source === 'vendor-checkout') {
+          checkoutContext = 'vendor';
+          checkoutButtonText.textContent = 'Back to Vendor Checkout';
+          updateBreadcrumb('Home → Vendor Checkout → Wallet');
+          smartNav.style.display = 'block';
+        } else if (source === 'agent-checkout') {
+          checkoutContext = 'agent';
+          checkoutButtonText.textContent = 'Back to Agent Checkout';
+          updateBreadcrumb('Home → Agent Checkout → Wallet');
+          smartNav.style.display = 'block';
+        } else if (source === 'payment-success') {
+          checkoutContext = 'payment-success';
+          checkoutButtonText.textContent = 'Continue Shopping';
+          updateBreadcrumb('Home → Checkout → Payment → Wallet');
+          smartNav.style.display = 'block';
+        }
+      }
+      // Fallback to referrer detection
+      else if (referrer.includes('buyer-vendor-checkout')) {
+        checkoutContext = 'vendor';
+        checkoutButtonText.textContent = 'Back to Vendor Checkout';
+        updateBreadcrumb('Home → Vendor Checkout → Wallet');
+        smartNav.style.display = 'block';
+      } else if (referrer.includes('buyer-agent-checkout')) {
+        checkoutContext = 'agent';
+        checkoutButtonText.textContent = 'Back to Agent Checkout';
+        updateBreadcrumb('Home → Agent Checkout → Wallet');
+        smartNav.style.display = 'block';
+      } else if (referrer.includes('payment-success')) {
+        checkoutContext = 'payment-success';
+        checkoutButtonText.textContent = 'Continue Shopping';
+        updateBreadcrumb('Home → Checkout → Payment → Wallet');
+        smartNav.style.display = 'block';
+      } else {
+        // User came from menu or direct link, show home button only
+        checkoutContext = 'direct';
+        checkoutButton.style.display = 'none';
+        updateBreadcrumb('Home → Wallet');
+        smartNav.style.display = 'block';
+      }
+    }
+
+    function updateBreadcrumb(trail) {
+      const breadcrumbTrail = document.getElementById('breadcrumbTrail');
+      breadcrumbTrail.innerHTML = `
+        <span class="nav-text">Quick Navigation</span>
+        <div class="breadcrumb-path">
+          <span class="breadcrumb-item">${trail}</span>
+        </div>
+      `;
+    }
+
+    // Initialize smart navigation when page loads
+    document.addEventListener('DOMContentLoaded', initializeSmartNavigation);
+
+    function goBackToCheckout() {
+      if (checkoutContext === 'vendor') {
+        window.location.href = 'buyer-vendor-checkout.html';
+      } else if (checkoutContext === 'agent') {
+        window.location.href = 'buyer-agent-checkout.html';
+      } else if (checkoutContext === 'payment-success') {
+        // Go to home page to continue shopping
+        window.location.href = 'public-buyer-home.html';
+      }
+    }
+
+    function goToHome() {
+      window.location.href = 'public-buyer-home.html';
+    }
+
+    function copyAccount() {
+      const acct = document.getElementById('accountNumber').textContent.trim();
+      navigator.clipboard.writeText(acct).then(() => {
+        window.showOverlay && showOverlay({ type:'success', title:'Copied', message:'Account number copied!' });
+      });
+    }
+
+    function toggleBalance() {
+      const balanceElement = document.getElementById('balance');
+      const toggleIcon = document.querySelector('.balance-toggle');
+      
+      if (balanceElement.textContent === '••••••') {
+        // Show balance - get from global variable set by buyer-wallet.js
+        const actualBalance = window.actualBalance || '0';
+        balanceElement.textContent = actualBalance;
+        toggleIcon.innerHTML = `
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        `;
+      } else {
+        // Hide balance
+        balanceElement.textContent = '••••••';
+        toggleIcon.innerHTML = `
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+          <line x1="1" y1="1" x2="23" y2="23"></line>
+        `;
+      }
+    }
+
+    // Toggle collapse for transactions
+    document.addEventListener("click", function (e) {
+      const header = e.target.closest(".transaction-header");
+      if (header) {
+        const card = header.closest(".transaction-card");
+        card.classList.toggle("active");
+      }
+    });
+  </script>
 
   <script src="https://js.paystack.co/v1/inline.js"></script>
   <script src="/js/config.js"></script>

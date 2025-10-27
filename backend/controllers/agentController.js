@@ -22,8 +22,11 @@ const registerAgent = async (req, res) => {
       phoneNumber,
       password,
       businessAddress,
+      cacNumber,
       category,
+      otherCategory,
       state,
+      businessDescription
     } = req.body;
 
     const agentExists = await Agent.findOne({ email });
@@ -40,8 +43,11 @@ const registerAgent = async (req, res) => {
       phoneNumber,
       password, // 👈 DO NOT manually hash it — the model handles it
       businessAddress,
+      cacNumber: cacNumber || undefined, // Make CAC number optional
       category,
+      otherCategory: otherCategory || undefined,
       state,
+      businessDescription,
       virtualAccount: tempVirtualAccount,
     });
 
@@ -72,7 +78,9 @@ const registerAgent = async (req, res) => {
       console.error('⚠️ Failed to persist agent verification token:', e.message);
     }
 
-    await sendVerificationEmail(email, verificationToken);
+    sendVerificationEmail(email, verificationToken).catch(err => {
+      console.error('❌ Verification email failed:', err?.message || err);
+    });
 
     // Send new user registration notification to admins
     try {
@@ -210,7 +218,7 @@ const getAgentStats = async (req, res) => {
 // @route   GET /api/agents/:agentId
 // @access  Public
 const getAgentById = async (req, res) => {
-  const agent = await Agent.findById(req.params.agentId);
+  const agent = await Agent.findById(req.params.agentId).populate('reviews.buyer', 'fullName email');
   if (agent) {
     res.json(agent);
   } else {
@@ -290,7 +298,7 @@ const getShopView = async (req, res) => {
 // =========================
 const addAgentReview = async (req, res) => {
   try {
-    const { rating, comment } = req.body;
+    const { rating, comment, orderId } = req.body;
     const agentId = req.params.agentId;
     const buyerId = req.user._id; // Comes from protectBuyer middleware
 
@@ -299,30 +307,198 @@ const addAgentReview = async (req, res) => {
       return res.status(404).json({ message: 'Agent not found' });
     }
 
-    // Optional: Prevent duplicate review from same buyer
-    const alreadyReviewed = agent.reviews.find(
-      (r) => r.buyer.toString() === buyerId.toString()
-    );
-    if (alreadyReviewed) {
-      return res.status(400).json({ message: 'You have already reviewed this agent' });
+    // Check if buyer exists and get their name
+    const Buyer = require('../models/Buyer');
+    const buyer = await Buyer.findById(buyerId);
+    if (!buyer) {
+      return res.status(404).json({ message: 'Buyer not found' });
     }
 
-    // Add review
-    agent.reviews.push({
-      buyer: buyerId,
-      rating,
-      comment
-    });
+    const buyerName = buyer.fullName || buyer.name || 'Anonymous';
 
+    // Determine if this is a verified purchase
+    let isVerifiedPurchase = false;
+    if (orderId) {
+      const AgentOrder = require('../models/AgentOrder');
+      const order = await AgentOrder.findOne({
+        _id: orderId,
+        buyer: buyerId,
+        agent: agentId,
+        status: 'delivered'
+      });
+      isVerifiedPurchase = !!order;
+    }
+
+    // Add review (no duplicate restriction - buyers can leave multiple reviews)
+    const newReview = {
+      buyer: buyerId,
+      buyerName: buyerName,
+      rating,
+      comment,
+      orderId: orderId || null,
+      isVerifiedPurchase,
+      helpfulVotes: 0,
+      notHelpfulVotes: 0,
+      isReported: false,
+      isModerated: false
+    };
+
+    agent.reviews.push(newReview);
     await agent.save(); // Average rating is auto-calculated in model
 
     res.status(201).json({
       message: 'Review added successfully',
-      reviews: agent.reviews,
+      review: newReview,
+      totalReviews: agent.reviews.length,
       averageRating: agent.averageRating
     });
   } catch (error) {
     console.error('Error adding review:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// =========================
+// Vote on Review Helpfulness
+// =========================
+const voteAgentReviewHelpfulness = async (req, res) => {
+  try {
+    const { agentId, reviewId } = req.params;
+    const { voteType } = req.body; // 'helpful' or 'not_helpful'
+    const buyerId = req.user._id;
+
+    const agent = await Agent.findById(agentId);
+    if (!agent) {
+      return res.status(404).json({ message: 'Agent not found' });
+    }
+
+    const review = agent.reviews.id(reviewId);
+    if (!review) {
+      return res.status(404).json({ message: 'Review not found' });
+    }
+
+    if (voteType === 'helpful') {
+      review.helpfulVotes += 1;
+    } else if (voteType === 'not_helpful') {
+      review.notHelpfulVotes += 1;
+    } else {
+      return res.status(400).json({ message: 'Invalid vote type' });
+    }
+
+    await agent.save();
+
+    res.json({
+      message: 'Vote recorded successfully',
+      helpfulVotes: review.helpfulVotes,
+      notHelpfulVotes: review.notHelpfulVotes
+    });
+  } catch (error) {
+    console.error('Error voting on review:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// =========================
+// Report Review
+// =========================
+const reportAgentReview = async (req, res) => {
+  try {
+    const { agentId, reviewId } = req.params;
+    const { reason } = req.body;
+    const buyerId = req.user._id;
+
+    const agent = await Agent.findById(agentId);
+    if (!agent) {
+      return res.status(404).json({ message: 'Agent not found' });
+    }
+
+    const review = agent.reviews.id(reviewId);
+    if (!review) {
+      return res.status(404).json({ message: 'Review not found' });
+    }
+
+    if (review.isReported) {
+      return res.status(400).json({ message: 'Review already reported' });
+    }
+
+    review.isReported = true;
+    review.reportReason = reason;
+
+    await agent.save();
+
+    res.json({ message: 'Review reported successfully' });
+  } catch (error) {
+    console.error('Error reporting review:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// =========================
+// Get Reviews with Sorting and Filtering
+// =========================
+const getAgentReviews = async (req, res) => {
+  try {
+    const { agentId } = req.params;
+    const { 
+      sort = 'newest', 
+      filter = 'all', 
+      rating = 'all',
+      page = 1, 
+      limit = 10 
+    } = req.query;
+
+    const agent = await Agent.findById(agentId).populate('reviews.buyer', 'fullName email');
+    if (!agent) {
+      return res.status(404).json({ message: 'Agent not found' });
+    }
+
+    let reviews = [...agent.reviews];
+
+    // Filter by rating
+    if (rating !== 'all') {
+      reviews = reviews.filter(review => review.rating === parseInt(rating));
+    }
+
+    // Filter by verification status
+    if (filter === 'verified') {
+      reviews = reviews.filter(review => review.isVerifiedPurchase);
+    } else if (filter === 'unverified') {
+      reviews = reviews.filter(review => !review.isVerifiedPurchase);
+    }
+
+    // Sort reviews
+    switch (sort) {
+      case 'newest':
+        reviews.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        break;
+      case 'oldest':
+        reviews.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        break;
+      case 'highest_rating':
+        reviews.sort((a, b) => b.rating - a.rating);
+        break;
+      case 'lowest_rating':
+        reviews.sort((a, b) => a.rating - b.rating);
+        break;
+      case 'most_helpful':
+        reviews.sort((a, b) => (b.helpfulVotes - b.notHelpfulVotes) - (a.helpfulVotes - a.notHelpfulVotes));
+        break;
+    }
+
+    // Pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + parseInt(limit);
+    const paginatedReviews = reviews.slice(startIndex, endIndex);
+
+    res.json({
+      reviews: paginatedReviews,
+      totalReviews: reviews.length,
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(reviews.length / limit),
+      averageRating: agent.averageRating
+    });
+  } catch (error) {
+    console.error('Error getting reviews:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -386,5 +562,8 @@ module.exports = {
   getAgentProfileById,
   getShopView,
   addAgentReview,
+  voteAgentReviewHelpfulness,
+  reportAgentReview,
+  getAgentReviews,
   updateAgentProfile
 };

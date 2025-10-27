@@ -8,12 +8,12 @@ const transactionSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['fund', 'transfer', 'withdrawal', 'refund', 'credit'],
+    enum: ['fund', 'transfer', 'withdrawal', 'refund', 'credit', 'commission', 'debit', 'payment'],
     required: true,
   },
   status: {
     type: String,
-    enum: ['pending', 'successful', 'failed'],
+    enum: ['pending', 'processing', 'successful', 'failed'],
     default: 'successful',
   },
   amount: {
@@ -36,12 +36,23 @@ const transactionSchema = new mongoose.Schema({
  
   description: String,
   initiatedBy: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: mongoose.Schema.Types.Mixed,
     refPath: 'initiatorType',
   },
   initiatorType: {
     type: String,
-    enum: ['Buyer', 'Agent', 'Vendor', 'Admin'],
+    enum: ['Buyer', 'Agent', 'Vendor', 'Admin', 'System'],
+    validate: {
+      validator: function(v) {
+        // If initiatorType is 'System', initiatedBy should be 'system' string
+        if (v === 'System') {
+          return this.initiatedBy === 'system';
+        }
+        // For other types, initiatedBy should be an ObjectId
+        return mongoose.Types.ObjectId.isValid(this.initiatedBy);
+      },
+      message: 'Invalid initiator type and initiatedBy combination'
+    }
   },
   metadata: {
     type: mongoose.Schema.Types.Mixed,

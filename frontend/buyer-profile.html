@@ -3,13 +3,104 @@
 <head>
   <meta charset="UTF-8" />
   <title>VendPlug | Buyer Profile</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
       background-color: #121212;
       color: #ffffff;
       padding: 20px;
+    }
+
+    /* Global Search Styles */
+    .search-container {
+      max-width: 600px;
+      margin: 0 auto 20px;
+      position: relative;
+    }
+
+    .search-box {
+      display: flex;
+      background: #1e1e1e;
+      border: 2px solid #2c2c2c;
+      border-radius: 25px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .search-box:focus-within {
+      border-color: #00cc99;
+      box-shadow: 0 0 0 3px rgba(0, 204, 153, 0.1);
+    }
+
+    .search-input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: none;
+      background: transparent;
+      color: #ffffff;
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    .search-input::placeholder {
+      color: #6c757d;
+    }
+
+    .search-btn {
+      padding: 0.75rem 1rem;
+      background: #00cc99;
+      border: none;
+      color: #000;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .search-btn:hover {
+      background: #01b488;
+    }
+
+    /* Search Suggestions */
+    .search-suggestions {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: #1e1e1e;
+      border: 2px solid #2c2c2c;
+      border-top: none;
+      border-radius: 0 0 25px 25px;
+      max-height: 300px;
+      overflow-y: auto;
+      z-index: 1000;
+      display: none;
+    }
+
+    .suggestion-item {
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      border-bottom: 1px solid #2c2c2c;
+      transition: background-color 0.2s ease;
+    }
+
+    .suggestion-item:hover {
+      background: #2c2c2c;
+    }
+
+    .suggestion-item:last-child {
+      border-bottom: none;
+    }
+
+    .suggestion-product {
+      color: #ffffff;
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+    }
+
+    .suggestion-vendor {
+      color: #6c757d;
+      font-size: 0.875rem;
     }
 
     h2 {
@@ -76,6 +167,17 @@
   </style>
 </head>
 <body>
+  <!-- Global Product Search Bar -->
+  <div class="search-container">
+    <div class="search-box">
+      <input type="text" id="globalSearchInput" placeholder="Search for products across all vendors..." class="search-input">
+      <button class="search-btn" onclick="performGlobalSearch()">
+        <i class="fas fa-search"></i>
+      </button>
+    </div>
+    <div id="searchSuggestions" class="search-suggestions"></div>
+  </div>
+
   <h2>Buyer Profile</h2>
 
   <div class="profile-container">
@@ -176,6 +278,97 @@
         const msg = document.getElementById('statusMsg');
         msg.textContent = err.message;
         msg.className = 'msg error';
+      }
+    }
+
+    // Global Product Search Functionality
+    let searchTimeout;
+    const searchInput = document.getElementById('globalSearchInput');
+    const searchSuggestions = document.getElementById('searchSuggestions');
+
+    // Search suggestions functionality
+    if (searchInput) {
+      searchInput.addEventListener('input', function() {
+        const query = this.value.trim();
+        
+        // Clear previous timeout
+        clearTimeout(searchTimeout);
+        
+        if (query.length >= 2) {
+          // Debounce search requests
+          searchTimeout = setTimeout(() => {
+            fetchSearchSuggestions(query);
+          }, 300);
+        } else {
+          hideSuggestions();
+        }
+      });
+
+      // Handle Enter key
+      searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          performGlobalSearch();
+        }
+      });
+
+      // Hide suggestions when clicking outside
+      document.addEventListener('click', function(e) {
+        if (!e.target.closest('.search-container')) {
+          hideSuggestions();
+        }
+      });
+    }
+
+    async function fetchSearchSuggestions(query) {
+      try {
+        const response = await fetch(`${window.BACKEND_URL || window.location.origin}/api/products/search?q=${encodeURIComponent(query)}&limit=5`);
+        const data = await response.json();
+        
+        if (data.success && data.products && data.products.length > 0) {
+          showSuggestions(data.products);
+        } else {
+          hideSuggestions();
+        }
+      } catch (error) {
+        console.error('Search suggestions error:', error);
+        hideSuggestions();
+      }
+    }
+
+    function showSuggestions(products) {
+      searchSuggestions.innerHTML = '';
+      
+      products.forEach(product => {
+        const suggestionItem = document.createElement('div');
+        suggestionItem.className = 'suggestion-item';
+        
+        const vendorName = product.agent 
+          ? (product.agent?.businessName || product.agent?.fullName || 'Unknown')
+          : (product.vendor?.shopName || product.vendor?.fullName || 'Unknown');
+        
+        suggestionItem.innerHTML = `
+          <div class="suggestion-product">${product.name}</div>
+          <div class="suggestion-vendor">by ${vendorName}</div>
+        `;
+        
+        suggestionItem.addEventListener('click', () => {
+          window.location.href = `product-detail.html?id=${product._id}`;
+        });
+        
+        searchSuggestions.appendChild(suggestionItem);
+      });
+      
+      searchSuggestions.style.display = 'block';
+    }
+
+    function hideSuggestions() {
+      searchSuggestions.style.display = 'none';
+    }
+
+    function performGlobalSearch() {
+      const query = searchInput.value.trim();
+      if (query.length >= 2) {
+        window.location.href = `search-results.html?q=${encodeURIComponent(query)}`;
       }
     }
   </script>

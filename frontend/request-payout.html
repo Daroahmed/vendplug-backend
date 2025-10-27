@@ -236,6 +236,49 @@
             text-decoration: underline;
             font-weight: 600;
         }
+        
+        .form-group small {
+            color: var(--muted);
+            font-size: 12px;
+            margin-top: 5px;
+            display: block;
+        }
+        
+        .form-group input[type="password"] {
+            letter-spacing: 2px;
+            font-family: monospace;
+            text-align: center;
+        }
+        
+        .pin-security-notice {
+            background: #1a3a2e;
+            color: #9adbb3;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
+        #setPinBtn {
+            background: #28a745;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+        
+        #setPinBtn:hover:not(:disabled) {
+            background: #218838;
+        }
+        
+        #setPinBtn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -265,6 +308,10 @@
             </div>
             
             <form id="payoutForm" style="display: none;">
+                <div class="pin-security-notice">
+                    🔒 <strong>Security Notice:</strong> Payout requests require a PIN for additional security. This helps protect your funds from unauthorized access.
+                </div>
+                
                 <div class="form-group">
                     <label for="amount">Amount (₦)</label>
                     <input type="number" id="amount" placeholder="Enter amount to withdraw" min="100" step="100" required>
@@ -278,10 +325,67 @@
                     </select>
                 </div>
                 
+                <div class="form-group" id="pinGroup" style="display: none;">
+                    <label for="payoutPin">Payout PIN</label>
+                    <input type="password" id="payoutPin" placeholder="Enter your payout PIN" maxlength="6" pattern="[0-9]{4,6}">
+                    <small>Enter your 4-6 digit payout PIN for security</small>
+                    <div style="text-align: right; margin-top: 5px;">
+                        <a href="#" id="forgotPinLink" style="color: #00cc99; text-decoration: none; font-size: 12px;">Forgot PIN?</a>
+                    </div>
+                </div>
+                
+                <div class="form-group" id="pinSetupGroup" style="display: none;">
+                    <label for="newPayoutPin">Set Payout PIN</label>
+                    <input type="password" id="newPayoutPin" placeholder="Enter 4-6 digit PIN" maxlength="6" pattern="[0-9]{4,6}">
+                    <input type="password" id="confirmPayoutPin" placeholder="Confirm PIN" maxlength="6" pattern="[0-9]{4,6}">
+                    <small>Set a 4-6 digit PIN for payout security</small>
+                    <button type="button" class="btn-request" id="setPinBtn" style="margin-top: 10px;">
+                        Set PIN
+                    </button>
+                </div>
+                
                 <button type="submit" class="btn-request" id="submitBtn">
                     Request Payout
                 </button>
             </form>
+        </div>
+        
+        <!-- PIN Reset Modal -->
+        <div id="pinResetModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+            <div style="background: var(--bg-card); padding: 30px; border-radius: 10px; max-width: 400px; width: 90%; position: relative;">
+                <button id="closePinResetModal" style="position: absolute; top: 15px; right: 15px; background: none; border: none; color: var(--text-light); font-size: 20px; cursor: pointer;">&times;</button>
+                
+                <h3 style="margin-top: 0; color: var(--primary);">🔐 Reset Payout PIN</h3>
+                
+                <!-- Step 1: Password Verification -->
+                <div id="pinResetStep1">
+                    <p style="color: var(--muted); margin-bottom: 20px;">For security, please enter your account password to reset your PIN.</p>
+                    <div class="form-group">
+                        <label for="resetPassword">Account Password</label>
+                        <input type="password" id="resetPassword" placeholder="Enter your account password" required>
+                    </div>
+                    <button id="requestResetCodeBtn" class="btn-request" style="width: 100%;">Send Reset Code</button>
+                </div>
+                
+                <!-- Step 2: Reset Code Verification -->
+                <div id="pinResetStep2" style="display: none;">
+                    <p style="color: var(--muted); margin-bottom: 20px;">Enter the 6-digit code sent to your email address.</p>
+                    <div class="form-group">
+                        <label for="resetCode">Reset Code</label>
+                        <input type="text" id="resetCode" placeholder="Enter 6-digit code" maxlength="6" pattern="[0-9]{6}" style="text-align: center; letter-spacing: 2px; font-family: monospace;">
+                    </div>
+                    <div class="form-group">
+                        <label for="newResetPin">New PIN</label>
+                        <input type="password" id="newResetPin" placeholder="Enter new 4-6 digit PIN" maxlength="6" pattern="[0-9]{4,6}">
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmResetPin">Confirm New PIN</label>
+                        <input type="password" id="confirmResetPin" placeholder="Confirm new PIN" maxlength="6" pattern="[0-9]{4,6}">
+                    </div>
+                    <button id="resetPinBtn" class="btn-request" style="width: 100%;">Reset PIN</button>
+                    <button id="backToStep1Btn" style="background: #6c757d; border: none; color: white; padding: 10px 20px; border-radius: 6px; cursor: pointer; width: 100%; margin-top: 10px;">Back</button>
+                </div>
+            </div>
         </div>
         
         <!-- Payout History -->
@@ -306,6 +410,7 @@
         
         let bankAccounts = [];
         let walletBalance = 0;
+        let hasPayoutPin = false;
 
         // Check authentication
         if (!userToken) {
@@ -333,6 +438,7 @@
             loadWalletBalance();
             loadBankAccounts();
             loadPayoutHistory();
+            checkPayoutPinStatus();
         });
 
         // Load wallet balance
@@ -386,6 +492,41 @@
             }
         }
 
+        // Check PIN status
+        async function checkPayoutPinStatus() {
+            try {
+                const response = await fetch(`${window.BACKEND_URL}/api/vendor-payout/pin/status`, {
+                    headers: {
+                        'Authorization': `Bearer ${userToken}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    hasPayoutPin = data.hasPin;
+                    updatePayoutFormDisplay();
+                } else {
+                    console.error('Failed to check PIN status:', response.status);
+                }
+            } catch (error) {
+                console.error('Error checking PIN status:', error);
+            }
+        }
+
+        // Update form display based on PIN status
+        function updatePayoutFormDisplay() {
+            const pinGroup = document.getElementById('pinGroup');
+            const pinSetupGroup = document.getElementById('pinSetupGroup');
+            
+            if (hasPayoutPin) {
+                pinGroup.style.display = 'block';
+                pinSetupGroup.style.display = 'none';
+            } else {
+                pinGroup.style.display = 'none';
+                pinSetupGroup.style.display = 'block';
+            }
+        }
+
         // Display payout form or no accounts message
         function displayPayoutForm() {
             const form = document.getElementById('payoutForm');
@@ -410,6 +551,8 @@
                 option.textContent = `${account.bankName} - ${account.accountNumber} (${account.accountName})`;
                 bankSelect.appendChild(option);
             });
+            
+            updatePayoutFormDisplay();
         }
 
         // Load payout history
@@ -459,12 +602,207 @@
             `).join('');
         }
 
+        // Handle PIN setup
+        document.getElementById('setPinBtn').addEventListener('click', async function(e) {
+            e.preventDefault();
+            
+            const newPayoutPin = document.getElementById('newPayoutPin').value;
+            const confirmPayoutPin = document.getElementById('confirmPayoutPin').value;
+            
+            if (!newPayoutPin || newPayoutPin.length < 4 || newPayoutPin.length > 6) {
+                showMessage('PIN must be 4-6 digits', 'error');
+                return;
+            }
+            
+            if (newPayoutPin !== confirmPayoutPin) {
+                showMessage('PIN and confirmation do not match', 'error');
+                return;
+            }
+            
+            // Disable button during setup
+            const setPinBtn = document.getElementById('setPinBtn');
+            setPinBtn.disabled = true;
+            setPinBtn.textContent = 'Setting PIN...';
+            
+            try {
+                const response = await fetch(`${window.BACKEND_URL}/api/vendor-payout/pin/set`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${userToken}`
+                    },
+                    body: JSON.stringify({
+                        payoutPin: newPayoutPin,
+                        confirmPin: confirmPayoutPin
+                    })
+                });
+                
+                if (response.ok) {
+                    showMessage('PIN set successfully! You can now request payouts.', 'success');
+                    hasPayoutPin = true;
+                    updatePayoutFormDisplay();
+                    
+                    // Clear PIN setup fields
+                    document.getElementById('newPayoutPin').value = '';
+                    document.getElementById('confirmPayoutPin').value = '';
+                } else {
+                    const data = await response.json();
+                    showMessage(data.message || 'Failed to set PIN', 'error');
+                }
+            } catch (error) {
+                console.error('Error setting PIN:', error);
+                showMessage('Failed to set PIN', 'error');
+            } finally {
+                // Re-enable button
+                setPinBtn.disabled = false;
+                setPinBtn.textContent = 'Set PIN';
+            }
+        });
+
+        // Handle PIN reset modal
+        document.getElementById('forgotPinLink').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('pinResetModal').style.display = 'flex';
+            document.getElementById('pinResetStep1').style.display = 'block';
+            document.getElementById('pinResetStep2').style.display = 'none';
+        });
+
+        // Close PIN reset modal
+        document.getElementById('closePinResetModal').addEventListener('click', function() {
+            document.getElementById('pinResetModal').style.display = 'none';
+        });
+
+        // Click outside modal to close
+        document.getElementById('pinResetModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.style.display = 'none';
+            }
+        });
+
+        // Back to step 1
+        document.getElementById('backToStep1Btn').addEventListener('click', function() {
+            document.getElementById('pinResetStep1').style.display = 'block';
+            document.getElementById('pinResetStep2').style.display = 'none';
+        });
+
+        // Request reset code
+        document.getElementById('requestResetCodeBtn').addEventListener('click', async function() {
+            const password = document.getElementById('resetPassword').value;
+            
+            if (!password) {
+                showMessage('Please enter your password', 'error');
+                return;
+            }
+            
+            const btn = this;
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+            
+            try {
+                const response = await fetch(`${window.BACKEND_URL}/api/vendor-payout/pin/reset/request`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${userToken}`
+                    },
+                    body: JSON.stringify({ password })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showMessage(data.message, 'success');
+                    
+                    // Move to step 2
+                    document.getElementById('pinResetStep1').style.display = 'none';
+                    document.getElementById('pinResetStep2').style.display = 'block';
+                } else {
+                    const data = await response.json();
+                    showMessage(data.message || 'Failed to send reset code', 'error');
+                }
+            } catch (error) {
+                console.error('Error requesting reset code:', error);
+                showMessage('Failed to send reset code', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Send Reset Code';
+            }
+        });
+
+        // Reset PIN
+        document.getElementById('resetPinBtn').addEventListener('click', async function() {
+            const resetCode = document.getElementById('resetCode').value;
+            const newPin = document.getElementById('newResetPin').value;
+            const confirmPin = document.getElementById('confirmResetPin').value;
+            
+            if (!resetCode || resetCode.length !== 6) {
+                showMessage('Please enter the 6-digit reset code', 'error');
+                return;
+            }
+            
+            if (!newPin || newPin.length < 4 || newPin.length > 6) {
+                showMessage('PIN must be 4-6 digits', 'error');
+                return;
+            }
+            
+            if (newPin !== confirmPin) {
+                showMessage('PIN and confirmation do not match', 'error');
+                return;
+            }
+            
+            const btn = this;
+            btn.disabled = true;
+            btn.textContent = 'Resetting...';
+            
+            try {
+                const response = await fetch(`${window.BACKEND_URL}/api/vendor-payout/pin/reset/verify`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${userToken}`
+                    },
+                    body: JSON.stringify({
+                        resetCode,
+                        newPin,
+                        confirmPin
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showMessage(data.message, 'success');
+                    
+                    // Close modal and refresh PIN status
+                    document.getElementById('pinResetModal').style.display = 'none';
+                    hasPayoutPin = true;
+                    updatePayoutFormDisplay();
+                    
+                    // Clear form
+                    document.getElementById('resetPassword').value = '';
+                    document.getElementById('resetCode').value = '';
+                    document.getElementById('newResetPin').value = '';
+                    document.getElementById('confirmResetPin').value = '';
+                } else {
+                    const data = await response.json();
+                    showMessage(data.message || 'Failed to reset PIN', 'error');
+                }
+            } catch (error) {
+                console.error('Error resetting PIN:', error);
+                showMessage('Failed to reset PIN', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Reset PIN';
+            }
+        });
+
         // Handle payout form submission
         document.getElementById('payoutForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const amount = parseFloat(document.getElementById('amount').value);
             const bankAccountId = document.getElementById('bankAccount').value;
+            const payoutPin = document.getElementById('payoutPin').value;
+            const newPayoutPin = document.getElementById('newPayoutPin').value;
+            const confirmPayoutPin = document.getElementById('confirmPayoutPin').value;
             
             if (!amount || amount <= 0) {
                 showMessage('Please enter a valid amount', 'error');
@@ -478,6 +816,17 @@
             
             if (!bankAccountId) {
                 showMessage('Please select a bank account', 'error');
+                return;
+            }
+            
+            // Validate PIN if user has one set
+            if (hasPayoutPin) {
+                if (!payoutPin || payoutPin.length < 4 || payoutPin.length > 6) {
+                    showMessage('Please enter your payout PIN', 'error');
+                    return;
+                }
+            } else {
+                showMessage('Please set your payout PIN first using the "Set PIN" button', 'error');
                 return;
             }
             
@@ -495,7 +844,8 @@
                     },
                     body: JSON.stringify({
                         amount: amount,
-                        bankAccountId: bankAccountId
+                        bankAccountId: bankAccountId,
+                        payoutPin: payoutPin
                     })
                 });
                 

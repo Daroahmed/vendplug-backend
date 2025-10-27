@@ -14,13 +14,29 @@ const initializeWalletFunding = async (req, res) => {
     const userId = req.user.id;
     const userType = req.user.role;
 
-    // Validate amount
+    // Validate amount (this is the amount user wants in their wallet)
     if (!amount || amount <= 0) {
       return res.status(400).json({
         success: false,
         message: 'Valid amount is required'
       });
     }
+
+    // Calculate Paystack fees: 1.5% + ₦100 (absorbed by buyer) - capped at ₦2,000
+    const paystackRate = 0.015; // 1.5%
+    const paystackFlatFee = 100; // ₦100
+    const paystackFeeUncapped = Math.round(amount * paystackRate) + paystackFlatFee;
+    const paystackFee = Math.min(paystackFeeUncapped, 2000); // Cap at ₦2,000
+    const totalAmountToPay = amount + paystackFee;
+
+    console.log('💰 Wallet funding calculation:', {
+      requestedAmount: amount,
+      paystackFee,
+      paystackFeeUncapped,
+      totalAmountToPay,
+      feeBreakdown: `${(paystackRate * 100)}% + ₦${paystackFlatFee}`,
+      capped: paystackFee === 2000 ? 'Yes (₦2,000 cap reached)' : 'No'
+    });
 
     // Validate email
     if (!email) {
@@ -33,8 +49,25 @@ const initializeWalletFunding = async (req, res) => {
     // Generate unique reference
     const reference = `VENDPLUG_${userType.toUpperCase()}_${userId}_${Date.now()}`;
     
-    // Create callback URL for payment verification
-    const callbackUrl = `${process.env.FRONTEND_URL || 'http://localhost:5000'}/payment-success.html?reference=${reference}`;
+    // Create callback URL for payment verification - prioritize environment variable
+    let frontendUrl = process.env.FRONTEND_URL;
+    
+    // If no environment variable, try to detect from request
+    if (!frontendUrl) {
+      const origin = req.get('origin');
+      const host = req.get('host');
+      const protocol = req.get('x-forwarded-proto') || (req.secure ? 'https' : 'http');
+      
+      if (origin) {
+        frontendUrl = origin;
+      } else if (host) {
+        frontendUrl = `${protocol}://${host}`;
+      } else {
+        frontendUrl = 'http://localhost:5000'; // fallback
+      }
+    }
+    
+    const callbackUrl = `${frontendUrl}/payment-success.html?reference=${reference}`;
 
     console.log('💰 Initializing wallet funding:', {
       userId,
@@ -44,17 +77,19 @@ const initializeWalletFunding = async (req, res) => {
       callbackUrl
     });
 
-    // Initialize payment with Paystack
+    // Initialize payment with Paystack (using total amount including fees)
     const paymentResult = await paystackService.initializePayment({
       email,
-      amount: amount * 100, // Convert naira to kobo for Paystack
+      amount: totalAmountToPay * 100, // Convert naira to kobo for Paystack
       reference,
       callback_url: callbackUrl,
       metadata: {
         userId: userId.toString(),
         userType,
         purpose: 'wallet_funding',
-        amount
+        requestedAmount: amount, // Amount user wants in wallet
+        paystackFee,
+        totalAmountToPay
       }
     });
 
@@ -70,8 +105,8 @@ const initializeWalletFunding = async (req, res) => {
       ref: reference,
       type: 'fund',
       status: 'pending',
-      amount: amount,
-      description: 'Wallet funding via Paystack',
+      amount: amount, // Amount that will be credited to wallet
+      description: `Wallet funding via Paystack (₦${amount} + ₦${paystackFee} fees)`,
       from: 'paystack',
       to: userId,
       initiatedBy: userId,
@@ -79,7 +114,10 @@ const initializeWalletFunding = async (req, res) => {
       metadata: {
         paystackReference: reference,
         authorizationUrl: paymentResult.data.authorization_url,
-        accessCode: paymentResult.data.access_code
+        accessCode: paymentResult.data.access_code,
+        requestedAmount: amount,
+        paystackFee,
+        totalAmountToPay
       }
     });
 
@@ -92,7 +130,9 @@ const initializeWalletFunding = async (req, res) => {
         reference,
         authorizationUrl: paymentResult.data.authorization_url,
         accessCode: paymentResult.data.access_code,
-        amount,
+        requestedAmount: amount, // Amount user wants in wallet
+        paystackFee,
+        totalAmountToPay, // Amount user will pay
         transactionId: pendingTransaction._id
       }
     });

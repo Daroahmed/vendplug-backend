@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>VendPlug Checkout</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -201,6 +201,22 @@
       outline: 2px solid var(--primary);
     }
 
+    /* Select dropdown styling */
+    select.form-input {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 1rem center;
+      background-size: 1rem;
+      padding-right: 3rem;
+    }
+
+    select.form-input option {
+      background: var(--bg-secondary);
+      color: var(--text-light);
+    }
+
     /* Checkout Button */
     .checkout-btn {
       width: 100%;
@@ -240,6 +256,28 @@
         font-size: 1.5rem;
       }
     }
+
+    /* Purple Glowing Button */
+.glow-btn {
+  flex: 1;
+  text-align: center;
+  padding: 12px 20px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 15px rgba(118, 75, 162, 0.6), 0 0 30px rgba(102, 126, 234, 0.4);
+  animation: glowPulse 1.5s infinite alternate;
+}
+
+/* Hover effect */
+.glow-btn:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 0 20px rgba(118, 75, 162, 0.9), 0 0 40px rgba(102, 126, 234, 0.6);
+}
+
   </style>
 </head>
 <body>
@@ -280,7 +318,55 @@
     <!-- Pickup Location -->
     <div class="form-group">
       <label for="pickup-location" class="form-label">Pickup Location</label>
-      <input type="text" id="pickup-location" class="form-input" placeholder="Enter pickup location" />
+      <select id="pickup-state" class="form-input" required>
+        <option value="">Select your state</option>
+        <option value="Abia">Abia</option>
+        <option value="Adamawa">Adamawa</option>
+        <option value="Akwa Ibom">Akwa Ibom</option>
+        <option value="Anambra">Anambra</option>
+        <option value="Bauchi">Bauchi</option>
+        <option value="Bayelsa">Bayelsa</option>
+        <option value="Benue">Benue</option>
+        <option value="Borno">Borno</option>
+        <option value="Cross River">Cross River</option>
+        <option value="Delta">Delta</option>
+        <option value="Ebonyi">Ebonyi</option>
+        <option value="Edo">Edo</option>
+        <option value="Ekiti">Ekiti</option>
+        <option value="Enugu">Enugu</option>
+        <option value="FCT">FCT (Abuja)</option>
+        <option value="Gombe">Gombe</option>
+        <option value="Imo">Imo</option>
+        <option value="Jigawa">Jigawa</option>
+        <option value="Kaduna">Kaduna</option>
+        <option value="Kano">Kano</option>
+        <option value="Katsina">Katsina</option>
+        <option value="Kebbi">Kebbi</option>
+        <option value="Kogi">Kogi</option>
+        <option value="Kwara">Kwara</option>
+        <option value="Lagos">Lagos</option>
+        <option value="Nasarawa">Nasarawa</option>
+        <option value="Niger">Niger</option>
+        <option value="Ogun">Ogun</option>
+        <option value="Ondo">Ondo</option>
+        <option value="Osun">Osun</option>
+        <option value="Oyo">Oyo</option>
+        <option value="Plateau">Plateau</option>
+        <option value="Rivers">Rivers</option>
+        <option value="Sokoto">Sokoto</option>
+        <option value="Taraba">Taraba</option>
+        <option value="Yobe">Yobe</option>
+        <option value="Zamfara">Zamfara</option>
+      </select>
+    </div>
+
+    <!-- Additional Address Details -->
+    <div class="form-group">
+      <label for="pickup-address" class="form-label">Address Details (Optional)</label>
+      <input type="text" id="pickup-address" class="form-input" placeholder="e.g., Area, Street, Landmark, etc." />
+      <small style="color: var(--muted); font-size: 0.8rem; margin-top: 0.3rem; display: block;">
+        Add specific area, street, or landmark to help with delivery
+      </small>
     </div>
 
     <!-- Checkout Button -->
@@ -288,7 +374,10 @@
       <i class="fas fa-shopping-bag"></i> Place Order
     </button>
     <div style="display:flex;justify-content:space-between;margin-top:12px;gap:10px;">
-      <a href="vendor-shop.html" class="btn btn-outline" style="flex:1;text-align:center;border:1px solid var(--primary);color:var(--primary);padding:10px;border-radius:8px;">Continue Shopping</a>
+      <div style="display:flex;justify-content:space-between;margin-top:12px;gap:10px;">
+        <a href="buyer-wallet.html?from=vendor-checkout" class="glow-btn">Fund Wallet</a>
+      </div>
+      
       <a href="buyer-vendor-orders.html" class="btn btn-outline" style="flex:1;text-align:center;border:1px solid var(--primary);color:var(--primary);padding:10px;border-radius:8px;">View Orders</a>
     </div>
   </div>

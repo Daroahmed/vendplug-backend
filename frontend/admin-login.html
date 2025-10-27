@@ -181,8 +181,22 @@
         </div>
     </div>
 
+    <script src="js/config.js"></script>
     <script src="js/auth-utils.js"></script>
     <script>
+        // Clean up any existing tokens immediately when script loads
+        console.log('🧹 Admin login page loaded - cleaning up existing tokens');
+        if (typeof clearAllTokens === 'function') {
+            clearAllTokens();
+        }
+        
+        // Also clean up on DOMContentLoaded as backup
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🧹 Admin login page DOM loaded - cleaning up existing tokens');
+            if (typeof clearAllTokens === 'function') {
+                clearAllTokens();
+            }
+        });
         document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -214,7 +228,12 @@
 
                 if (data.success) {
                     // Clear other user tokens to prevent conflicts
-                    clearOtherUserTokens('admin');
+                    if (typeof clearOtherUserTokens === 'function') {
+                        clearOtherUserTokens('admin');
+                    }
+                    if (typeof cleanupAfterLogin === 'function') {
+                        cleanupAfterLogin('admin');
+                    }
                     
                     // Store admin token
                     localStorage.setItem('vendplug-admin-token', data.data.token);

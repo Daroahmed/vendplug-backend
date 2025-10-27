@@ -1,5 +1,39 @@
 // Admin Dashboard JavaScript
 
+// Token validation utility
+function validateToken() {
+    const token = localStorage.getItem('vendplug-admin-token');
+    if (!token) {
+        console.error('❌ No admin token found');
+        return false;
+    }
+    
+    try {
+        // Basic JWT structure validation
+        const parts = token.split('.');
+        if (parts.length !== 3) {
+            console.error('❌ Invalid JWT structure');
+            localStorage.removeItem('vendplug-admin-token');
+            return false;
+        }
+        
+        // Check if token is expired (basic check)
+        const payload = JSON.parse(atob(parts[1]));
+        const now = Math.floor(Date.now() / 1000);
+        if (payload.exp && payload.exp < now) {
+            console.error('❌ Token expired');
+            localStorage.removeItem('vendplug-admin-token');
+            return false;
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('❌ Token validation error:', error);
+        localStorage.removeItem('vendplug-admin-token');
+        return false;
+    }
+}
+
 // Ad Type and Position Validation
 function validateAdTypePosition(adType, adPosition) {
     const validCombinations = {
@@ -42,8 +76,14 @@ class AdminDashboard {
     }
 
     init() {
+        console.log('🚀 Initializing admin dashboard...');
         this.setupEventListeners();
         this.checkAuth();
+        
+        // Show dashboard section by default
+        this.showSection('dashboard');
+        
+        // Load dashboard data
         this.loadDashboardData();
     }
 
@@ -124,13 +164,18 @@ class AdminDashboard {
     }
 
     checkAuth() {
+        console.log('🔐 Checking authentication...');
+        
         if (!isAuthenticated()) {
+            console.log('❌ User not authenticated - redirecting to login');
             redirectToLogin();
             return;
         }
 
         // Check if user is admin
         const userType = getCurrentUserType();
+        console.log('👤 User type:', userType);
+        
         if (userType !== 'admin') {
             console.error('❌ Access denied: User is not admin, userType:', userType);
             alert('Access denied. This page is only for administrators.');
@@ -148,10 +193,20 @@ class AdminDashboard {
             }
             return;
         }
+
+        console.log('✅ Admin authentication successful');
+
+        // Clean up conflicting tokens after successful admin authentication
+        if (typeof cleanupAfterLogin === 'function') {
+            cleanupAfterLogin('admin');
+        }
     }
 
     async loadDashboardData() {
         try {
+            console.log('📊 Loading dashboard data...');
+            console.log('🔑 Admin token:', this.adminToken ? 'Present' : 'Missing');
+            
             const response = await fetch('/api/admin/dashboard', {
                 headers: {
                     'Authorization': `Bearer ${this.adminToken}`,
@@ -159,26 +214,36 @@ class AdminDashboard {
                 }
             });
 
+            console.log('📡 Response status:', response.status);
+            console.log('📡 Response ok:', response.ok);
+
             if (!response.ok) {
                 if (response.status === 401) {
+                    console.log('❌ Unauthorized - redirecting to login');
                     this.logout();
                     return;
                 }
-                throw new Error('Failed to load dashboard data');
+                throw new Error(`Failed to load dashboard data: ${response.status} ${response.statusText}`);
             }
 
             const data = await response.json();
             console.log('📊 Dashboard data received:', data);
             console.log('📊 Counts data:', data.data?.counts);
             console.log('📊 Financial data:', data.data?.financial);
-            this.updateDashboardCards(data.data.counts);
-            this.updateFinancialSummary(data.data.financial);
-            this.updateRecentOrders(data.data.recentOrders);
-            this.updateRecentTransactions(data.data.recentTransactions);
+            
+            if (data.data) {
+                this.updateDashboardCards(data.data.counts);
+                this.updateFinancialSummary(data.data.financial);
+                this.updateRecentOrders(data.data.recentOrders);
+                this.updateRecentTransactions(data.data.recentTransactions);
+                console.log('✅ Dashboard data updated successfully');
+            } else {
+                console.warn('⚠️ No data in response');
+            }
 
         } catch (error) {
             console.error('❌ Dashboard data error:', error);
-            this.showError('Failed to load dashboard data');
+            this.showError('Failed to load dashboard data: ' + error.message);
         }
     }
 
@@ -333,25 +398,41 @@ class AdminDashboard {
     }
 
     updateRecentOrders(orders) {
+        console.log('📋 Updating recent orders:', orders);
         const container = document.getElementById('recentOrders');
+        
+        if (!container) {
+            console.error('❌ Recent orders container not found');
+            return;
+        }
+        
         if (!orders || orders.length === 0) {
+            console.log('📋 No recent orders to display');
             container.innerHTML = '<p>No recent orders</p>';
             return;
         }
 
-        const ordersHTML = orders.map(order => `
-            <div style="padding: 10px; border-bottom: 1px solid #eee;">
-                <div style="font-weight: 600;">${DataFormatter.formatOrderId(order.orderId)}</div>
-                <div style="font-size: 0.9rem; color: #666;">
-                    ${DataFormatter.formatUserName(order.buyer)} → ${DataFormatter.formatUserName(order.vendor, 'Unknown Vendor')}
+        console.log('📋 Rendering recent orders:', orders.length);
+        
+        try {
+            const ordersHTML = orders.map(order => `
+                <div style="padding: 10px; border-bottom: 1px solid #eee;">
+                    <div style="font-weight: 600;">${DataFormatter.formatOrderId(order.orderId)}</div>
+                    <div style="font-size: 0.9rem; color: #666;">
+                        ${DataFormatter.formatUserName(order.buyer)} → ${DataFormatter.formatUserName(order.vendor, 'Unknown Vendor')}
+                    </div>
+                    <div style="font-size: 0.8rem; color: #999;">
+                        ${DataFormatter.formatDate(order.createdAt)} - ${DataFormatter.formatStatus(order.status)}
+                    </div>
                 </div>
-                <div style="font-size: 0.8rem; color: #999;">
-                    ${DataFormatter.formatDate(order.createdAt)} - ${DataFormatter.formatStatus(order.status)}
-                </div>
-            </div>
-        `).join('');
+            `).join('');
 
-        container.innerHTML = ordersHTML;
+            container.innerHTML = ordersHTML;
+            console.log('✅ Recent orders updated successfully');
+        } catch (error) {
+            console.error('❌ Error rendering recent orders:', error);
+            container.innerHTML = '<p>Error loading recent orders</p>';
+        }
     }
 
     updateRecentTransactions(transactions) {
@@ -377,13 +458,37 @@ class AdminDashboard {
     }
 
     showSection(section) {
+        console.log('🔄 Showing section:', section);
+        
         // Hide all sections
-        document.querySelectorAll('.content-section').forEach(s => s.style.display = 'none');
+        document.querySelectorAll('.content-section').forEach(s => {
+            console.log('🔍 Hiding section:', s.id, 'current display:', s.style.display);
+            s.style.display = 'none';
+        });
         document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
 
         // Show selected section
-        document.getElementById(`${section}-section`).style.display = 'block';
-        document.querySelector(`[data-section="${section}"]`).classList.add('active');
+        const sectionElement = document.getElementById(`${section}-section`);
+        const navLink = document.querySelector(`[data-section="${section}"]`);
+        
+        console.log('🔍 Looking for section element:', `${section}-section`);
+        console.log('🔍 Found section element:', sectionElement);
+        
+        if (sectionElement) {
+            sectionElement.style.display = 'block';
+            console.log('✅ Section element found and shown:', section);
+            console.log('🔍 Section element display after setting:', sectionElement.style.display);
+            console.log('🔍 Section element computed style:', window.getComputedStyle(sectionElement).display);
+        } else {
+            console.error('❌ Section element not found:', `${section}-section`);
+        }
+        
+        if (navLink) {
+            navLink.classList.add('active');
+            console.log('✅ Nav link found and activated:', section);
+        } else {
+            console.error('❌ Nav link not found:', `[data-section="${section}"]`);
+        }
 
         this.currentSection = section;
 
@@ -415,6 +520,9 @@ class AdminDashboard {
                 break;
             case 'notification-campaigns':
                 this.loadCampaigns();
+                break;
+            case 'wallet-management':
+                this.loadWalletManagement();
                 break;
         }
     }
@@ -688,12 +796,7 @@ class AdminDashboard {
 
     async loadPayouts() {
         try {
-            const response = await fetch(`/api/admin/payouts?page=${this.currentPage.payouts}&limit=${this.currentLimit}`, {
-                headers: {
-                    'Authorization': `Bearer ${this.adminToken}`,
-                    'Content-Type': 'application/json'
-                }
-            });
+            const response = await window.tokenManager.authenticatedFetch(`/api/admin/payouts?page=${this.currentPage.payouts}&limit=${this.currentLimit}`);
 
             if (!response.ok) throw new Error('Failed to load payouts');
 
@@ -703,6 +806,46 @@ class AdminDashboard {
         } catch (error) {
             console.error('❌ Load payouts error:', error);
             this.showError('Failed to load payouts');
+        }
+    }
+
+    async fixStuckProcessingPayouts() {
+        if (!confirm('This will fix all stuck processing payouts. Continue?')) {
+            return;
+        }
+
+        try {
+            const response = await window.tokenManager.authenticatedFetch('/api/admin/payouts/fix-stuck-processing', {
+                method: 'POST'
+            });
+
+            if (!response.ok) throw new Error('Failed to fix stuck processing payouts');
+
+            const result = await response.json();
+            this.showSuccess(result.message);
+            this.loadPayouts(); // Refresh the payouts list
+
+        } catch (error) {
+            console.error('❌ Fix stuck processing payouts error:', error);
+            this.showError('Failed to fix stuck processing payouts');
+        }
+    }
+
+    async checkPayoutStatuses() {
+        try {
+            const response = await window.tokenManager.authenticatedFetch('/api/admin/payouts/check-statuses', {
+                method: 'POST'
+            });
+
+            if (!response.ok) throw new Error('Failed to check payout statuses');
+
+            const result = await response.json();
+            this.showSuccess(result.message);
+            this.loadPayouts(); // Refresh the payouts list
+
+        } catch (error) {
+            console.error('❌ Check payout statuses error:', error);
+            this.showError('Failed to check payout statuses');
         }
     }
 
@@ -743,6 +886,14 @@ class AdminDashboard {
         }
 
         const payoutsHTML = `
+            <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+                <button class="btn btn-danger" onclick="adminDashboard.fixStuckProcessingPayouts()" style="background: #dc3545; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">
+                    🔧 Fix Stuck Processing Payouts
+                </button>
+                <button class="btn btn-info" onclick="adminDashboard.checkPayoutStatuses()" style="background: #17a2b8; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">
+                    🔄 Check Payout Statuses
+                </button>
+            </div>
             <div class="table-container">
                 <table>
                     <thead>
@@ -1237,7 +1388,7 @@ class AdminDashboard {
     async assignSupportTicket(ticketId) {
         try {
             // Fetch available staff for assignment
-            const response = await fetch(`${window.BACKEND_URL || 'http://localhost:5000'}/api/admin/staff`, {
+            const response = await fetch(`${window.BACKEND_URL || window.location.origin}/api/admin/staff`, {
                 headers: {
                     'Authorization': `Bearer ${this.adminToken}`,
                     'Content-Type': 'application/json'
@@ -1296,7 +1447,7 @@ class AdminDashboard {
         }
 
         try {
-            const response = await fetch(`${window.BACKEND_URL || 'http://localhost:5000'}/api/support/admin/tickets/${ticketId}/assign`, {
+            const response = await fetch(`${window.BACKEND_URL || window.location.origin}/api/support/admin/tickets/${ticketId}/assign`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${this.adminToken}`,
@@ -1330,7 +1481,7 @@ class AdminDashboard {
         if (!status) return;
 
         try {
-            const response = await fetch(`${window.BACKEND_URL || 'http://localhost:5000'}/api/support/admin/tickets/${ticketId}/status`, {
+            const response = await fetch(`${window.BACKEND_URL || window.location.origin}/api/support/admin/tickets/${ticketId}/status`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${this.adminToken}`,
@@ -1375,20 +1526,38 @@ class AdminDashboard {
 
     async viewDispute(disputeId) {
         try {
+            console.log('🔍 Fetching dispute with ID:', disputeId);
+            console.log('🔍 Admin token:', localStorage.getItem('vendplug-admin-token') ? 'Present' : 'Missing');
+            
             const response = await fetch(`/api/disputes/admin/${disputeId}`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('vendplug-admin-token')}`
                 }
             });
 
-            if (!response.ok) throw new Error('Failed to fetch dispute details');
+            console.log('🔍 Response status:', response.status);
+            console.log('🔍 Response headers:', Object.fromEntries(response.headers.entries()));
 
-            const dispute = await response.json();
-            this.showDisputeModal(dispute);
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('❌ API Error Response:', errorText);
+                throw new Error(`Failed to fetch dispute details: ${response.status} ${response.statusText}`);
+            }
+
+            const responseData = await response.json();
+            console.log('🔍 Admin dispute response:', responseData);
+            
+            if (responseData.success && responseData.data) {
+                console.log('🔍 Dispute data to display:', responseData.data);
+                this.showDisputeModal(responseData.data);
+            } else {
+                console.error('❌ Invalid response format:', responseData);
+                throw new Error('Invalid response format - missing success or data');
+            }
             
         } catch (error) {
             console.error('❌ View dispute error:', error);
-            this.showError('Failed to load dispute details');
+            this.showError(`Failed to load dispute details: ${error.message}`);
         }
     }
 
@@ -1401,18 +1570,46 @@ class AdminDashboard {
         
         // Debug: Log the populated data
         console.log('🔍 Dispute data structure:', {
+            disputeId: disputeData.disputeId,
+            title: disputeData.title,
+            status: disputeData.status,
+            priority: disputeData.priority,
+            category: disputeData.category,
             complainant: disputeData.complainant,
             respondent: disputeData.respondent,
             orderId: disputeData.orderId,
+            raisedBy: disputeData.raisedBy,
+            raisedByType: disputeData.raisedByType,
             evidence: disputeData.evidence
         });
         
+        // Ensure DataFormatter is available, create fallbacks if not
+        if (typeof DataFormatter === 'undefined') {
+            console.warn('⚠️ DataFormatter is not available, using fallback functions');
+            window.DataFormatter = {
+                formatOrderId: (id) => id ? (id._id || id).toString().substring(0, 8) : 'Unknown',
+                formatUserName: (user, fallback = 'Unknown User') => {
+                    if (!user) return fallback;
+                    return user.fullName || user.shopName || user.businessName || user.email || fallback;
+                },
+                formatUserType: (type) => type || 'Unknown',
+                formatCurrency: (amount) => amount ? `₦${Number(amount).toLocaleString()}` : '₦0',
+                formatStatus: (status) => status ? status.replace('_', ' ').toUpperCase() : 'Unknown',
+                formatCategory: (category) => category || 'Unknown'
+            };
+        }
+        
+        // Check if sidebar is open and add appropriate class
+        const sidebar = document.querySelector('.sidebar');
+        const isSidebarOpen = sidebar && sidebar.classList.contains('open');
+        const modalClass = isSidebarOpen ? 'modal sidebar-open' : 'modal';
+        
         // Create modal HTML
         const modalHTML = `
-            <div id="disputeModal" class="modal" style="display: block;">
+            <div id="disputeModal" class="${modalClass}" style="display: block;">
                 <div class="modal-content" style="max-width: 90%; max-height: 90%; overflow-y: auto;">
                     <div class="modal-header">
-                        <h2>Dispute Details - ${disputeData.disputeId}</h2>
+                        <h2>Dispute Details - ${disputeData.disputeId || disputeData._id || 'Unknown'}</h2>
                         <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
                     </div>
                     <div class="modal-body">
@@ -1587,7 +1784,7 @@ class AdminDashboard {
     async assignDispute(disputeId) {
         try {
             // Fetch available staff for assignment
-            const response = await fetch(`${window.BACKEND_URL || 'http://localhost:5000'}/api/admin/staff`, {
+            const response = await fetch(`${window.BACKEND_URL || window.location.origin}/api/admin/staff`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('vendplug-admin-token')}`,
                     'Content-Type': 'application/json'
@@ -1666,7 +1863,7 @@ class AdminDashboard {
 
     async performAssignDispute(disputeId, assignedTo, staffName) {
         try {
-            const response = await fetch(`${window.BACKEND_URL || 'http://localhost:5000'}/api/admin/disputes/${disputeId}/assign`, {
+            const response = await fetch(`${window.BACKEND_URL || window.location.origin}/api/admin/disputes/${disputeId}/assign`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('vendplug-admin-token')}`,
@@ -1693,24 +1890,44 @@ class AdminDashboard {
     }
 
     resolveDispute(disputeId) {
-        const decision = prompt('Enter decision (refund, no_refund, partial_refund):');
+        const decision = prompt('Enter decision (Refund Buyer, Fund Vendor/Agent, Partial Refund, No Action, Escalated):');
         if (!decision) return;
 
         const reason = prompt('Enter reason for decision:');
         if (!reason) return;
 
-        const refundAmount = prompt('Enter refund amount (if applicable, 0 for no refund):');
-        const amount = refundAmount ? parseFloat(refundAmount) : 0;
-
         const notes = prompt('Enter additional notes (optional):') || '';
 
-        this.performResolveDispute(disputeId, decision, reason, amount, notes);
+        // Map user-friendly terms to backend values
+        let backendDecision;
+        switch(decision.toLowerCase()) {
+            case 'refund buyer':
+                backendDecision = 'favor_complainant';
+                break;
+            case 'fund vendor/agent':
+                backendDecision = 'favor_respondent';
+                break;
+            case 'partial refund':
+                backendDecision = 'partial_refund';
+                break;
+            case 'no action':
+                backendDecision = 'no_action';
+                break;
+            case 'escalated':
+                backendDecision = 'escalated';
+                break;
+            default:
+                alert('Invalid decision. Please use: Refund Buyer, Fund Vendor/Agent, Partial Refund, No Action, or Escalated');
+                return;
+        }
+
+        this.performResolveDispute(disputeId, backendDecision, reason, 0, notes);
     }
 
     async performResolveDispute(disputeId, decision, reason, refundAmount, notes) {
         try {
             const token = getAuthToken();
-            const response = await fetch(`${window.BACKEND_URL || 'http://localhost:5000'}/api/admin/disputes/${disputeId}/resolve`, {
+            const response = await fetch(`${window.BACKEND_URL || window.location.origin}/api/admin/disputes/${disputeId}/resolve`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -1871,8 +2088,14 @@ class AdminDashboard {
 
             if (!response.ok) throw new Error('Failed to fetch escalated dispute details');
 
-            const dispute = await response.json();
-            this.showEscalatedDisputeModal(dispute);
+            const responseData = await response.json();
+            console.log('🔍 Admin escalated dispute response:', responseData);
+            
+            if (responseData.success && responseData.data) {
+                this.showEscalatedDisputeModal(responseData.data);
+            } else {
+                throw new Error('Invalid response format');
+            }
             
         } catch (error) {
             console.error('❌ View escalated dispute error:', error);
@@ -1883,8 +2106,13 @@ class AdminDashboard {
     showEscalatedDisputeModal(dispute) {
         const disputeData = dispute.dispute || dispute;
         
+        // Check if sidebar is open and add appropriate class
+        const sidebar = document.querySelector('.sidebar');
+        const isSidebarOpen = sidebar && sidebar.classList.contains('open');
+        const modalClass = isSidebarOpen ? 'modal sidebar-open' : 'modal';
+        
         const modalHTML = `
-            <div id="escalatedDisputeModal" class="modal" style="display: block;">
+            <div id="escalatedDisputeModal" class="${modalClass}" style="display: block;">
                 <div class="modal-content" style="max-width: 90%; max-height: 90%; overflow-y: auto;">
                     <div class="modal-header">
                         <h2>Escalated Dispute - ${disputeData.disputeId}</h2>
@@ -2165,8 +2393,8 @@ class AdminDashboard {
                                 <label for="resolutionDecision">Resolution Decision *</label>
                                 <select class="form-control" id="resolutionDecision" required>
                                     <option value="">Select decision</option>
-                                    <option value="refund">Full Refund (Favor Complainant)</option>
-                                    <option value="no_refund">No Refund (Favor Respondent)</option>
+                                    <option value="favor_complainant">Refund Buyer</option>
+                                    <option value="favor_respondent">Fund Vendor/Agent</option>
                                     <option value="partial_refund">Partial Refund</option>
                                 </select>
                             </div>
@@ -2174,11 +2402,6 @@ class AdminDashboard {
                                 <label for="resolutionReason">Resolution Reason *</label>
                                 <input type="text" class="form-control" id="resolutionReason" required 
                                        placeholder="Brief reason for the decision">
-                            </div>
-                            <div class="form-group mb-3">
-                                <label for="refundAmount">Refund Amount (₦)</label>
-                                <input type="number" class="form-control" id="refundAmount" 
-                                       placeholder="Enter amount if refund is applicable" min="0" step="0.01">
                             </div>
                             <div class="form-group mb-3">
                                 <label for="resolutionNotes">Resolution Notes</label>
@@ -2213,7 +2436,6 @@ class AdminDashboard {
     async performResolveEscalatedDispute(disputeId) {
         const resolution = document.getElementById('resolutionDecision').value;
         const reason = document.getElementById('resolutionReason').value;
-        const refundAmount = document.getElementById('refundAmount').value;
         const notes = document.getElementById('resolutionNotes').value;
 
         if (!resolution || !reason) {
@@ -2226,7 +2448,7 @@ class AdminDashboard {
             console.log('🔑 Admin token:', token ? 'Present' : 'Missing');
             console.log('🔑 Token length:', token ? token.length : 0);
             
-            const response = await fetch(`${window.BACKEND_URL || 'http://localhost:5000'}/api/admin/disputes/${disputeId}/resolve-escalated`, {
+            const response = await fetch(`${window.BACKEND_URL || window.location.origin}/api/admin/disputes/${disputeId}/resolve-escalated`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -2235,7 +2457,6 @@ class AdminDashboard {
                 body: JSON.stringify({
                     decision: resolution, // Map to backend expected field
                     reason,
-                    refundAmount: refundAmount ? parseFloat(refundAmount) : 0,
                     notes
                 })
             });
@@ -2262,7 +2483,7 @@ class AdminDashboard {
     async reassignEscalatedDispute(disputeId) {
         try {
             // Fetch available staff for assignment
-            const response = await fetch(`${window.BACKEND_URL || 'http://localhost:5000'}/api/admin/staff`, {
+            const response = await fetch(`${window.BACKEND_URL || window.location.origin}/api/admin/staff`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('vendplug-admin-token')}`,
                     'Content-Type': 'application/json'
@@ -2341,7 +2562,7 @@ class AdminDashboard {
 
     async performReassignEscalatedDispute(disputeId, assignedTo, staffName) {
         try {
-            const response = await fetch(`${window.BACKEND_URL || 'http://localhost:5000'}/api/admin/disputes/${disputeId}/reassign`, {
+            const response = await fetch(`${window.BACKEND_URL || window.location.origin}/api/admin/disputes/${disputeId}/reassign`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('vendplug-admin-token')}`,
@@ -2520,6 +2741,248 @@ class AdminDashboard {
     filterCampaigns() {
         // Implementation for filtering campaigns
         console.log('Filtering campaigns...');
+    }
+
+    // Wallet Management Methods
+    async loadWalletManagement() {
+        try {
+            console.log('🏦 Loading wallet management data...');
+            
+            // Load wallet balance and capacity
+            await this.loadWalletBalance();
+            
+            // Load pending payouts
+            await this.loadPendingPayouts();
+            
+            // Load recent transactions
+            await this.loadRecentWalletTransactions();
+            
+            // Setup wallet management event listeners
+            this.setupWalletEventListeners();
+            
+        } catch (error) {
+            console.error('❌ Error loading wallet management:', error);
+            this.showError('Failed to load wallet management data');
+        }
+    }
+
+    async loadWalletBalance() {
+        try {
+            const response = await fetch('/api/paystack-wallet/balance', {
+                headers: {
+                    'Authorization': `Bearer ${this.adminToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to load wallet balance');
+            }
+
+            const data = await response.json();
+            console.log('💰 Wallet balance data:', data);
+            
+            this.updateWalletDisplay(data.data);
+            
+        } catch (error) {
+            console.error('❌ Error loading wallet balance:', error);
+            this.showWalletError('Failed to load wallet balance');
+        }
+    }
+
+    async loadPendingPayouts() {
+        try {
+            const response = await fetch('/api/admin/payouts?status=pending&limit=10', {
+                headers: {
+                    'Authorization': `Bearer ${this.adminToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to load pending payouts');
+            }
+
+            const data = await response.json();
+            const pendingAmount = data.data?.payouts?.reduce((total, payout) => total + (payout.amount || 0), 0) || 0;
+            
+            document.getElementById('pendingPayouts').textContent = `₦${pendingAmount.toLocaleString()}`;
+            
+        } catch (error) {
+            console.error('❌ Error loading pending payouts:', error);
+            document.getElementById('pendingPayouts').textContent = 'Error';
+        }
+    }
+
+    async loadRecentWalletTransactions() {
+        // Remove this functionality since there's no proper endpoint
+        const container = document.getElementById('walletRecentTransactions');
+        if (container) {
+            container.innerHTML = '<p>Recent wallet transactions not available</p>';
+        }
+    }
+
+    updateWalletDisplay(data) {
+        if (!data) {
+            console.warn('⚠️ No wallet data received');
+            return;
+        }
+
+        const balance = data.balance || 0;
+        const payoutCapacity = data.payoutCapacity || 0;
+        const capacityPercentage = data.capacityPercentage || 0;
+        
+        // Update balance display
+        document.getElementById('walletBalance').textContent = balance.toLocaleString();
+        
+        // Update payout capacity
+        document.getElementById('payoutCapacity').textContent = `₦${payoutCapacity.toLocaleString()}`;
+        
+        // Update capacity indicator
+        const capacityFill = document.getElementById('capacityFill');
+        const capacityText = document.getElementById('capacityText');
+        
+        if (capacityFill && capacityText) {
+            capacityFill.style.width = `${capacityPercentage}%`;
+            capacityText.textContent = `${capacityPercentage.toFixed(1)}% capacity`;
+        }
+        
+        // Update last updated time
+        document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
+        
+        // Update recommendations
+        this.updateRecommendations(data);
+        
+        // Update alerts
+        this.updateAlerts(data);
+    }
+
+    updateRecommendations(data) {
+        const recommendationContent = document.getElementById('recommendationContent');
+        if (!recommendationContent) return;
+        
+        const balance = data.balance || 0;
+        const payoutCapacity = data.payoutCapacity || 0;
+        
+        let recommendations = [];
+        
+        if (balance < 50000) {
+            recommendations.push('💡 Consider topping up your wallet - low balance detected');
+        }
+        
+        if (payoutCapacity < 10000) {
+            recommendations.push('⚠️ Payout capacity is low - may affect instant payouts');
+        }
+        
+        if (balance > 500000) {
+            recommendations.push('✅ Wallet balance is healthy - good for high-volume operations');
+        }
+        
+        if (recommendations.length === 0) {
+            recommendations.push('✅ Your wallet is in good condition');
+        }
+        
+        recommendationContent.innerHTML = recommendations.map(rec => `<div style="margin: 0.5rem 0;">${rec}</div>`).join('');
+    }
+
+    updateAlerts(data) {
+        const alertsContainer = document.getElementById('alerts');
+        if (!alertsContainer) return;
+        
+        const balance = data.balance || 0;
+        const payoutCapacity = data.payoutCapacity || 0;
+        
+        let alerts = [];
+        
+        if (balance < 10000) {
+            alerts.push({
+                type: 'danger',
+                message: '🚨 Critical: Wallet balance is very low! Top up immediately to avoid payout failures.'
+            });
+        } else if (balance < 50000) {
+            alerts.push({
+                type: 'warning',
+                message: '⚠️ Warning: Wallet balance is low. Consider topping up soon.'
+            });
+        }
+        
+        if (payoutCapacity < 5000) {
+            alerts.push({
+                type: 'warning',
+                message: '⚠️ Payout capacity is very low. This may cause delays in vendor payouts.'
+            });
+        }
+        
+        if (alerts.length === 0) {
+            alertsContainer.innerHTML = '';
+            return;
+        }
+        
+        alertsContainer.innerHTML = alerts.map(alert => `
+            <div class="alert alert-${alert.type}" style="padding: 1rem; margin: 0.5rem 0; border-radius: 5px; background: ${alert.type === 'danger' ? '#f8d7da' : '#fff3cd'}; color: ${alert.type === 'danger' ? '#721c24' : '#856404'}; border: 1px solid ${alert.type === 'danger' ? '#f5c6cb' : '#ffeaa7'};">
+                ${alert.message}
+            </div>
+        `).join('');
+    }
+
+    renderRecentTransactions(transactions) {
+        const container = document.getElementById('recentTransactions');
+        
+        if (transactions.length === 0) {
+            container.innerHTML = '<div class="loading">No recent transactions</div>';
+            return;
+        }
+        
+        const transactionsHTML = transactions.map(transaction => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid #eee;">
+                <div>
+                    <div style="font-weight: bold;">${transaction.type || 'Transaction'}</div>
+                    <div style="color: #666; font-size: 0.9rem;">
+                        ${transaction.initiatedBy?.fullName || transaction.initiatedBy?.shopName || 'System'} • 
+                        ${new Date(transaction.createdAt).toLocaleString()}
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-weight: bold; color: ${transaction.type === 'commission' ? '#28a745' : '#007bff'};">
+                        ${transaction.type === 'commission' ? '+' : ''}₦${(transaction.amount || 0).toLocaleString()}
+                    </div>
+                    <div style="color: #666; font-size: 0.9rem;">
+                        <span class="status-badge status-${transaction.status}">${transaction.status}</span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        
+        container.innerHTML = transactionsHTML;
+    }
+
+    setupWalletEventListeners() {
+        // Refresh balance button
+        const refreshBtn = document.getElementById('refreshBalance');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                this.loadWalletBalance();
+            });
+        }
+        
+        // Top up button
+        const topUpBtn = document.getElementById('topUpBtn');
+        if (topUpBtn) {
+            topUpBtn.addEventListener('click', () => {
+                alert('Top-up functionality will be implemented soon. Please use the Paystack dashboard for now.');
+            });
+        }
+    }
+
+    showWalletError(message) {
+        document.getElementById('walletBalance').textContent = 'Error';
+        document.getElementById('payoutCapacity').textContent = 'Error';
+        document.getElementById('capacityText').textContent = 'Error loading data';
+        
+        const recommendationContent = document.getElementById('recommendationContent');
+        if (recommendationContent) {
+            recommendationContent.innerHTML = `<div style="color: #dc3545;">❌ ${message}</div>`;
+        }
     }
 }
 
@@ -2713,14 +3176,20 @@ async function createAd() {
         };
 
         const url = isEdit 
-            ? `${window.BACKEND_URL || 'http://localhost:5000'}/api/admin-ads/ads/${editId}`
-            : `${window.BACKEND_URL || 'http://localhost:5000'}/api/admin-ads/ads`;
+            ? `${window.BACKEND_URL || window.location.origin}/api/admin-ads/ads/${editId}`
+            : `${window.BACKEND_URL || window.location.origin}/api/admin-ads/ads`;
         
         const method = isEdit ? 'PUT' : 'POST';
 
+        // Validate token before making API call
+        if (!validateToken()) {
+            alert('Your session has expired. Please login again.');
+            window.location.href = '/admin-login.html';
+            return;
+        }
+        
         const token = localStorage.getItem('vendplug-admin-token');
-        console.log('🔑 Create ad token:', token ? 'Present' : 'Missing');
-        console.log('🔑 Token length:', token ? token.length : 0);
+        console.log('🔑 Create ad token validated successfully');
         
         const response = await fetch(url, {
             method: method,
@@ -2732,7 +3201,24 @@ async function createAd() {
         });
 
         if (!response.ok) {
-            throw new Error(`Failed to ${isEdit ? 'update' : 'create'} ad`);
+            const errorData = await response.json().catch(() => ({}));
+            console.error('❌ API Error:', {
+                status: response.status,
+                statusText: response.statusText,
+                errorData
+            });
+            
+            if (response.status === 401) {
+                console.error('❌ Authentication failed - token expired');
+                alert('Your session has expired. Please login again.');
+                // Clear the expired token
+                localStorage.removeItem('vendplug-admin-token');
+                window.location.href = '/admin-login.html';
+                return;
+            }
+            
+            const errorMessage = errorData.message || errorData.error || `Failed to ${isEdit ? 'update' : 'create'} ad (${response.status})`;
+            throw new Error(errorMessage);
         }
 
         alert(`Ad ${isEdit ? 'updated' : 'created'} successfully!`);
@@ -2912,8 +3398,15 @@ function filterCampaigns() {
 
 async function editAd(adId) {
     try {
+        // Validate token before making API call
+        if (!validateToken()) {
+            alert('Your session has expired. Please login again.');
+            window.location.href = '/admin-login.html';
+            return;
+        }
+        
         // Fetch the ad details
-        const response = await fetch(`${window.BACKEND_URL || 'http://localhost:5000'}/api/admin-ads/ads/${adId}`, {
+        const response = await fetch(`${window.BACKEND_URL || window.location.origin}/api/admin-ads/ads/${adId}`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('vendplug-admin-token')}`,
                 'Content-Type': 'application/json'
@@ -2921,10 +3414,21 @@ async function editAd(adId) {
         });
 
         if (!response.ok) {
-            throw new Error('Failed to fetch ad details');
+            const errorData = await response.json().catch(() => ({}));
+            if (response.status === 401) {
+                console.error('❌ Authentication failed - token expired');
+                alert('Your session has expired. Please login again.');
+                localStorage.removeItem('vendplug-admin-token');
+                window.location.href = '/admin-login.html';
+                return;
+            }
+            throw new Error(errorData.message || 'Failed to fetch ad details');
         }
 
         const result = await response.json();
+        if (!result.success || !result.data) {
+            throw new Error('Invalid response format');
+        }
         const ad = result.data;
 
         // Populate the form with existing data
@@ -2978,7 +3482,14 @@ async function editAd(adId) {
 async function deleteAd(adId) {
     if (confirm('Are you sure you want to delete this ad?')) {
         try {
-            const response = await fetch(`${window.BACKEND_URL || 'http://localhost:5000'}/api/admin-ads/ads/${adId}`, {
+            // Validate token before making API call
+            if (!validateToken()) {
+                alert('Your session has expired. Please login again.');
+                window.location.href = '/admin-login.html';
+                return;
+            }
+            
+            const response = await fetch(`${window.BACKEND_URL || window.location.origin}/api/admin-ads/ads/${adId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('vendplug-admin-token')}`,
@@ -2987,7 +3498,15 @@ async function deleteAd(adId) {
             });
 
             if (!response.ok) {
-                throw new Error('Failed to delete ad');
+                const errorData = await response.json().catch(() => ({}));
+                if (response.status === 401) {
+                    console.error('❌ Authentication failed - token expired');
+                    alert('Your session has expired. Please login again.');
+                    localStorage.removeItem('vendplug-admin-token');
+                    window.location.href = '/admin-login.html';
+                    return;
+                }
+                throw new Error(errorData.message || 'Failed to delete ad');
             }
 
             const result = await response.json();

@@ -78,7 +78,7 @@ newPasswordForm.addEventListener('submit', async (e) => {
             // Clear any stored reset request data
             localStorage.removeItem('resetRequestEmail');
             localStorage.removeItem('resetRequestRole');
-            setTimeout(() => window.location.href = 'login.html', 2000);
+            setTimeout(() => window.location.href = 'auth-selection.html', 2000);
         } else {
             messageEl.textContent = data.message || 'Failed to reset password';
             messageEl.style.color = 'red';
