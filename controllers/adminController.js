@@ -353,11 +353,11 @@ const getAllUsers = async (req, res) => {
         userModel = Agent;
         break;
       default:
-        // If no role specified, return all users combined
+        // If no role specified, return all users combined, sorted by newest first
         const [buyers, vendors, agents] = await Promise.all([
-          Buyer.find().limit(limit).skip(skip),
-          Vendor.find().limit(limit).skip(skip),
-          Agent.find().limit(limit).skip(skip)
+          Buyer.find().sort({ createdAt: -1 }),
+          Vendor.find().sort({ createdAt: -1 }),
+          Agent.find().sort({ createdAt: -1 })
         ]);
         
         // Combine all users into a single array
@@ -366,6 +366,12 @@ const getAllUsers = async (req, res) => {
           ...vendors.map(user => ({ ...user.toObject(), userType: 'vendor', isActive: user.isActive !== false })),
           ...agents.map(user => ({ ...user.toObject(), userType: 'agent', isActive: user.isActive !== false }))
         ];
+        
+        // Sort combined users by creation date (newest first)
+        allUsers.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        
+        // Apply pagination after sorting
+        const paginatedUsers = allUsers.slice(skip, skip + parseInt(limit));
         
         // Get total counts for pagination
         const [totalBuyers, totalVendors, totalAgents] = await Promise.all([
@@ -377,7 +383,7 @@ const getAllUsers = async (req, res) => {
         return res.status(200).json({
           success: true,
           data: {
-            users: allUsers,
+            users: paginatedUsers,
             pagination: {
               page: parseInt(page),
               limit: parseInt(limit),

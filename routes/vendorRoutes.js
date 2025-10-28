@@ -8,7 +8,7 @@ const { registerVendor, loginVendor } = require("../controllers/vendorAuthContro
 const { getVendorStats } = require('../controllers/vendorAuthController.js');
 const { getShopView, addVendorReview, voteReviewHelpfulness, reportReview, getVendorReviews } = require('../controllers/vendorAuthController');
 const { getVendorsByCategoryAndState } = require('../controllers/vendorAuthController');
-const { updateVendorProfile } = require("../controllers/vendorAuthController");
+const { updateVendorProfile, getCurrentVendorProfile } = require("../controllers/vendorAuthController");
 const {
   getVendorById,
 } = require('../controllers/vendorAuthController.js');
@@ -127,6 +127,7 @@ router.post('/:vendorId/reviews/:reviewId/report', protectBuyer, reportReview);
 
 router.get('/by-category-and-state', getVendorsByCategoryAndState);
 
+router.get("/profile", protectVendor, getCurrentVendorProfile);
 router.put("/profile", protectVendor, upload.single("brandImage"), updateVendorProfile);
 
 

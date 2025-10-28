@@ -221,6 +221,26 @@ const agentSchema = new mongoose.Schema(
     averageRating: { type: Number, default: 0 },
 
     password: { type: String, required: true },
+    
+    // PIN for payout security
+    payoutPin: { 
+      type: String, 
+      required: false, // Optional - user can set it later
+      minlength: 4,
+      maxlength: 255 // Allow space for bcrypt hash (60+ chars)
+    },
+    payoutPinSetAt: { 
+      type: Date, 
+      default: null 
+    },
+    pinResetCode: {
+      type: String,
+      default: null
+    },
+    pinResetCodeExpiry: {
+      type: Date,
+      default: null
+    },
   },
   { timestamps: true }
 );
@@ -232,6 +252,22 @@ agentSchema.pre('save', async function (next) {
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ✅ PIN Hash Middleware
+agentSchema.pre('save', async function (next) {
+  if (!this.isModified('payoutPin')) return next();
+
+  try {
+    if (this.payoutPin) {
+      const salt = await bcrypt.genSalt(10);
+      this.payoutPin = await bcrypt.hash(this.payoutPin, salt);
+      this.payoutPinSetAt = new Date();
+    }
     next();
   } catch (err) {
     next(err);
@@ -253,6 +289,12 @@ agentSchema.pre('save', function (next) {
 // ✅ Compare password
 agentSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
+};
+
+// ✅ Compare PIN
+agentSchema.methods.matchPayoutPin = async function (enteredPin) {
+  if (!this.payoutPin) return false;
+  return await bcrypt.compare(enteredPin, this.payoutPin);
 };
 
 module.exports = mongoose.model('Agent', agentSchema);
