@@ -162,7 +162,12 @@ const loginAgent = async (req, res) => {
         role: agent.role || "agent",
         virtualAccount: wallet?.virtualAccount || agent.wallet?.virtualAccount || null,
         category: agent.category,
-        state: agent.state
+        otherCategory: agent.otherCategory,
+        state: agent.state,
+        businessAddress: agent.businessAddress,
+        cacNumber: agent.cacNumber,
+        shopDescription: agent.shopDescription,
+        brandImage: agent.brandImage
       },
     });
   } catch (error) {
@@ -179,7 +184,13 @@ const getAgentProfile = async (req, res) => {
       return res.status(401).json({ message: "Not authorized" });
     }
 
-    res.status(200).json(req.user);
+    const agent = await Agent.findById(req.user._id).select('-password');
+    
+    if (!agent) {
+      return res.status(404).json({ message: 'Agent not found' });
+    }
+
+    res.status(200).json({ agent });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }

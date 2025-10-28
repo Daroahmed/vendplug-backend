@@ -271,8 +271,101 @@ const sendPasswordResetEmail = async (email, token) => {
   }
 };
 
+// Send PIN reset email
+const sendPinResetEmail = async (email, resetCode, userType) => {
+  try {
+    // Prefer Resend if configured
+    if (process.env.RESEND_API_KEY) {
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
+          <div style="background: linear-gradient(135deg, #00cc99, #00a67e); color: white; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+            <h1 style="margin: 0; font-size: 28px;">🔐 PIN Reset Request</h1>
+            <p style="margin: 10px 0 0 0; font-size: 16px;">Your ${userType} payout PIN reset code</p>
+          </div>
+          
+          <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h2 style="color: #333; margin-top: 0;">Hello!</h2>
+            <p style="color: #666; font-size: 16px; line-height: 1.6;">You requested to reset your payout PIN for your ${userType.toLowerCase()} account. Use the code below to complete the reset process:</p>
+            
+            <div style="background: #f8f9fa; border: 2px dashed #00cc99; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
+              <div style="font-size: 32px; font-weight: bold; color: #00cc99; letter-spacing: 4px; font-family: monospace;">${resetCode}</div>
+              <p style="color: #666; margin: 10px 0 0 0; font-size: 14px;">Enter this code in the PIN reset form</p>
+            </div>
+            
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 15px; margin: 20px 0;">
+              <p style="margin: 0; color: #856404; font-size: 14px;">
+                <strong>⏰ Important:</strong> This code will expire in 15 minutes for security reasons.
+              </p>
+            </div>
+            
+            <p style="color: #666; font-size: 14px; line-height: 1.6;">If you didn't request this PIN reset, please ignore this email. Your account remains secure.</p>
+            
+            <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px; text-align: center;">
+              <p style="color: #999; font-size: 12px; margin: 0;">This is an automated message from Vendplug Escrow System</p>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      await sendViaResend(email, `PIN Reset Code - ${userType} Account`, html);
+      console.log('✉️ PIN reset email sent to (Resend):', email);
+      return true;
+    }
+
+    // SMTP fallback
+    const isConnected = await testConnection();
+    if (!isConnected) {
+      throw new Error('Email service not available');
+    }
+
+    const mailOptions = {
+      from: `"Vendplug" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: `PIN Reset Code - ${userType} Account`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
+          <div style="background: linear-gradient(135deg, #00cc99, #00a67e); color: white; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+            <h1 style="margin: 0; font-size: 28px;">🔐 PIN Reset Request</h1>
+            <p style="margin: 10px 0 0 0; font-size: 16px;">Your ${userType} payout PIN reset code</p>
+          </div>
+          
+          <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h2 style="color: #333; margin-top: 0;">Hello!</h2>
+            <p style="color: #666; font-size: 16px; line-height: 1.6;">You requested to reset your payout PIN for your ${userType.toLowerCase()} account. Use the code below to complete the reset process:</p>
+            
+            <div style="background: #f8f9fa; border: 2px dashed #00cc99; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
+              <div style="font-size: 32px; font-weight: bold; color: #00cc99; letter-spacing: 4px; font-family: monospace;">${resetCode}</div>
+              <p style="color: #666; margin: 10px 0 0 0; font-size: 14px;">Enter this code in the PIN reset form</p>
+            </div>
+            
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 15px; margin: 20px 0;">
+              <p style="margin: 0; color: #856404; font-size: 14px;">
+                <strong>⏰ Important:</strong> This code will expire in 15 minutes for security reasons.
+              </p>
+            </div>
+            
+            <p style="color: #666; font-size: 14px; line-height: 1.6;">If you didn't request this PIN reset, please ignore this email. Your account remains secure.</p>
+            
+            <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px; text-align: center;">
+              <p style="color: #999; font-size: 12px; margin: 0;">This is an automated message from Vendplug Escrow System</p>
+            </div>
+          </div>
+        </div>
+      `
+    };
+
+    const result = await transporter.sendMail(mailOptions);
+    console.log('✉️ PIN reset email sent to:', email);
+    return true;
+  } catch (error) {
+    console.error('❌ Error sending PIN reset email:', error.message);
+    return false;
+  }
+};
+
 module.exports = {
   sendVerificationEmail,
   sendPasswordResetEmail,
+  sendPinResetEmail,
   testConnection
 };

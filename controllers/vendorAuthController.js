@@ -167,7 +167,13 @@ const loginVendor = asyncHandler(async (req, res) => {
       token: generateToken(vendor._id, "vendor"),
       virtualAccount: wallet?.virtualAccount || vendor.wallet?.virtualAccount || null,
       category: vendor.category,
-      state: vendor.state
+      otherCategory: vendor.otherCategory,
+      state: vendor.state,
+      businessName: vendor.businessName,
+      businessAddress: vendor.businessAddress,
+      cacNumber: vendor.cacNumber,
+      shopDescription: vendor.shopDescription,
+      brandImage: vendor.brandImage
     },
   });
 });
@@ -248,6 +254,17 @@ const getVendorProfile = asyncHandler(async (req, res) => {
   }
 
   res.json(vendor);
+});
+
+const getCurrentVendorProfile = asyncHandler(async (req, res) => {
+  const vendor = await Vendor.findById(req.user._id).select('-password');
+
+  if (!vendor) {
+    res.status(404).json({ message: 'Vendor not found' });
+    return;
+  }
+
+  res.json({ vendor });
 });
 
 
@@ -563,6 +580,7 @@ module.exports = {
   getVendorStats,
   getVendorsByCategoryAndState,
   getVendorProfile,
+  getCurrentVendorProfile,
   getShopView,
   addVendorReview,
   voteReviewHelpfulness,

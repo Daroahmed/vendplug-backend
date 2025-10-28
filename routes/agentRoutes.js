@@ -131,6 +131,7 @@ router.post('/:agentId/reviews/:reviewId/report', protectBuyer, reportAgentRevie
 
 router.get('/by-category-and-state', getAgentsByCategoryAndState);
 
+router.get("/profile", protectAgent, getAgentProfile);
 router.put("/profile", protectAgent, upload.single("brandImage"), updateAgentProfile);
 
 module.exports = router;

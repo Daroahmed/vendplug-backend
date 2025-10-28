@@ -5,7 +5,11 @@ const {
   requestPayout,
   processPayouts,
   getPayoutHistory,
-  getPayoutDetails
+  getPayoutDetails,
+  setPayoutPin,
+  checkPayoutPinStatus,
+  requestPinReset,
+  resetPin
 } = payoutController;
 const { protectAgent, protectVendor, protectAdmin } = require('../middleware/authMiddleware');
 
@@ -50,6 +54,12 @@ const protectAnyUser = async (req, res, next) => {
 router.post('/request', protectAnyUser, requestPayout);
 router.get('/history', protectAnyUser, getPayoutHistory);
 router.get('/:payoutId', protectAnyUser, getPayoutDetails);
+
+// PIN management routes
+router.post('/pin/set', protectAnyUser, setPayoutPin);
+router.get('/pin/status', protectAnyUser, checkPayoutPinStatus);
+router.post('/pin/reset/request', protectAnyUser, requestPinReset);
+router.post('/pin/reset/verify', protectAnyUser, resetPin);
 
 // Admin/System routes (for processing payouts)
 router.post('/process', processPayouts); // This could be protected with admin middleware later

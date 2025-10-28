@@ -5,6 +5,8 @@ const Transaction = require('../models/Transaction');
 const { paystackService } = require('../controllers/paystackController');
 const PaystackService = require('../services/paystackService');
 const mongoose = require('mongoose');
+const Vendor = require('../models/vendorModel');
+const Agent = require('../models/Agent');
 
 // Request a payout
 const requestPayout = async (req, res) => {
@@ -12,7 +14,7 @@ const requestPayout = async (req, res) => {
   session.startTransaction();
 
   try {
-    const { amount, bankAccountId } = req.body;
+    const { amount, bankAccountId, payoutPin } = req.body;
     const userId = req.user._id || req.user._id || req.user.id;
     
     // More robust role detection
@@ -35,8 +37,60 @@ const requestPayout = async (req, res) => {
       userType,
       userRole: req.user.role,
       amount,
-      bankAccountId
+      bankAccountId,
+      hasPayoutPin: !!payoutPin
     });
+    
+    // Validate PIN if provided
+    if (payoutPin) {
+      let user;
+      if (userType === 'Vendor') {
+        user = await Vendor.findById(userId);
+      } else if (userType === 'Agent') {
+        user = await Agent.findById(userId);
+      }
+      
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+      
+      // Check if user has set a PIN
+      if (!user.payoutPin) {
+        return res.status(400).json({
+          success: false,
+          message: 'Payout PIN not set. Please set your PIN first.',
+          requiresPinSetup: true
+        });
+      }
+      
+      // Validate PIN
+      const isPinValid = await user.matchPayoutPin(payoutPin);
+      if (!isPinValid) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid payout PIN'
+        });
+      }
+    } else {
+      // Check if user has a PIN set (PIN is required for payouts)
+      let user;
+      if (userType === 'Vendor') {
+        user = await Vendor.findById(userId);
+      } else if (userType === 'Agent') {
+        user = await Agent.findById(userId);
+      }
+      
+      if (user && user.payoutPin) {
+        return res.status(400).json({
+          success: false,
+          message: 'Payout PIN is required for this transaction',
+          requiresPin: true
+        });
+      }
+    }
     
     console.log('🔍 Full req.user object:', JSON.stringify(req.user, null, 2));
     
@@ -776,13 +830,333 @@ const checkPayoutStatuses = async (req, res) => {
   }
 };
 
+// Set payout PIN
+const setPayoutPin = async (req, res) => {
+  try {
+    const { payoutPin, confirmPin } = req.body;
+    const userId = req.user._id || req.user.id;
+    
+    // Determine user type
+    let userType;
+    if (req.user.role && req.user.role.toLowerCase() === 'vendor') {
+      userType = 'Vendor';
+    } else if (req.user.role && req.user.role.toLowerCase() === 'agent') {
+      userType = 'Agent';
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid user role'
+      });
+    }
+    
+    // Validate PIN
+    if (!payoutPin || payoutPin.length < 4 || payoutPin.length > 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'PIN must be between 4 and 6 digits'
+      });
+    }
+    
+    // Validate PIN is numeric
+    if (!/^\d+$/.test(payoutPin)) {
+      return res.status(400).json({
+        success: false,
+        message: 'PIN must contain only numbers'
+      });
+    }
+    
+    if (payoutPin !== confirmPin) {
+      return res.status(400).json({
+        success: false,
+        message: 'PIN and confirmation do not match'
+      });
+    }
+    
+    // Update user with new PIN
+    let user;
+    if (userType === 'Vendor') {
+      user = await Vendor.findById(userId);
+    } else if (userType === 'Agent') {
+      user = await Agent.findById(userId);
+    }
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    user.payoutPin = payoutPin;
+    await user.save();
+    
+    res.json({
+      success: true,
+      message: 'Payout PIN set successfully'
+    });
+    
+  } catch (error) {
+    console.error('Error setting payout PIN:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to set payout PIN'
+    });
+  }
+};
+
+// Check if user has PIN set
+const checkPayoutPinStatus = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    
+    // Determine user type
+    let userType;
+    if (req.user.role && req.user.role.toLowerCase() === 'vendor') {
+      userType = 'Vendor';
+    } else if (req.user.role && req.user.role.toLowerCase() === 'agent') {
+      userType = 'Agent';
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid user role'
+      });
+    }
+    
+    // Check if user has PIN set
+    let user;
+    if (userType === 'Vendor') {
+      user = await Vendor.findById(userId);
+    } else if (userType === 'Agent') {
+      user = await Agent.findById(userId);
+    }
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      hasPin: !!user.payoutPin,
+      pinSetAt: user.payoutPinSetAt
+    });
+    
+  } catch (error) {
+    console.error('Error checking payout PIN status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to check PIN status'
+    });
+  }
+};
+
+// Request PIN reset (send verification code to email)
+const requestPinReset = async (req, res) => {
+  try {
+    const { password } = req.body;
+    const userId = req.user._id || req.user.id;
+    
+    // Determine user type
+    let userType;
+    if (req.user.role && req.user.role.toLowerCase() === 'vendor') {
+      userType = 'Vendor';
+    } else if (req.user.role && req.user.role.toLowerCase() === 'agent') {
+      userType = 'Agent';
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid user role'
+      });
+    }
+    
+    // Get user and verify password
+    let user;
+    if (userType === 'Vendor') {
+      user = await Vendor.findById(userId);
+    } else if (userType === 'Agent') {
+      user = await Agent.findById(userId);
+    }
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    // Verify password
+    const isPasswordValid = await user.matchPassword(password);
+    if (!isPasswordValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid password'
+      });
+    }
+    
+    // Check if user has a PIN to reset
+    if (!user.payoutPin) {
+      return res.status(400).json({
+        success: false,
+        message: 'No PIN set to reset'
+      });
+    }
+    
+    // Generate 6-digit reset code
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const resetCodeExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+    
+    // Store reset code in user document
+    user.pinResetCode = resetCode;
+    user.pinResetCodeExpiry = resetCodeExpiry;
+    await user.save();
+    
+    // Send email with reset code
+    try {
+      const { sendPinResetEmail } = require('../utils/emailService');
+      const emailSent = await sendPinResetEmail(user.email, resetCode, userType);
+      
+      if (emailSent) {
+        console.log(`✅ PIN reset email sent to ${user.email}`);
+        res.json({
+          success: true,
+          message: 'Reset code sent to your email',
+          // Only show code in development for debugging
+          resetCode: process.env.NODE_ENV === 'development' ? resetCode : undefined
+        });
+      } else {
+        console.error(`❌ Failed to send PIN reset email to ${user.email}`);
+        res.status(500).json({
+          success: false,
+          message: 'Failed to send reset code. Please try again.',
+          // Show code in development even if email fails
+          resetCode: process.env.NODE_ENV === 'development' ? resetCode : undefined
+        });
+      }
+    } catch (emailError) {
+      console.error('❌ Email service error:', emailError);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to send reset code. Please try again.',
+        // Show code in development even if email fails
+        resetCode: process.env.NODE_ENV === 'development' ? resetCode : undefined
+      });
+    }
+    
+  } catch (error) {
+    console.error('Error requesting PIN reset:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to request PIN reset'
+    });
+  }
+};
+
+// Verify PIN reset code and set new PIN
+const resetPin = async (req, res) => {
+  try {
+    const { resetCode, newPin, confirmPin } = req.body;
+    const userId = req.user._id || req.user.id;
+    
+    // Determine user type
+    let userType;
+    if (req.user.role && req.user.role.toLowerCase() === 'vendor') {
+      userType = 'Vendor';
+    } else if (req.user.role && req.user.role.toLowerCase() === 'agent') {
+      userType = 'Agent';
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid user role'
+      });
+    }
+    
+    // Get user
+    let user;
+    if (userType === 'Vendor') {
+      user = await Vendor.findById(userId);
+    } else if (userType === 'Agent') {
+      user = await Agent.findById(userId);
+    }
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    // Validate reset code
+    if (!user.pinResetCode || user.pinResetCode !== resetCode) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid reset code'
+      });
+    }
+    
+    // Check if reset code has expired
+    if (!user.pinResetCodeExpiry || new Date() > user.pinResetCodeExpiry) {
+      return res.status(400).json({
+        success: false,
+        message: 'Reset code has expired'
+      });
+    }
+    
+    // Validate new PIN
+    if (!newPin || newPin.length < 4 || newPin.length > 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'PIN must be between 4 and 6 digits'
+      });
+    }
+    
+    // Validate PIN is numeric
+    if (!/^\d+$/.test(newPin)) {
+      return res.status(400).json({
+        success: false,
+        message: 'PIN must contain only numbers'
+      });
+    }
+    
+    if (newPin !== confirmPin) {
+      return res.status(400).json({
+        success: false,
+        message: 'PIN and confirmation do not match'
+      });
+    }
+    
+    // Set new PIN and clear reset code
+    user.payoutPin = newPin;
+    user.pinResetCode = undefined;
+    user.pinResetCodeExpiry = undefined;
+    await user.save();
+    
+    res.json({
+      success: true,
+      message: 'PIN reset successfully'
+    });
+    
+  } catch (error) {
+    console.error('Error resetting PIN:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reset PIN'
+    });
+  }
+};
+
 module.exports = {
   requestPayout,
   processPayouts,
   getPayoutHistory,
   getPayoutDetails,
   fixStuckProcessingPayouts,
-  checkPayoutStatuses
+  checkPayoutStatuses,
+  setPayoutPin,
+  checkPayoutPinStatus,
+  requestPinReset,
+  resetPin
 };
 
 

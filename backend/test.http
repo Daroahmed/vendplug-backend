@@ -1,9 +1,0 @@
-POST http://localhost:5004/api/escrows
-Content-Type: application/json
-
-{
-  "buyerId": "685f72dfadebb5621af6a1cbfa1",
-  "sellerId": "685f72f2adebb5621af6a1ce",
-  "amount": 5002,
-  "description": "Purchase of a digital service"
-}
