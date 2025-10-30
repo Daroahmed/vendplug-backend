@@ -66,10 +66,24 @@ const checkoutCart = async (req, res) => {
     session.startTransaction();
 
     try {
-      // Deduct from wallet (escrow hold)
+      // ✅ ATOMIC: Deduct from wallet using atomic operation (prevents race conditions)
       const oldBalance = wallet.balance;
-      wallet.balance -= totalCost;
-      await wallet.save({ session });
+      const updatedWallet = await Wallet.findByIdAndUpdate(
+        wallet._id,
+        { 
+          $inc: { balance: -totalCost } // Atomically decrement
+        },
+        { 
+          session,
+          new: true // Return updated document
+        }
+      );
+
+      if (!updatedWallet || updatedWallet.balance < 0) {
+        throw new Error('Insufficient balance or wallet update failed');
+      }
+
+      wallet.balance = updatedWallet.balance;
 
       console.log("💰 Wallet deduction:", {
         oldBalance,

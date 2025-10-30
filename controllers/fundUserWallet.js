@@ -14,12 +14,20 @@ const fundUserWallet= async (req, res) => {
       return res.status(404).json({ message: 'Wallet not found for this account number' });
     }
 
-    wallet.balance += Number(amount);
-    await wallet.save();
+    // ✅ ATOMIC: Use atomic increment to prevent race conditions
+    const updatedWallet = await Wallet.findByIdAndUpdate(
+      wallet._id,
+      { $inc: { balance: Number(amount) } },
+      { new: true }
+    );
+
+    if (!updatedWallet) {
+      return res.status(500).json({ message: 'Failed to update wallet' });
+    }
 
     res.status(200).json({
       message: 'Wallet funded successfully',
-      balance: wallet.balance
+      balance: updatedWallet.balance
     });
   } catch (error) {
     console.error('Error funding wallet:', error);

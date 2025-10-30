@@ -1,5 +1,6 @@
 const jwt = require ('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
+const getJWTSecret = require('../utils/jwtSecret');
 const Buyer = require('../models/Buyer');
 const Agent = require('../models/Agent');
 const Vendor = require('../models/vendorModel');
@@ -21,7 +22,7 @@ const protectBuyer = asyncHandler(async (req, res, next) => {
   if (!token) return res.status(401).json({ message: 'Not authorized, no token' });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'vendplugSecret');
+    const decoded = jwt.verify(token, getJWTSecret());
     const buyer = await Buyer.findById(decoded.id).select('-password');
     if (!buyer) return res.status(401).json({ message: 'Buyer not found' });
 
@@ -42,7 +43,7 @@ const protectAgent = asyncHandler(async (req, res, next) => {
   if (!token) return res.status(401).json({ message: 'Not authorized, no token' });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'vendplugSecret');
+    const decoded = jwt.verify(token, getJWTSecret());
     const agent = await Agent.findById(decoded.id).select('-password');
     if (!agent) return res.status(401).json({ message: 'Agent not found' });
 
@@ -66,7 +67,7 @@ const protectVendor = asyncHandler(async (req, res, next) => {
     try {
       token = req.headers.authorization.split(' ')[1];
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'vendplugSecret');
+      const decoded = jwt.verify(token, getJWTSecret());
       const vendor = await Vendor.findById(decoded.id).select('-password');
 
       if (!vendor) {
@@ -96,7 +97,7 @@ const protectAdmin = asyncHandler(async (req, res, next) => {
   if (!token) return res.status(401).json({ message: 'Not authorized, no token' });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'vendplugSecret');
+    const decoded = jwt.verify(token, getJWTSecret());
     const admin = await Admin.findById(decoded.id).select('-password');
     if (!admin) return res.status(401).json({ message: 'Admin not found' });
 
@@ -124,7 +125,7 @@ const protectAnyUser = asyncHandler(async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'vendplugSecret');
+    const decoded = jwt.verify(token, getJWTSecret());
     const userId = decoded.id || decoded.staffId; // Handle both regular users and staff
 
     const buyer = await Buyer.findById(userId).select('-password');

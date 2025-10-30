@@ -20,15 +20,38 @@ const createVendorProduct = asyncHandler(async (req, res) => {
       return res.status(400).json({ message: 'Name and price are required' });
     }
 
-    // 📷 Upload product image if provided
-    let imageUrl = '';
-    if (req.file) {
+    // 📷 Upload product images if provided
+    let primaryImage = '';
+    const additionalImages = [];
+    
+    if (req.files && req.files.length > 0) {
+      // Upload first image as primary
+      const firstImage = req.files[0];
+      const firstResult = await cloudinary.uploader.upload(firstImage.path, {
+        folder: 'vendplug/vendor-products',
+      });
+      primaryImage = firstResult.secure_url;
+      fs.unlinkSync(firstImage.path);
+
+      // Upload remaining images
+      for (let i = 1; i < req.files.length; i++) {
+        try {
+          const result = await cloudinary.uploader.upload(req.files[i].path, {
+            folder: 'vendplug/vendor-products',
+          });
+          additionalImages.push(result.secure_url);
+          fs.unlinkSync(req.files[i].path);
+        } catch (error) {
+          console.error(`Error uploading image ${i}:`, error);
+          fs.unlinkSync(req.files[i].path); // Clean up even on error
+        }
+      }
+    } else if (req.file) {
+      // Backward compatibility: handle single file upload
       const result = await cloudinary.uploader.upload(req.file.path, {
         folder: 'vendplug/vendor-products',
       });
-      imageUrl = result.secure_url;
-
-      // Clean up local temp file
+      primaryImage = result.secure_url;
       fs.unlinkSync(req.file.path);
     }
 
@@ -39,7 +62,8 @@ const createVendorProduct = asyncHandler(async (req, res) => {
       description,
       stock,
       category: vendor.category, // ✅ Use vendor's category
-      image: imageUrl || null,
+      image: primaryImage || null,
+      images: additionalImages,
     });
 
     res.status(201).json(product);
@@ -94,13 +118,44 @@ const updateVendorProduct = asyncHandler(async (req, res) => {
   if (description !== undefined) product.description = description;
   if (stock !== undefined) product.stock = stock;
 
-  // 📷 Update image if new one is uploaded
-  if (req.file) {
+  // 📷 Update images if new ones are uploaded
+  if (req.files && req.files.length > 0) {
+    // Upload first image as primary
+    const firstImage = req.files[0];
+    const firstResult = await cloudinary.uploader.upload(firstImage.path, {
+      folder: 'vendplug/vendor-products',
+    });
+    product.image = firstResult.secure_url;
+    fs.unlinkSync(firstImage.path);
+
+    // Upload remaining images
+    const additionalImages = [];
+    for (let i = 1; i < req.files.length; i++) {
+      try {
+        const result = await cloudinary.uploader.upload(req.files[i].path, {
+          folder: 'vendplug/vendor-products',
+        });
+        additionalImages.push(result.secure_url);
+        fs.unlinkSync(req.files[i].path);
+      } catch (error) {
+        console.error(`Error uploading image ${i}:`, error);
+        fs.unlinkSync(req.files[i].path);
+      }
+    }
+    
+    // Merge with existing images if any, or replace if clearImages flag is set
+    if (req.body.clearImages === 'true') {
+      product.images = additionalImages;
+    } else {
+      product.images = [...(product.images || []), ...additionalImages];
+    }
+  } else if (req.file) {
+    // Backward compatibility: handle single file upload
     const result = await cloudinary.uploader.upload(req.file.path, {
       folder: 'vendplug/vendor-products',
     });
     product.image = result.secure_url;
-    fs.unlinkSync(req.file.path); // clean temp file
+    fs.unlinkSync(req.file.path);
   }
 
   await product.save();

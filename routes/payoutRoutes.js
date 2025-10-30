@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const getJWTSecret = require('../utils/jwtSecret');
 const payoutController = require('../controllers/payoutController');
 const {
   requestPayout,
@@ -12,6 +13,7 @@ const {
   resetPin
 } = payoutController;
 const { protectAgent, protectVendor, protectAdmin } = require('../middleware/authMiddleware');
+const { payoutLimiter, pinResetLimiter, pinVerifyLimiter, dashboardLimiter } = require('../middleware/rateLimiter');
 
 // Combined middleware for both agents and vendors
 const protectAnyUser = async (req, res, next) => {
@@ -22,7 +24,7 @@ const protectAnyUser = async (req, res, next) => {
     }
 
     const jwt = require('jsonwebtoken');
-    const jwtSecret = process.env.JWT_SECRET || "vendplugSecret";
+    const jwtSecret = getJWTSecret();
     
     const decoded = jwt.verify(token, jwtSecret);
     
@@ -51,15 +53,16 @@ const protectAnyUser = async (req, res, next) => {
 };
 
 // Payout routes - both agents and vendors can request payouts
-router.post('/request', protectAnyUser, requestPayout);
-router.get('/history', protectAnyUser, getPayoutHistory);
-router.get('/:payoutId', protectAnyUser, getPayoutDetails);
+router.post('/request', payoutLimiter, protectAnyUser, requestPayout);
+// Dashboard endpoints are polled frequently, so they need lenient rate limiting
+router.get('/history', dashboardLimiter, protectAnyUser, getPayoutHistory);
+router.get('/:payoutId', dashboardLimiter, protectAnyUser, getPayoutDetails);
 
 // PIN management routes
-router.post('/pin/set', protectAnyUser, setPayoutPin);
+router.post('/pin/set', pinVerifyLimiter, protectAnyUser, setPayoutPin);
 router.get('/pin/status', protectAnyUser, checkPayoutPinStatus);
-router.post('/pin/reset/request', protectAnyUser, requestPinReset);
-router.post('/pin/reset/verify', protectAnyUser, resetPin);
+router.post('/pin/reset/request', pinResetLimiter, protectAnyUser, requestPinReset);
+router.post('/pin/reset/verify', pinResetLimiter, protectAnyUser, resetPin);
 
 // Admin/System routes (for processing payouts)
 router.post('/process', processPayouts); // This could be protected with admin middleware later

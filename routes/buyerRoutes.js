@@ -11,9 +11,10 @@ const {
 } = controller;
 
 const { protectBuyer } = require('../middleware/authMiddleware');
+const { authLimiter, registrationLimiter } = require('../middleware/rateLimiter');
 
-router.post('/register', registerBuyer);
-router.post('/login', loginBuyer);
+router.post('/register', registrationLimiter, registerBuyer);
+router.post('/login', authLimiter, loginBuyer);
 
 router.get('/profile', protectBuyer, getBuyerProfile);
 

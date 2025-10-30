@@ -36,6 +36,58 @@ app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 
+// ✅ Apply general API rate limiting (protects all routes except browsing/search endpoints)
+const { apiLimiter } = require('./middleware/rateLimiter');
+const rateLimit = require('express-rate-limit');
+
+// Custom apiLimiter that skips browsing endpoints (they have their own limiter)
+const generalApiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: {
+    success: false,
+    message: 'Too many requests. Please slow down.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for browsing/search endpoints (they have their own limiter)
+    // When middleware is mounted at /api, req.path is relative (e.g., /vendors/shop-vendors)
+    // req.originalUrl includes full path (e.g., /api/vendors/shop-vendors)
+    // Check both to handle different Express path contexts
+    const originalPath = req.originalUrl?.split('?')[0] || '';
+    const relativePath = req.path || req.url?.split('?')[0] || '';
+    const path = originalPath || relativePath;
+    
+    // Skip browsing/search endpoints (they have browsingLimiter)
+    const isBrowsingEndpoint = path.includes('/shop-vendors') || 
+                                path.includes('/shop-agents') || 
+                                path.includes('/vendor-products/shop') ||
+                                path.includes('/agent-products/shop') ||
+                                path.includes('/products/search') ||
+                                path.includes('/product-search');
+    
+    // Skip refresh token endpoint (it has refreshLimiter)
+    const isRefreshEndpoint = path.includes('/auth/refresh');
+    
+    // Skip dashboard endpoints (they have dashboardLimiter)
+    // These are authenticated endpoints that are polled frequently
+    const isDashboardEndpoint = path.includes('/vendor-orders') ||
+                                path.includes('/agent-orders') ||
+                                path.includes('/buyer-orders') ||
+                                path.includes('/vendor-payout') ||
+                                path.includes('/stats') ||
+                                path.includes('/notifications') ||
+                                path.includes('/analytics') ||
+                                path.includes('/wallet') ||
+                                path.includes('/transactions');
+    
+    return isBrowsingEndpoint || isRefreshEndpoint || isDashboardEndpoint;
+  }
+});
+
+app.use('/api', generalApiLimiter); // Apply to all /api routes (with exceptions)
+
 // ✅ Serve static frontend files
 app.use('/css', express.static(path.join(__dirname, '../frontend/css')));
 app.use('/js', express.static(path.join(__dirname, '../frontend/js')));
@@ -76,6 +128,7 @@ const staffAuthRoutes = require('./routes/staffAuthRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const supportRoutes = require('./routes/supportRoutes');
 const productSearchRoutes = require('./routes/productSearchRoutes');
+const categoryRoutes = require('./routes/categoryRoutes');
 const autoAssignmentService = require('./services/autoAssignmentService');
 
 
@@ -107,6 +160,7 @@ app.use('/api/staff', staffDisputeRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/products', productSearchRoutes);
+app.use('/api/categories', categoryRoutes);
 app.use('/api/admin-ads', require('./routes/adminAdRoutes'));
 app.use('/api/commission', require('./routes/commissionRoutes'));
 app.use('/api/paystack-wallet', require('./routes/paystackWalletRoutes'));

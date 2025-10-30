@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { browsingLimiter } = require('../middleware/rateLimiter');
 const {
   searchProducts,
   getProductDetails,
@@ -8,8 +9,8 @@ const {
   getTrendingProducts
 } = require('../controllers/productSearchController');
 
-// Search products across all vendors and agents
-router.get('/search', searchProducts);
+// Search products across all vendors and agents - use lenient rate limiter for browsing
+router.get('/search', browsingLimiter, searchProducts);
 
 // Get single product details
 router.get('/:id', getProductDetails);

@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const getJWTSecret = require('../utils/jwtSecret');
 const Buyer = require('../models/Buyer');
 const Vendor = require('../models/vendorModel');
 const Agent = require('../models/Agent');
@@ -76,7 +77,7 @@ const verifyEmail = async (req, res) => {
     // Verify JWT token
     let decoded;
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET || 'vendplugSecret');
+      decoded = jwt.verify(token, getJWTSecret());
       console.log('✅ JWT decoded:', { id: decoded.id, type: decoded.type });
     } catch (err) {
       console.log('❌ JWT verification failed:', err.message);
@@ -172,7 +173,7 @@ const sendVerification = async (req, res) => {
     // Generate verification token
     const token = jwt.sign(
       { id: user._id, type: 'verification' },
-      process.env.JWT_SECRET || 'vendplugSecret',
+      getJWTSecret(),
       { expiresIn: '24h' }
     );
 
@@ -545,7 +546,7 @@ async function refreshSession(req, res) {
     setRefreshCookie(res, newRaw);
 
     // Issue short access token
-    const accessToken = jwt.sign({ id: user._id, role }, process.env.JWT_SECRET || 'vendplugSecret', { expiresIn: '20m' });
+    const accessToken = jwt.sign({ id: user._id, role }, getJWTSecret(), { expiresIn: '20m' });
     res.json({ token: accessToken, role });
   } catch (e) {
     console.error('refreshSession error:', e);

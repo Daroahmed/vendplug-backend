@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const getJWTSecret = require('../utils/jwtSecret');
 const Admin = require('../models/Admin');
 
 const protectStaff = async (req, res, next) => {
@@ -18,7 +19,7 @@ const protectStaff = async (req, res, next) => {
     }
 
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'vendplugSecret');
+    const decoded = jwt.verify(token, getJWTSecret());
 
     // Check if staff still exists and is active
     const staff = await Admin.findById(decoded.id);

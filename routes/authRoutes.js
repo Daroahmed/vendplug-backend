@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { sendVerification, verifyEmail, requestPasswordReset, resetPassword, testToken, refreshSession, logout } = require('../controllers/authController');
 const { testConnection } = require('../utils/emailService');
+const { authLimiter, refreshLimiter } = require('../middleware/rateLimiter');
 
 // Email verification routes
 router.post('/send-verification', sendVerification);
@@ -9,11 +10,12 @@ router.post('/verify-email', verifyEmail);
 router.get('/verify-email', verifyEmail); // Add GET route for email verification links
 
 // Password reset routes
-router.post('/request-reset', requestPasswordReset);
-router.post('/reset-password', resetPassword);
+router.post('/request-reset', authLimiter, requestPasswordReset);
+router.post('/reset-password', authLimiter, resetPassword);
 
 // Refresh-session and logout
-router.post('/refresh', refreshSession);
+// Refresh token endpoint needs lenient rate limiting (called frequently for session management)
+router.post('/refresh', refreshLimiter, refreshSession);
 router.post('/logout', logout);
 
 // Test email connection (for debugging)
