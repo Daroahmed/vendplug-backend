@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const getJWTSecret = require('../utils/jwtSecret');
 const Admin = require('../models/Admin');
 
 // Staff Login
@@ -53,7 +54,7 @@ const staffLogin = async (req, res) => {
         role: staff.role,
         permissions: staff.permissions
       },
-      process.env.JWT_SECRET || 'vendplugSecret',
+      getJWTSecret(),
       { expiresIn: '24h' }
     );
 

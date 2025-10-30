@@ -4,6 +4,7 @@ const router = express.Router();
 const Vendor = require("../models/vendorModel");
 const asyncHandler = require('express-async-handler');
 const { protectAgent, protectVendor,protectBuyer } = require("../middleware/authMiddleware");
+const { authLimiter, registrationLimiter, browsingLimiter, dashboardLimiter } = require("../middleware/rateLimiter");
 const { registerVendor, loginVendor } = require("../controllers/vendorAuthController.js");
 const { getVendorStats } = require('../controllers/vendorAuthController.js');
 const { getShopView, addVendorReview, voteReviewHelpfulness, reportReview, getVendorReviews } = require('../controllers/vendorAuthController');
@@ -16,7 +17,8 @@ const multer = require('multer');
 const upload = multer({ dest: 'uploads/' }); 
 
 // ✅ STATIC ROUTES FIRST
-router.get('/shop-vendors', asyncHandler(async (req, res) => {
+// Public browsing endpoint - use lenient rate limiter for browsing/search/pagination
+router.get('/shop-vendors', browsingLimiter, asyncHandler(async (req, res) => {
   const { state, category, search, minTransactions, page, limit } = req.query;
 
   const query = {};
@@ -108,27 +110,29 @@ router.get('/:vendorId/transactions', asyncHandler(async (req, res) => {
 
 // ✅ NOW THE DYNAMIC ONES
 
-router.post('/register', registerVendor);
-router.post("/login", loginVendor);
-router.get('/stats', protectVendor, getVendorStats);
+router.post('/register', registrationLimiter, registerVendor);
+router.post("/login", authLimiter, loginVendor);
+// Dashboard endpoints are polled frequently, so they need lenient rate limiting
+router.get('/stats', dashboardLimiter, protectVendor, getVendorStats);
 
+// ✅ Profile routes (must come BEFORE /:vendorId route to avoid conflicts)
+router.get("/profile", protectVendor, getCurrentVendorProfile);
+router.put("/profile", protectVendor, upload.single("brandImage"), updateVendorProfile);
 
+router.get('/by-category-and-state', getVendorsByCategoryAndState);
+
+// ✅ NOW THE DYNAMIC ROUTES (must come after static routes)
 // Get vendor details only
 router.get('/:vendorId', getVendorById);
 
-// ✅ Shop view
-router.get('/:vendorId', getShopView);
+// ✅ Shop view (duplicate route - commenting out as getVendorById handles it)
+// router.get('/:vendorId', getShopView);
 
 // ✅ Review endpoints
 router.post('/:vendorId/reviews', protectBuyer, addVendorReview);
 router.get('/:vendorId/reviews', getVendorReviews);
 router.post('/:vendorId/reviews/:reviewId/vote', protectBuyer, voteReviewHelpfulness);
 router.post('/:vendorId/reviews/:reviewId/report', protectBuyer, reportReview);
-
-router.get('/by-category-and-state', getVendorsByCategoryAndState);
-
-router.get("/profile", protectVendor, getCurrentVendorProfile);
-router.put("/profile", protectVendor, upload.single("brandImage"), updateVendorProfile);
 
 
 module.exports = router;

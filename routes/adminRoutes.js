@@ -4,9 +4,10 @@ const adminController = require('../controllers/adminController');
 const payoutController = require('../controllers/payoutController');
 const { protectAdmin, checkPermission, checkAnyPermission } = require('../middleware/adminAuth');
 const upload = require('../middleware/uploadMiddleware');
+const { authLimiter } = require('../middleware/rateLimiter');
 
 // Public admin routes (no authentication required)
-router.post('/login', adminController.adminLogin);
+router.post('/login', authLimiter, adminController.adminLogin);
 
 // Protected admin routes (authentication required)
 router.use(protectAdmin);

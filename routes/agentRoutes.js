@@ -5,6 +5,7 @@ const Agent = require("../models/Agent");
 const AgentProduct = require("../models/AgentProduct");
 const asyncHandler = require('express-async-handler');
 const { protectAgent, protectBuyer } = require("../middleware/authMiddleware");
+const { authLimiter, registrationLimiter, browsingLimiter, dashboardLimiter } = require("../middleware/rateLimiter");
 const { 
   registerAgent, 
   loginAgent, 
@@ -24,7 +25,8 @@ const multer = require('multer');
 const upload = multer({ dest: 'uploads/' }); 
 
 // ✅ STATIC ROUTES FIRST
-router.get('/shop-agents', asyncHandler(async (req, res) => {
+// Public browsing endpoint - use lenient rate limiter for browsing/search/pagination
+router.get('/shop-agents', browsingLimiter, asyncHandler(async (req, res) => {
   const { state, category, search, minTransactions, page, limit } = req.query;
 
   const query = {};
@@ -113,9 +115,10 @@ router.get('/:agentId/transactions', asyncHandler(async (req, res) => {
 
 // ✅ NOW THE DYNAMIC ONES
 
-router.post('/register', registerAgent);
-router.post("/login", loginAgent);
-router.get('/stats', protectAgent, getAgentStats);
+router.post('/register', registrationLimiter, registerAgent);
+router.post("/login", authLimiter, loginAgent);
+// Dashboard endpoints are polled frequently, so they need lenient rate limiting
+router.get('/stats', dashboardLimiter, protectAgent, getAgentStats);
 
 // Get agent details only
 router.get('/:agentId', getAgentById);

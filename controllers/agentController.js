@@ -3,6 +3,7 @@
 const Agent = require("../models/Agent");
 const Token = require('../models/Token');
 const bcrypt = require("bcryptjs");
+const getJWTSecret = require('../utils/jwtSecret');
 const generateToken = require("../utils/generateToken");
 const Wallet = require("../models/walletModel");
 const { createWalletIfNotExists } = require("../controllers/walletHelper");
@@ -62,7 +63,7 @@ const registerAgent = async (req, res) => {
     const { sendVerificationEmail } = require('../utils/emailService');
     const verificationToken = require('jsonwebtoken').sign(
       { id: savedAgent._id, type: 'verification' },
-      process.env.JWT_SECRET || 'vendplugSecret',
+      getJWTSecret(),
       { expiresIn: '24h' }
     );
     // Save verification token so verify endpoint can find it

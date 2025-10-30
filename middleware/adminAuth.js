@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const getJWTSecret = require('../utils/jwtSecret');
 const Admin = require('../models/Admin');
 
 const protectAdmin = async (req, res, next) => {
@@ -18,7 +19,7 @@ const protectAdmin = async (req, res, next) => {
     }
 
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'vendplugSecret');
+    const decoded = jwt.verify(token, getJWTSecret());
     
     // Check if it's an admin token (role should be 'admin' in JWT)
     if (decoded.role !== 'admin') {

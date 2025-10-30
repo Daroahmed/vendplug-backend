@@ -352,13 +352,24 @@ const confirmReceipt = async (req, res) => {
       console.log('💰 Current wallet balance:', wallet.balance);
       console.log('💵 Vendor amount to add (after 2% commission):', vendorAmount);
 
-      // Update wallet balance with net amount (after commission)
-      const newBalance = Number(wallet.balance || 0) + Number(vendorAmount);
-      console.log('🏦 New balance will be:', newBalance);
-      
-      wallet.balance = newBalance;
-      const savedWallet = await wallet.save();
-      console.log('✅ Saved wallet balance:', savedWallet.balance);
+      // ✅ ATOMIC: Use atomic increment to prevent race conditions
+      // Multiple orders being confirmed simultaneously won't cause balance inconsistencies
+      const savedWallet = await Wallet.findByIdAndUpdate(
+        wallet._id,
+        { 
+          $inc: { balance: Number(vendorAmount) } // Atomically increment balance
+        },
+        { 
+          new: true // Return updated document
+        }
+      );
+
+      if (!savedWallet) {
+        throw new Error('Failed to update wallet balance');
+      }
+
+      const newBalance = savedWallet.balance;
+      console.log('🏦 New balance is:', newBalance);
 
       // Sync balance with user model
       const { syncWalletBalance } = require('./walletHelper');

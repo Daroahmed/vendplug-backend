@@ -131,7 +131,8 @@ const vendorProductSchema = new mongoose.Schema({
   stock: { type: Number },
   reserved: { type: Number, default: 0 },
   outOfStockNotifiedAt: { type: Date },
-  image: { type: String },
+  image: { type: String }, // Primary/thumbnail image (backward compatible)
+  images: { type: [String], default: [] }, // Array of additional images
   createdAt: { type: Date, default: Date.now }
 });
 

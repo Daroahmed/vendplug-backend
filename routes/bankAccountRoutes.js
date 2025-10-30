@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const getJWTSecret = require('../utils/jwtSecret');
 const {
   addBankAccount,
   getBankAccounts,
@@ -16,7 +17,7 @@ const authenticateUser = (req, res, next) => {
     }
 
     const jwt = require('jsonwebtoken');
-    const jwtSecret = process.env.JWT_SECRET || "vendplugSecret";
+    const jwtSecret = getJWTSecret();
     
     const decoded = jwt.verify(token, jwtSecret);
     req.user = {

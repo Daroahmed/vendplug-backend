@@ -167,8 +167,10 @@ const handleTransferFailed = async (transferData) => {
     });
 
     if (wallet) {
-      wallet.balance += payoutRequest.amount;
-      await wallet.save();
+      await Wallet.findByIdAndUpdate(
+        wallet._id,
+        { $inc: { balance: payoutRequest.amount } }
+      );
       console.log(`💰 Refunded ₦${payoutRequest.amount} to wallet`);
     }
 
@@ -241,8 +243,10 @@ const handleTransferReversed = async (transferData) => {
     });
 
     if (wallet) {
-      wallet.balance += payoutRequest.amount;
-      await wallet.save();
+      await Wallet.findByIdAndUpdate(
+        wallet._id,
+        { $inc: { balance: payoutRequest.amount } }
+      );
       console.log(`💰 Refunded ₦${payoutRequest.amount} to wallet`);
     }
 

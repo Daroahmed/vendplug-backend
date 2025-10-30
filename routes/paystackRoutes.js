@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
+const getJWTSecret = require('../utils/jwtSecret');
 const { protectBuyer, protectVendor, protectAgent } = require('../middleware/authMiddleware');
+const { paymentLimiter } = require('../middleware/rateLimiter');
 const paystackController = require('../controllers/paystackController');
 
 // Wallet funding - available to all authenticated users
 // We'll use a single route that can handle multiple user types
-router.post('/fund-wallet', async (req, res, next) => {
+router.post('/fund-wallet', paymentLimiter, async (req, res, next) => {
   try {
     // Extract token from Authorization header
     const authHeader = req.headers.authorization;
@@ -18,12 +20,8 @@ router.post('/fund-wallet', async (req, res, next) => {
     // Import JWT to verify token
     const jwt = require('jsonwebtoken');
     
-    // Use the same JWT_SECRET logic as other controllers
-    const jwtSecret = process.env.JWT_SECRET || "vendplugSecret";
-    
-    console.log('🔑 JWT_SECRET available:', jwtSecret ? 'Yes' : 'No');
-    console.log('🔑 JWT_SECRET length:', jwtSecret ? jwtSecret.length : 0);
-    console.log('🔑 JWT_SECRET starts with:', jwtSecret ? jwtSecret.substring(0, 10) + '...' : 'No');
+    // Use secure JWT secret helper
+    const jwtSecret = getJWTSecret();
     
     // Verify JWT token
     const decoded = jwt.verify(token, jwtSecret);
@@ -83,7 +81,7 @@ router.get('/verify-payment', (req, res) => {
 });
 
 // API endpoint for payment verification (for frontend calls)
-router.get('/verify-payment-api', async (req, res, next) => {
+router.get('/verify-payment-api', paymentLimiter, async (req, res, next) => {
   try {
     // Extract token from Authorization header
     const authHeader = req.headers.authorization;
@@ -96,8 +94,8 @@ router.get('/verify-payment-api', async (req, res, next) => {
     // Import JWT to verify token
     const jwt = require('jsonwebtoken');
     
-    // Use the same JWT_SECRET logic as other controllers
-    const jwtSecret = process.env.JWT_SECRET || "vendplugSecret";
+    // Use secure JWT secret helper
+    const jwtSecret = getJWTSecret();
     
     // Verify JWT token
     const decoded = jwt.verify(token, jwtSecret);
@@ -136,8 +134,8 @@ router.post('/create-recipient', async (req, res, next) => {
     // Import JWT to verify token
     const jwt = require('jsonwebtoken');
     
-    // Use the same JWT_SECRET logic as other controllers
-    const jwtSecret = process.env.JWT_SECRET || "vendplugSecret";
+    // Use secure JWT secret helper
+    const jwtSecret = getJWTSecret();
     
     // Verify JWT token
     const decoded = jwt.verify(token, jwtSecret);
@@ -171,8 +169,8 @@ router.post('/initiate-payout', async (req, res, next) => {
     // Import JWT to verify token
     const jwt = require('jsonwebtoken');
     
-    // Use the same JWT_SECRET logic as other controllers
-    const jwtSecret = process.env.JWT_SECRET || "vendplugSecret";
+    // Use secure JWT secret helper
+    const jwtSecret = getJWTSecret();
     
     // Verify JWT token
     const decoded = jwt.verify(token, jwtSecret);

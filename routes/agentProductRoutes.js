@@ -97,10 +97,10 @@ router.get('/shop/:id', getAgentShop);
 
 router.get('/agent/:agentId/', getAgentProductsForBuyers);
 
-router.post('/update/:id', protectAgent, upload.single('productImage'), updateAgentProduct);
+router.post('/update/:id', protectAgent, upload.array('productImages', 5), updateAgentProduct);
 
 // ✅ Create a new product
-router.post('/', protectAgent, upload.single('productImage'), createAgentProduct);
+router.post('/', protectAgent, upload.array('productImages', 5), createAgentProduct);
 
 // ✅ Get all products for current agent
 router.get('/mine', protectAgent, getMyAgentProducts);

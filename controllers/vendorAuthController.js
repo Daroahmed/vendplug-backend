@@ -1,8 +1,10 @@
+const mongoose = require('mongoose');
 const Vendor = require("../models/vendorModel");
 const Token = require('../models/Token');
 const Wallet = require("../models/walletModel");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const getJWTSecret = require('../utils/jwtSecret');
 const asyncHandler = require("express-async-handler");
 const { createWalletIfNotExists } = require("./walletHelper"); // <== use new helper
 const Order = require('../models/vendorOrderModel');
@@ -67,7 +69,7 @@ const registerVendor = asyncHandler(async (req, res) => {
     const { sendVerificationEmail } = require('../utils/emailService');
     const verificationToken = require('jsonwebtoken').sign(
       { id: savedVendor._id, type: 'verification' },
-      process.env.JWT_SECRET || 'vendplugSecret',
+      getJWTSecret(),
       { expiresIn: '24h' }
     );
     // Save verification token so verify endpoint can find it
@@ -182,7 +184,15 @@ const loginVendor = asyncHandler(async (req, res) => {
 // @route   GET /api/vendors/:vendorId
 // @access  Public
 const getVendorById = asyncHandler(async (req, res) => {
-  const vendor = await Vendor.findById(req.params.vendorId).populate('reviews.buyer', 'fullName email');
+  const { vendorId } = req.params;
+  
+  // Validate ObjectId format to prevent errors
+  if (!mongoose.Types.ObjectId.isValid(vendorId)) {
+    res.status(400);
+    throw new Error('Invalid vendor ID format');
+  }
+  
+  const vendor = await Vendor.findById(vendorId).populate('reviews.buyer', 'fullName email');
   if (vendor) {
     res.json(vendor);
   } else {

@@ -165,14 +165,6 @@ const requestPayout = async (req, res) => {
     const netAmount = amount; // Amount user will receive
     const totalRequired = amount; // Amount user will receive (no additional fees)
     
-    // Check if wallet has enough balance
-    if (wallet.balance < totalRequired) {
-      return res.status(400).json({
-        success: false,
-        message: `Insufficient wallet balance. Required: ₦${totalRequired}, Available: ₦${wallet.balance}`
-      });
-    }
-
     // Check Paystack wallet balance for instant payout capability
     let paystackBalance = 0;
     let canProcessInstantly = false;
@@ -211,9 +203,33 @@ const requestPayout = async (req, res) => {
 
     await payoutRequest.save({ session });
 
-    // Deduct total amount (requested + fee) from wallet
-    wallet.balance -= totalRequired;
-    await wallet.save({ session });
+    // ✅ ATOMIC: Deduct balance only if sufficient funds exist (prevents race conditions)
+    // This ensures no negative balances can occur from concurrent requests
+    const updatedWallet = await Wallet.findOneAndUpdate(
+      { 
+        _id: wallet._id,
+        balance: { $gte: totalRequired } // Atomic check: balance must be >= required
+      },
+      { 
+        $inc: { balance: -totalRequired } // Atomically decrement balance
+      },
+      { 
+        session,
+        new: true // Return updated document
+      }
+    );
+
+    if (!updatedWallet) {
+      // Balance was insufficient or wallet was modified between check and update
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient wallet balance. Required: ₦${totalRequired}, Available: ₦${wallet.balance}. Please refresh and try again.`
+      });
+    }
+
+    // Use updated wallet for further processing
+    wallet.balance = updatedWallet.balance;
 
     // Create transaction record
     const transaction = new Transaction({
@@ -252,9 +268,12 @@ const requestPayout = async (req, res) => {
         
         console.log(`🔄 Paystack transfer initiated: ${transferResult.reference}`);
       } else {
-        // Transfer failed, refund wallet
-        wallet.balance += totalRequired;
-        await wallet.save({ session });
+        // Transfer failed, refund wallet atomically
+        await Wallet.findByIdAndUpdate(
+          wallet._id,
+          { $inc: { balance: totalRequired } },
+          { session }
+        );
         
         // Update payout status
         payoutRequest.status = 'failed';
@@ -274,9 +293,12 @@ const requestPayout = async (req, res) => {
         });
       }
     } catch (error) {
-      // Transfer error, refund wallet
-      wallet.balance += totalRequired;
-      await wallet.save({ session });
+      // Transfer error, refund wallet atomically
+      await Wallet.findByIdAndUpdate(
+        wallet._id,
+        { $inc: { balance: totalRequired } },
+        { session }
+      );
       
       // Update payout status
       payoutRequest.status = 'failed';
@@ -669,8 +691,10 @@ const fixStuckProcessingPayouts = async (req, res) => {
           });
 
           if (wallet) {
-            wallet.balance += payout.amount;
-            await wallet.save();
+            await Wallet.findByIdAndUpdate(
+              wallet._id,
+              { $inc: { balance: payout.amount } }
+            );
             console.log(`💰 Refunded ₦${payout.amount} to wallet for failed payout ${payout._id}`);
           }
 
@@ -783,8 +807,10 @@ const checkPayoutStatuses = async (req, res) => {
           });
 
           if (wallet) {
-            wallet.balance += payout.amount;
-            await wallet.save();
+            await Wallet.findByIdAndUpdate(
+              wallet._id,
+              { $inc: { balance: payout.amount } }
+            );
             console.log(`💰 Refunded ₦${payout.amount} to wallet`);
           }
 

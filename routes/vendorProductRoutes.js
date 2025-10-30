@@ -97,10 +97,10 @@ router.get('/shop/:id', getVendorShop);
 
 router.get('/vendor/:vendorId/', getVendorProductsForBuyers);
 
-router.post('/update/:id', protectVendor, upload.single('productImage'), updateVendorProduct);
+router.post('/update/:id', protectVendor, upload.array('productImages', 5), updateVendorProduct);
 
 // ✅ Create a new product
-router.post('/', protectVendor, upload.single('productImage'), createVendorProduct);
+router.post('/', protectVendor, upload.array('productImages', 5), createVendorProduct);
 
 // ✅ Get all products for current vendor
 router.get('/mine', protectVendor, getMyVendorProducts);
