@@ -3,8 +3,12 @@ try { QueueImpl = require('bullmq'); } catch(_) { QueueImpl = null; }
 
 const queues = {};
 
+// Check if worker is disabled (saves Redis quota)
+const isWorkerDisabled = process.env.DISABLE_WORKER === 'true';
+
 function createQueue(name) {
-  if (!QueueImpl || !process.env.REDIS_URL) {
+  // If worker is disabled or queue not available, return no-op
+  if (isWorkerDisabled || !QueueImpl || !process.env.REDIS_URL) {
     // No-op queue
     return {
       add: async () => {},
@@ -37,7 +41,8 @@ function createQueue(name) {
 
 async function enqueueEmail(payload) {
   const q = createQueue('emails');
-  if (!QueueImpl || !process.env.REDIS_URL) {
+  // If worker disabled or queue not available, return false for synchronous fallback
+  if (isWorkerDisabled || !QueueImpl || !process.env.REDIS_URL) {
     return false; // Queue not available, return false for fallback
   }
   try {
@@ -51,7 +56,8 @@ async function enqueueEmail(payload) {
 
 async function enqueueNotification(payload) {
   const q = createQueue('notifications');
-  if (!QueueImpl || !process.env.REDIS_URL) {
+  // If worker disabled or queue not available, return false for synchronous fallback
+  if (isWorkerDisabled || !QueueImpl || !process.env.REDIS_URL) {
     return false; // Queue not available, return false for fallback
   }
   try {
