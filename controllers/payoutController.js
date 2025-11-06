@@ -251,6 +251,9 @@ const requestPayout = async (req, res) => {
 
     await transaction.save({ session });
 
+    // Audit: payout requested
+    try { const AuditLog = require('../models/AuditLog'); await AuditLog.create({ eventType: 'PAYOUT_REQUESTED', userId, userType, amount, refId: String(payoutRequest._id) }); } catch(_){ }
+
     // Initiate Paystack transfer
     try {
       const transferResult = await initiatePaystackTransfer(payoutRequest, bankAccount, amount);
@@ -267,6 +270,7 @@ const requestPayout = async (req, res) => {
         await transaction.save({ session });
         
         console.log(`🔄 Paystack transfer initiated: ${transferResult.reference}`);
+        try { const AuditLog = require('../models/AuditLog'); await AuditLog.create({ eventType: 'PAYOUT_PROCESSING', userId, userType, amount, refId: transferResult.reference }); } catch(_){ }
       } else {
         // Transfer failed, refund wallet atomically
         await Wallet.findByIdAndUpdate(
@@ -286,6 +290,7 @@ const requestPayout = async (req, res) => {
         await transaction.save({ session });
         
         console.log(`❌ Paystack transfer failed: ${transferResult.error}`);
+        try { const AuditLog = require('../models/AuditLog'); await AuditLog.create({ eventType: 'PAYOUT_FAILED', userId, userType, amount, refId: String(payoutRequest._id), metadata: { reason: transferResult.error } }); } catch(_){ }
         
         return res.status(400).json({
           success: false,
@@ -311,6 +316,7 @@ const requestPayout = async (req, res) => {
       await transaction.save({ session });
       
       console.log(`❌ Paystack transfer error: ${error.message}`);
+      try { const AuditLog = require('../models/AuditLog'); await AuditLog.create({ eventType: 'PAYOUT_FAILED', userId, userType, amount, refId: String(payoutRequest._id), metadata: { reason: error.message } }); } catch(_){ }
       
       return res.status(500).json({
         success: false,
@@ -338,6 +344,8 @@ const requestPayout = async (req, res) => {
     } catch (notificationError) {
       console.error('⚠️ Payout notification error (non-critical):', notificationError);
     }
+
+    try { const AuditLog = require('../models/AuditLog'); await AuditLog.create({ eventType: 'PAYOUT_SUBMITTED', userId, userType, amount, refId: String(payoutRequest._id) }); } catch(_){ }
 
     res.status(201).json({
       success: true,

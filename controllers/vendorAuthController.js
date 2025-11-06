@@ -157,6 +157,12 @@ const loginVendor = asyncHandler(async (req, res) => {
 
   try { if (mintRefreshToken && setRefreshCookie) { const raw = await mintRefreshToken(vendor._id, 'Vendor'); setRefreshCookie(res, raw);} } catch(_){ }
 
+  // Set access token as httpOnly cookie (progressive migration)
+  try {
+    const { setAccessCookie } = require('../utils/tokenCookies');
+    setAccessCookie(res, generateToken(vendor._id, "vendor"));
+  } catch (e) { /* no-op */ }
+
   res.status(200).json({
     token: generateToken(vendor._id, "vendor"),
     vendor: {

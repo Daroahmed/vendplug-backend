@@ -152,6 +152,13 @@ const loginAgent = async (req, res) => {
 
   try { if (mintRefreshToken && setRefreshCookie) { const raw = await mintRefreshToken(agent._id, 'Agent'); setRefreshCookie(res, raw);} } catch(_){ }
 
+  // Set access token as httpOnly cookie (progressive migration)
+  try {
+    const { setAccessCookie } = require('../utils/tokenCookies');
+    const generateToken = require('../utils/generateToken');
+    setAccessCookie(res, generateToken(agent._id, "agent"));
+  } catch (e) { /* no-op */ }
+
   res.status(200).json({
       token: generateToken(agent._id, "agent"),
       agent: {

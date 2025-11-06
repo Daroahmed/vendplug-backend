@@ -245,6 +245,13 @@ const agentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// 🔍 Performance indexes for hot queries
+agentSchema.index({ state: 1 });
+agentSchema.index({ category: 1 });
+agentSchema.index({ createdAt: -1 });
+agentSchema.index({ totalTransactions: -1 });
+agentSchema.index({ state: 1, category: 1, totalTransactions: -1 });
+
 // ✅ Password Hash Middleware (MUST run before other save hooks)
 agentSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();

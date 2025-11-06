@@ -7,10 +7,16 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const compression = require('compression');
+const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const http = require('http');
 const socketIO = require('socket.io');
 const cloudinary = require('cloudinary').v2;
+
+// Optional Sentry (loaded only if installed)
+let Sentry = null;
+try { Sentry = require('@sentry/node'); } catch (_) { Sentry = null; }
 
 // ✅ Import all models to ensure they're registered
 const Buyer = require('./models/Buyer');
@@ -31,10 +37,29 @@ cloudinary.config({
 // ✅ Express app
 const app = express();
 
+// Initialize Sentry if DSN is provided
+if (Sentry && process.env.SENTRY_DSN) {
+  Sentry.init({ dsn: process.env.SENTRY_DSN, tracesSampleRate: 0.1 });
+  app.use(Sentry.Handlers.requestHandler());
+}
+
 // ✅ Middleware
 app.use(cors());
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
+}));
+app.use(compression());
 app.use(express.json());
 app.use(cookieParser());
+
+// ✅ Attach a simple request ID for tracing
+app.use((req, res, next) => {
+  const id = (Math.random().toString(16).slice(2)) + Date.now().toString(16);
+  req.requestId = id;
+  res.setHeader('x-request-id', id);
+  next();
+});
 
 // ✅ Apply general API rate limiting (protects all routes except browsing/search endpoints)
 const { apiLimiter } = require('./middleware/rateLimiter');
@@ -88,12 +113,13 @@ const generalApiLimiter = rateLimit({
 
 app.use('/api', generalApiLimiter); // Apply to all /api routes (with exceptions)
 
-// ✅ Serve static frontend files
-app.use('/css', express.static(path.join(__dirname, '../frontend/css')));
-app.use('/js', express.static(path.join(__dirname, '../frontend/js')));
-app.use('/assets', express.static(path.join(__dirname, '../frontend/assets')));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-app.use(express.static(path.join(__dirname, '../frontend')));
+// ✅ Serve static frontend files (with caching)
+const staticCache = { maxAge: '7d', etag: true, immutable: true };
+app.use('/css', express.static(path.join(__dirname, '../frontend/css'), staticCache));
+app.use('/js', express.static(path.join(__dirname, '../frontend/js'), staticCache));
+app.use('/assets', express.static(path.join(__dirname, '../frontend/assets'), staticCache));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), { maxAge: '1h', etag: true }));
+app.use(express.static(path.join(__dirname, '../frontend'), { maxAge: '1h', etag: true }));
 
 // ✅ MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
@@ -314,10 +340,15 @@ io.on('connection', (socket) => {
 // Make io instance available to other modules
 app.set('io', io);
 
+// Attach Sentry error handler if enabled
+if (Sentry && process.env.SENTRY_DSN) {
+  app.use(Sentry.Handlers.errorHandler());
+}
+
 // ✅ Global Error Handling
 app.use((err, req, res, next) => {
   console.error('🔥 Uncaught Error:', err.stack);
-  res.status(500).json({ message: 'Internal Server Error', error: err.message });
+  res.status(500).json({ message: 'Internal Server Error', error: err.message, requestId: req.requestId });
 });
 
 // ✅ 404 for unmatched routes

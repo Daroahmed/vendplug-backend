@@ -14,6 +14,7 @@ const {
 } = payoutController;
 const { protectAgent, protectVendor, protectAdmin } = require('../middleware/authMiddleware');
 const { payoutLimiter, pinResetLimiter, pinVerifyLimiter, dashboardLimiter } = require('../middleware/rateLimiter');
+const idempotency = require('../middleware/idempotency');
 
 // Combined middleware for both agents and vendors
 const protectAnyUser = async (req, res, next) => {
@@ -53,7 +54,7 @@ const protectAnyUser = async (req, res, next) => {
 };
 
 // Payout routes - both agents and vendors can request payouts
-router.post('/request', payoutLimiter, protectAnyUser, requestPayout);
+router.post('/request', payoutLimiter, protectAnyUser, idempotency, requestPayout);
 // Dashboard endpoints are polled frequently, so they need lenient rate limiting
 router.get('/history', dashboardLimiter, protectAnyUser, getPayoutHistory);
 router.get('/:payoutId', dashboardLimiter, protectAnyUser, getPayoutDetails);

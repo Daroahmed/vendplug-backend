@@ -81,6 +81,12 @@ const loginBuyer = asyncHandler(async (req, res) => {
       }
     } catch(_){}
 
+    // Set access token cookie (progressive migration to cookies)
+    try {
+      const { setAccessCookie } = require('../utils/tokenCookies');
+      setAccessCookie(res, generateToken(buyer._id, "buyer"));
+    } catch(e) {}
+
     res.status(200).json({
       _id: buyer._id,
       fullName: buyer.fullName,

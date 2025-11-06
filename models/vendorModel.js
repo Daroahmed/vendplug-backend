@@ -245,6 +245,13 @@ const vendorSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// 🔍 Performance indexes for hot queries
+vendorSchema.index({ state: 1 });
+vendorSchema.index({ category: 1 });
+vendorSchema.index({ createdAt: -1 });
+vendorSchema.index({ totalTransactions: -1 });
+vendorSchema.index({ state: 1, category: 1, totalTransactions: -1 });
+
 // ✅ Password Hash Middleware (MUST run before other save hooks)
 vendorSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();

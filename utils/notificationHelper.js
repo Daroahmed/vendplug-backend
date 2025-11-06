@@ -1,32 +1,21 @@
 const { createNotificationContent } = require('./notificationTypes');
 const createNotification = require('./createNotification');
+const { enqueueNotification } = require('./queue');
 
 /**
  * Enhanced notification helper that uses predefined notification types
  */
 async function sendNotification(io, params) {
-  const {
-    recipientId,
-    recipientType,
-    notificationType,
-    args = [],
-    orderId = null,
-    meta = {}
-  } = params;
-
   try {
-    const { title, message } = createNotificationContent(notificationType, ...args);
-
-    await createNotification({
-      recipientId,
-      recipientType,
-      title,
-      message,
-      orderId,
-      meta,
-      io
-    });
-
+    // Try to enqueue notification via job queue
+    if (await enqueueNotification({ io: !!io, ...params })) return true;
+  } catch (err) {
+    console.warn('⚠️ Notification queue fallback: sending synchronously:', err?.message || err);
+  }
+  // Fallback to synchronous send
+  try {
+    const { title, message } = createNotificationContent(params.notificationType, ...(params.args || []));
+    await createNotification({ ...params, title, message, io });
     return true;
   } catch (error) {
     console.error('❌ Error sending notification:', error);
