@@ -136,4 +136,9 @@ const vendorProductSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+// 🔍 Indexes to speed listing/search
+vendorProductSchema.index({ vendor: 1, createdAt: -1 });
+vendorProductSchema.index({ category: 1, createdAt: -1 });
+vendorProductSchema.index({ price: 1 });
+
 module.exports = mongoose.model('VendorProduct', vendorProductSchema);

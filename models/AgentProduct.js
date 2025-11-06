@@ -138,4 +138,9 @@ const agentProductSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+// 🔍 Indexes to speed listing/search
+agentProductSchema.index({ agent: 1, createdAt: -1 });
+agentProductSchema.index({ category: 1, createdAt: -1 });
+agentProductSchema.index({ price: 1 });
+
 module.exports = mongoose.model('AgentProduct', agentProductSchema);

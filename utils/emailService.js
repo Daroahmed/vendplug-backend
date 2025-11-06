@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const { enqueueEmail } = require('./queue');
 
 // SMTP transporter (fallback when RESEND_API_KEY is not set)
 const transporter = nodemailer.createTransport({
@@ -47,6 +48,17 @@ async function sendViaResend(to, subject, html) {
   }
 }
 
+// Helper: prepares payload, tries to enqueue; fallback to direct send if needed
+async function tryEnqueueEmail(job) {
+  try {
+    await enqueueEmail(job);
+    return true;
+  } catch (err) {
+    console.warn('⚠️ Email queue fallback: sending synchronously:', err.message);
+    return false;
+  }
+}
+
 // Test email connection
 const testConnection = async () => {
   try {
@@ -82,8 +94,11 @@ const testConnection = async () => {
   }
 };
 
-// Send verification email
-const sendVerificationEmail = async (email, token) => {
+// Wrap verification - identical format to before, but use tryEnqueueEmail
+async function sendVerificationEmail(email, token) {
+  const job = { type: 'verify', email, token };
+  if (await tryEnqueueEmail(job)) return true;
+  // fallback: run old logic
   try {
     // Prefer Resend if configured (no SMTP egress required)
     if (process.env.RESEND_API_KEY) {
@@ -179,8 +194,11 @@ const sendVerificationEmail = async (email, token) => {
   }
 };
 
-// Send password reset email
-const sendPasswordResetEmail = async (email, token) => {
+// Wrap password reset
+async function sendPasswordResetEmail(email, token) {
+  const job = { type: 'reset', email, token };
+  if (await tryEnqueueEmail(job)) return true;
+  // fallback: existing code
   try {
     // Prefer Resend if configured
     if (process.env.RESEND_API_KEY) {
@@ -271,8 +289,11 @@ const sendPasswordResetEmail = async (email, token) => {
   }
 };
 
-// Send PIN reset email
-const sendPinResetEmail = async (email, resetCode, userType) => {
+// Wrap PIN reset
+async function sendPinResetEmail(email, resetCode, userType) {
+  const job = { type: 'pin', email, resetCode, userType };
+  if (await tryEnqueueEmail(job)) return true;
+  // fallback: existing code
   try {
     // Prefer Resend if configured
     if (process.env.RESEND_API_KEY) {

@@ -7,11 +7,15 @@ const Vendor = require('../models/vendorModel');
 const Admin = require('../models/Admin');
 const VendorProduct = require('../models/vendorProductModel');
 
-// 🔍 Helper: Extract token from Authorization header
+// 🔍 Helper: Extract token from Authorization header or cookies
 const extractToken = (req) => {
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
     return authHeader.split(' ')[1];
+  }
+  // Fallback to httpOnly cookie (progressive migration)
+  if (req.cookies && req.cookies.vp_access_token) {
+    return req.cookies.vp_access_token;
   }
   return null;
 };
