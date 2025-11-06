@@ -2,6 +2,14 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
+// Allow disabling worker to save Redis quota (falls back to synchronous processing)
+if (process.env.DISABLE_WORKER === 'true') {
+  console.log('⚠️  Worker disabled via DISABLE_WORKER=true');
+  console.log('   Emails and notifications will be sent synchronously (no queue)');
+  console.log('   This saves Redis quota but may slow down API responses');
+  process.exit(0);
+}
+
 let BullMQ;
 try { BullMQ = require('bullmq'); } catch (e) {
   console.error('❌ BullMQ not installed. Run: npm install bullmq');
@@ -15,6 +23,8 @@ if (!process.env.REDIS_URL) {
   console.error('   - redis://localhost:6379');
   console.error('   - redis://username:password@host:port');
   console.error('   - rediss://host:port (for SSL)');
+  console.error('');
+  console.error('   Or set DISABLE_WORKER=true to use synchronous fallback');
   process.exit(1);
 }
 
@@ -41,7 +51,24 @@ try {
 const { sendVerificationEmail, sendPasswordResetEmail, sendPinResetEmail } = require('./utils/emailService');
 const { sendNotification } = require('./utils/notificationHelper');
 
-// Email worker
+// Optimize Redis usage for free tier
+// BullMQ uses efficient blocking commands, but we can still optimize:
+// - Increase stalled interval to reduce checks
+// - Use concurrency limits to batch processing
+const workerOptions = {
+  connection: connection.connection,
+  // Increase stalled job check interval (default is 30s, we'll use 60s)
+  // This reduces Redis commands for checking stalled jobs
+  settings: {
+    stalledInterval: 60000, // Check for stalled jobs every 60 seconds (was 30s)
+    maxStalledCount: 1, // Retry stalled jobs once
+  },
+  // Limit concurrency to process jobs in smaller batches
+  // This helps reduce simultaneous Redis operations
+  concurrency: 5, // Process max 5 jobs concurrently (default is unlimited)
+};
+
+// Email worker with optimized polling
 const emailWorker = new Worker('emails', async job => {
   console.log('📧 [Job:start] Email job', job.id, job.data.type);
   if (job.data.type === 'verify') {
@@ -54,14 +81,14 @@ const emailWorker = new Worker('emails', async job => {
     return await sendPinResetEmail(job.data.email, job.data.resetCode, job.data.userType);
   }
   throw new Error('Unknown email job type');
-}, connection);
+}, workerOptions);
 
-// Notification worker
+// Notification worker with optimized polling
 const notificationWorker = new Worker('notifications', async job => {
   console.log('🔔 [Job:start] Notification job', job.id, job.data.notificationType);
   // io is always null in the worker, but createNotification works without socket
   return await sendNotification(null, job.data);
-}, connection);
+}, workerOptions);
 
 emailWorker.on('completed', (job, result) => console.log('✅ [Job:done] Email', job.id));
 emailWorker.on('failed', (job, err) =>   console.error('❌ [Job:fail] Email', job?.id, err?.message));
@@ -82,3 +109,5 @@ notificationWorker.on('ready', () => {
 
 console.log('🚀 Worker(s) for email and notification queues started');
 console.log(`📡 Connecting to Redis: ${redisUrl.replace(/:[^:@]+@/, ':****@')}`); // Hide password in logs
+console.log('💡 Optimized for free tier: Reduced polling frequency to save Redis commands');
+console.log('⚠️  If you hit Redis quota limits, set DISABLE_WORKER=true to use synchronous fallback');
