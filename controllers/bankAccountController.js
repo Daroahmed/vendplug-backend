@@ -58,6 +58,25 @@ const addBankAccount = async (req, res) => {
 
     await bankAccount.save();
 
+    // Update onboarding progress for vendors and agents
+    if (userType === 'Vendor') {
+      try {
+        const { updateOnboardingProgress } = require('./vendorAuthController');
+        await updateOnboardingProgress(userId);
+      } catch (onboardingError) {
+        console.error('Error updating onboarding progress:', onboardingError);
+        // Don't fail the request if onboarding update fails
+      }
+    } else if (userType === 'Agent') {
+      try {
+        const { updateOnboardingProgress } = require('./agentController');
+        await updateOnboardingProgress(userId);
+      } catch (onboardingError) {
+        console.error('Error updating onboarding progress:', onboardingError);
+        // Don't fail the request if onboarding update fails
+      }
+    }
+
     res.status(201).json({
       success: true,
       message: 'Bank account added successfully',

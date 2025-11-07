@@ -33,6 +33,7 @@ async function sendViaResend(to, subject, html) {
     throw new Error('RESEND_FROM/EMAIL_FROM not configured');
   }
 
+  console.log(`📤 Attempting to send email via Resend to: ${to}`);
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -44,18 +45,25 @@ async function sendViaResend(to, subject, html) {
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new Error(`Resend ${res.status}: ${text}`);
+    const errorMsg = `Resend ${res.status}: ${text}`;
+    console.error(`❌ Resend API error: ${errorMsg}`);
+    throw new Error(errorMsg);
   }
+  
+  const result = await res.json().catch(() => ({}));
+  console.log(`✅ Resend API accepted email (ID: ${result.id || 'unknown'})`);
+  return result;
 }
 
 // Helper: prepares payload, tries to enqueue; fallback to direct send if needed
 async function tryEnqueueEmail(job) {
   try {
-    await enqueueEmail(job);
-    return true;
+    const queued = await enqueueEmail(job);
+    // enqueueEmail returns true if queued, false if disabled/unavailable (triggers fallback)
+    return queued;
   } catch (err) {
-    console.warn('⚠️ Email queue fallback: sending synchronously:', err.message);
-    return false;
+    console.warn('⚠️ Email queue error, sending synchronously:', err.message);
+    return false; // Fallback to synchronous
   }
 }
 
@@ -130,14 +138,19 @@ async function sendVerificationEmail(email, token) {
         <p>This link will expire in 24 hours.</p>
       `;
       await sendViaResend(email, 'Verify Your Vendplug Account', html);
-      console.log('✉️ Verification email sent to (Resend):', email);
+      console.log('✉️ Verification email sent successfully via Resend to:', email);
       return true;
     }
 
     // SMTP fallback
+    console.log('📧 Attempting to send verification email via SMTP...');
+    if (!process.env.EMAIL_USER || (!process.env.EMAIL_PASSWORD && !process.env.EMAIL_PASS)) {
+      throw new Error('SMTP credentials not configured. Set EMAIL_USER and EMAIL_PASSWORD in .env');
+    }
+    
     const isConnected = await testConnection();
     if (!isConnected) {
-      throw new Error('Email service not available');
+      throw new Error('Email service not available - SMTP connection failed');
     }
 
     // Use environment variable or try to detect the actual server URL
@@ -186,10 +199,12 @@ async function sendVerificationEmail(email, token) {
     };
 
     const result = await transporter.sendMail(mailOptions);
-    console.log('✉️ Verification email sent to:', email);
+    console.log('✉️ Verification email sent successfully via SMTP to:', email);
+    console.log('   Message ID:', result.messageId);
     return true;
   } catch (error) {
     console.error('❌ Error sending verification email:', error.message);
+    console.error('   Full error:', error);
     return false;
   }
 };
@@ -230,14 +245,19 @@ async function sendPasswordResetEmail(email, token) {
         <p>This link will expire in 1 hour.</p>
       `;
       await sendViaResend(email, 'Reset Your Vendplug Password', html);
-      console.log('✉️ Password reset email sent to (Resend):', email);
+      console.log('✉️ Password reset email sent successfully via Resend to:', email);
       return true;
     }
 
     // SMTP fallback
+    console.log('📧 Attempting to send password reset email via SMTP...');
+    if (!process.env.EMAIL_USER || (!process.env.EMAIL_PASSWORD && !process.env.EMAIL_PASS)) {
+      throw new Error('SMTP credentials not configured. Set EMAIL_USER and EMAIL_PASSWORD in .env');
+    }
+    
     const isConnected = await testConnection();
     if (!isConnected) {
-      throw new Error('Email service not available');
+      throw new Error('Email service not available - SMTP connection failed');
     }
 
     // Use environment variable or try to detect the actual server URL
@@ -281,10 +301,12 @@ async function sendPasswordResetEmail(email, token) {
     };
 
     const result = await transporter.sendMail(mailOptions);
-    console.log('✉️ Password reset email sent to:', email);
+    console.log('✉️ Password reset email sent successfully via SMTP to:', email);
+    console.log('   Message ID:', result.messageId);
     return true;
   } catch (error) {
     console.error('❌ Error sending password reset email:', error.message);
+    console.error('   Full error:', error);
     return false;
   }
 };
@@ -329,14 +351,19 @@ async function sendPinResetEmail(email, resetCode, userType) {
       `;
       
       await sendViaResend(email, `PIN Reset Code - ${userType} Account`, html);
-      console.log('✉️ PIN reset email sent to (Resend):', email);
+      console.log('✉️ PIN reset email sent successfully via Resend to:', email);
       return true;
     }
 
     // SMTP fallback
+    console.log('📧 Attempting to send PIN reset email via SMTP...');
+    if (!process.env.EMAIL_USER || (!process.env.EMAIL_PASSWORD && !process.env.EMAIL_PASS)) {
+      throw new Error('SMTP credentials not configured. Set EMAIL_USER and EMAIL_PASSWORD in .env');
+    }
+    
     const isConnected = await testConnection();
     if (!isConnected) {
-      throw new Error('Email service not available');
+      throw new Error('Email service not available - SMTP connection failed');
     }
 
     const mailOptions = {
@@ -376,10 +403,12 @@ async function sendPinResetEmail(email, resetCode, userType) {
     };
 
     const result = await transporter.sendMail(mailOptions);
-    console.log('✉️ PIN reset email sent to:', email);
+    console.log('✉️ PIN reset email sent successfully via SMTP to:', email);
+    console.log('   Message ID:', result.messageId);
     return true;
   } catch (error) {
     console.error('❌ Error sending PIN reset email:', error.message);
+    console.error('   Full error:', error);
     return false;
   }
 };

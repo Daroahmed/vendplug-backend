@@ -9,7 +9,7 @@ const { registerVendor, loginVendor } = require("../controllers/vendorAuthContro
 const { getVendorStats } = require('../controllers/vendorAuthController.js');
 const { getShopView, addVendorReview, voteReviewHelpfulness, reportReview, getVendorReviews } = require('../controllers/vendorAuthController');
 const { getVendorsByCategoryAndState } = require('../controllers/vendorAuthController');
-const { updateVendorProfile, getCurrentVendorProfile } = require("../controllers/vendorAuthController");
+const { updateVendorProfile, getCurrentVendorProfile, dismissOnboarding } = require("../controllers/vendorAuthController");
 const {
   getVendorById,
 } = require('../controllers/vendorAuthController.js');
@@ -118,6 +118,9 @@ router.get('/stats', dashboardLimiter, protectVendor, getVendorStats);
 // ✅ Profile routes (must come BEFORE /:vendorId route to avoid conflicts)
 router.get("/profile", protectVendor, getCurrentVendorProfile);
 router.put("/profile", protectVendor, upload.single("brandImage"), updateVendorProfile);
+
+// ✅ Onboarding routes
+router.post("/onboarding/dismiss", protectVendor, dismissOnboarding);
 
 router.get('/by-category-and-state', getVendorsByCategoryAndState);
 

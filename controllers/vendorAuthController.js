@@ -280,7 +280,13 @@ const getCurrentVendorProfile = asyncHandler(async (req, res) => {
     return;
   }
 
-  res.json({ vendor });
+  // Update onboarding progress before returning
+  await updateOnboardingProgress(vendor._id);
+  
+  // Refresh vendor data to get updated onboarding progress
+  const updatedVendor = await Vendor.findById(req.user._id).select('-password');
+
+  res.json({ vendor: updatedVendor });
 });
 
 
@@ -539,6 +545,60 @@ const getVendorReviews = async (req, res) => {
   }
 };
 
+// ✅ Helper function to update onboarding progress
+async function updateOnboardingProgress(vendorId) {
+  try {
+    const vendor = await Vendor.findById(vendorId);
+    if (!vendor) return;
+
+    const VendorProduct = require('../models/vendorProductModel');
+    const BankAccount = require('../models/BankAccount');
+
+    // Initialize onboardingProgress if it doesn't exist
+    if (!vendor.onboardingProgress) {
+      vendor.onboardingProgress = {
+        hasBrandImage: false,
+        hasFirstProduct: false,
+        hasShopDescription: false,
+        hasBankAccount: false,
+        onboardingCompleted: false,
+        onboardingDismissed: false
+      };
+    }
+
+    // Check each onboarding step
+    const hasBrandImage = !!(vendor.brandImage);
+    const hasShopDescription = !!(vendor.shopDescription && vendor.shopDescription.trim().length > 0);
+    
+    // Check if vendor has at least one product
+    const productCount = await VendorProduct.countDocuments({ vendor: vendorId });
+    const hasFirstProduct = productCount > 0;
+
+    // Check if vendor has at least one verified bank account
+    const bankAccountCount = await BankAccount.countDocuments({ 
+      userId: vendorId, 
+      userType: 'Vendor',
+      isVerified: true 
+    });
+    const hasBankAccount = bankAccountCount > 0;
+
+    // Update onboarding progress (preserve dismissed status)
+    vendor.onboardingProgress = {
+      hasBrandImage,
+      hasFirstProduct,
+      hasShopDescription,
+      hasBankAccount,
+      onboardingCompleted: hasBrandImage && hasFirstProduct && hasShopDescription && hasBankAccount,
+      onboardingDismissed: vendor.onboardingProgress.onboardingDismissed || false
+    };
+
+    await vendor.save();
+    console.log(`✅ Updated onboarding progress for vendor ${vendorId}:`, vendor.onboardingProgress);
+  } catch (error) {
+    console.error('Error updating onboarding progress:', error);
+  }
+}
+
 // ✅ Update Vendor Profile with Cloudinary Image Upload
 const updateVendorProfile = asyncHandler(async (req, res) => {
   try {
@@ -569,6 +629,9 @@ const updateVendorProfile = asyncHandler(async (req, res) => {
 
     await vendor.save();
 
+    // Update onboarding progress
+    await updateOnboardingProgress(vendorId);
+
     res.status(200).json({
       message: "Vendor profile updated successfully",
       vendor: {
@@ -589,6 +652,25 @@ const updateVendorProfile = asyncHandler(async (req, res) => {
 });
 
 
+// ✅ Dismiss onboarding guide
+const dismissOnboarding = asyncHandler(async (req, res) => {
+  try {
+    const vendor = await Vendor.findById(req.vendor._id);
+    if (!vendor) {
+      return res.status(404).json({ message: 'Vendor not found' });
+    }
+
+    vendor.onboardingProgress = vendor.onboardingProgress || {};
+    vendor.onboardingProgress.onboardingDismissed = true;
+    await vendor.save();
+
+    res.json({ message: 'Onboarding guide dismissed', vendor });
+  } catch (error) {
+    console.error('Error dismissing onboarding:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 module.exports = {
   registerVendor,
   loginVendor,
@@ -602,7 +684,9 @@ module.exports = {
   voteReviewHelpfulness,
   reportReview,
   getVendorReviews,
-  updateVendorProfile
+  updateVendorProfile,
+  dismissOnboarding,
+  updateOnboardingProgress
 };
 
 

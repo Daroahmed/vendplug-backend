@@ -198,7 +198,13 @@ const getAgentProfile = async (req, res) => {
       return res.status(404).json({ message: 'Agent not found' });
     }
 
-    res.status(200).json({ agent });
+    // Update onboarding progress before returning
+    await updateOnboardingProgress(agent._id);
+    
+    // Refresh agent data to get updated onboarding progress
+    const updatedAgent = await Agent.findById(req.user._id).select('-password');
+
+    res.status(200).json({ agent: updatedAgent });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
@@ -522,6 +528,60 @@ const getAgentReviews = async (req, res) => {
   }
 };
 
+// ✅ Helper function to update onboarding progress
+async function updateOnboardingProgress(agentId) {
+  try {
+    const agent = await Agent.findById(agentId);
+    if (!agent) return;
+
+    const AgentProduct = require('../models/AgentProduct');
+    const BankAccount = require('../models/BankAccount');
+
+    // Initialize onboardingProgress if it doesn't exist
+    if (!agent.onboardingProgress) {
+      agent.onboardingProgress = {
+        hasBrandImage: false,
+        hasFirstProduct: false,
+        hasBusinessDescription: false,
+        hasBankAccount: false,
+        onboardingCompleted: false,
+        onboardingDismissed: false
+      };
+    }
+
+    // Check each onboarding step
+    const hasBrandImage = !!(agent.brandImage);
+    const hasBusinessDescription = !!(agent.businessDescription && agent.businessDescription.trim().length > 0);
+    
+    // Check if agent has at least one product
+    const productCount = await AgentProduct.countDocuments({ agent: agentId });
+    const hasFirstProduct = productCount > 0;
+
+    // Check if agent has at least one verified bank account
+    const bankAccountCount = await BankAccount.countDocuments({ 
+      userId: agentId, 
+      userType: 'Agent',
+      isVerified: true 
+    });
+    const hasBankAccount = bankAccountCount > 0;
+
+    // Update onboarding progress (preserve dismissed status)
+    agent.onboardingProgress = {
+      hasBrandImage,
+      hasFirstProduct,
+      hasBusinessDescription,
+      hasBankAccount,
+      onboardingCompleted: hasBrandImage && hasFirstProduct && hasBusinessDescription && hasBankAccount,
+      onboardingDismissed: agent.onboardingProgress.onboardingDismissed || false
+    };
+
+    await agent.save();
+    console.log(`✅ Updated onboarding progress for agent ${agentId}:`, agent.onboardingProgress);
+  } catch (error) {
+    console.error('Error updating onboarding progress:', error);
+  }
+}
+
 // ✅ Update Agent Profile with Cloudinary Image Upload
 const updateAgentProfile = async (req, res) => {
   try {
@@ -552,6 +612,9 @@ const updateAgentProfile = async (req, res) => {
 
     await agent.save();
 
+    // Update onboarding progress
+    await updateOnboardingProgress(agentId);
+
     res.status(200).json({
       message: "Agent profile updated successfully",
       agent: {
@@ -571,6 +634,25 @@ const updateAgentProfile = async (req, res) => {
   }
 };
 
+// ✅ Dismiss onboarding guide
+const dismissOnboarding = async (req, res) => {
+  try {
+    const agent = await Agent.findById(req.agent._id);
+    if (!agent) {
+      return res.status(404).json({ message: 'Agent not found' });
+    }
+
+    agent.onboardingProgress = agent.onboardingProgress || {};
+    agent.onboardingProgress.onboardingDismissed = true;
+    await agent.save();
+
+    res.json({ message: 'Onboarding guide dismissed', agent });
+  } catch (error) {
+    console.error('Error dismissing onboarding:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 module.exports = {
   registerAgent,
   loginAgent,
@@ -584,5 +666,7 @@ module.exports = {
   voteAgentReviewHelpfulness,
   reportAgentReview,
   getAgentReviews,
-  updateAgentProfile
+  updateAgentProfile,
+  dismissOnboarding,
+  updateOnboardingProgress
 };
