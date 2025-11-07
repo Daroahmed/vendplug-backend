@@ -236,7 +236,7 @@ const getAgentStats = async (req, res) => {
 // @desc    Get agent basic details
 // @route   GET /api/agents/:agentId
 // @access  Public
-const getAgentById = async (req, res) => {
+const getAgentById = asyncHandler(async (req, res) => {
   const agent = await Agent.findById(req.params.agentId).populate('reviews.buyer', 'fullName email');
   if (agent) {
     res.json(agent);
@@ -244,9 +244,9 @@ const getAgentById = async (req, res) => {
     res.status(404);
     throw new Error('Agent not found');
   }
-};
+});
 
-const getAgentsByCategoryAndState = async (req, res) => {
+const getAgentsByCategoryAndState = asyncHandler(async (req, res) => {
   const { state, category } = req.query;
 
   if (!state || !category) {
@@ -265,7 +265,7 @@ const getAgentsByCategoryAndState = async (req, res) => {
   }).select('businessName brandImage totalTransactions _id');
 
   res.json(agents);
-};
+});
 
 const getAgentProfileById = async (req, res) => {
   const agent = await Agent.findById(req.params.agentId).select('-password');

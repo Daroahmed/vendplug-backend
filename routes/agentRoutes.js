@@ -121,24 +121,23 @@ router.post("/login", authLimiter, loginAgent);
 // Dashboard endpoints are polled frequently, so they need lenient rate limiting
 router.get('/stats', dashboardLimiter, protectAgent, getAgentStats);
 
-// Get agent details only
-router.get('/:agentId', getAgentById);
+// ✅ Profile routes (must come BEFORE /:agentId route to avoid conflicts)
+router.get("/profile", protectAgent, getAgentProfile);
+router.put("/profile", protectAgent, upload.single("brandImage"), updateAgentProfile);
 
-// ✅ Shop view
-router.get('/:agentId', getShopView);
+// ✅ Onboarding routes
+router.post("/onboarding/dismiss", protectAgent, dismissOnboarding);
+
+router.get('/by-category-and-state', getAgentsByCategoryAndState);
+
+// ✅ NOW THE DYNAMIC ROUTES (must come after static routes)
+// Get agent details only (getAgentById handles shop view)
+router.get('/:agentId', getAgentById);
 
 // ✅ Review endpoints
 router.post('/:agentId/reviews', protectBuyer, addAgentReview);
 router.get('/:agentId/reviews', getAgentReviews);
 router.post('/:agentId/reviews/:reviewId/vote', protectBuyer, voteAgentReviewHelpfulness);
 router.post('/:agentId/reviews/:reviewId/report', protectBuyer, reportAgentReview);
-
-router.get('/by-category-and-state', getAgentsByCategoryAndState);
-
-router.get("/profile", protectAgent, getAgentProfile);
-router.put("/profile", protectAgent, upload.single("brandImage"), updateAgentProfile);
-
-// ✅ Onboarding routes
-router.post("/onboarding/dismiss", protectAgent, dismissOnboarding);
 
 module.exports = router;
