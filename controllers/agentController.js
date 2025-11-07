@@ -12,6 +12,7 @@ const AgentPayout = require("../models/AgentPayout");
 const Buyer = require("../models/Buyer");
 const cloudinary = require('cloudinary').v2;
 const fs = require('fs');
+const asyncHandler = require("express-async-handler");
 
 // ✅ Register Agent
 const registerAgent = async (req, res) => {
@@ -186,29 +187,22 @@ const loginAgent = async (req, res) => {
 
 
 // ✅ Get Agent Profile
-const getAgentProfile = async (req, res) => {
-  try {
-    if (!req.user) {
-      return res.status(401).json({ message: "Not authorized" });
-    }
-
-    const agent = await Agent.findById(req.user._id).select('-password');
-    
-    if (!agent) {
-      return res.status(404).json({ message: 'Agent not found' });
-    }
-
-    // Update onboarding progress before returning
-    await updateOnboardingProgress(agent._id);
-    
-    // Refresh agent data to get updated onboarding progress
-    const updatedAgent = await Agent.findById(req.user._id).select('-password');
-
-    res.status(200).json({ agent: updatedAgent });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+const getAgentProfile = asyncHandler(async (req, res) => {
+  const agent = await Agent.findById(req.agent._id).select('-password');
+  
+  if (!agent) {
+    res.status(404).json({ message: 'Agent not found' });
+    return;
   }
-};
+
+  // Update onboarding progress before returning
+  await updateOnboardingProgress(agent._id);
+  
+  // Refresh agent data to get updated onboarding progress
+  const updatedAgent = await Agent.findById(req.agent._id).select('-password');
+
+  res.json({ agent: updatedAgent });
+});
 
 // ✅ GET /api/agents/stats
 const getAgentStats = async (req, res) => {
@@ -583,7 +577,7 @@ async function updateOnboardingProgress(agentId) {
 }
 
 // ✅ Update Agent Profile with Cloudinary Image Upload
-const updateAgentProfile = async (req, res) => {
+const updateAgentProfile = asyncHandler(async (req, res) => {
   try {
     const agentId = req.agent._id;
     const agent = await Agent.findById(agentId);
@@ -632,26 +626,33 @@ const updateAgentProfile = async (req, res) => {
     console.error("❌ Error updating agent profile:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
-};
+});
 
 // ✅ Dismiss onboarding guide
-const dismissOnboarding = async (req, res) => {
-  try {
-    const agent = await Agent.findById(req.agent._id);
-    if (!agent) {
-      return res.status(404).json({ message: 'Agent not found' });
-    }
-
-    agent.onboardingProgress = agent.onboardingProgress || {};
-    agent.onboardingProgress.onboardingDismissed = true;
-    await agent.save();
-
-    res.json({ message: 'Onboarding guide dismissed', agent });
-  } catch (error) {
-    console.error('Error dismissing onboarding:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+const dismissOnboarding = asyncHandler(async (req, res) => {
+  const agent = await Agent.findById(req.agent._id);
+  if (!agent) {
+    res.status(404).json({ message: 'Agent not found' });
+    return;
   }
-};
+
+  // Initialize onboardingProgress if it doesn't exist
+  if (!agent.onboardingProgress) {
+    agent.onboardingProgress = {
+      hasBrandImage: false,
+      hasFirstProduct: false,
+      hasBusinessDescription: false,
+      hasBankAccount: false,
+      onboardingCompleted: false,
+      onboardingDismissed: false
+    };
+  }
+
+  agent.onboardingProgress.onboardingDismissed = true;
+  await agent.save();
+
+  res.json({ message: 'Onboarding guide dismissed', agent });
+});
 
 module.exports = {
   registerAgent,
