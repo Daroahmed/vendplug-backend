@@ -19,7 +19,8 @@ const {
   voteAgentReviewHelpfulness,
   reportAgentReview,
   getAgentReviews,
-  updateAgentProfile
+  updateAgentProfile,
+  dismissOnboarding
 } = require("../controllers/agentController");
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' }); 
@@ -136,5 +137,8 @@ router.get('/by-category-and-state', getAgentsByCategoryAndState);
 
 router.get("/profile", protectAgent, getAgentProfile);
 router.put("/profile", protectAgent, upload.single("brandImage"), updateAgentProfile);
+
+// ✅ Onboarding routes
+router.post("/onboarding/dismiss", protectAgent, dismissOnboarding);
 
 module.exports = router;

@@ -66,6 +66,10 @@ const createAgentProduct = asyncHandler(async (req, res) => {
       images: additionalImages,
     });
 
+    // Update onboarding progress (mark first product as complete)
+    const { updateOnboardingProgress } = require('./agentController');
+    await updateOnboardingProgress(agentId);
+
     res.status(201).json(product);
   } catch (error) {
     console.error('❌ Error creating agent product:', error);

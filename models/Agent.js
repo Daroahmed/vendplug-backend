@@ -241,6 +241,16 @@ const agentSchema = new mongoose.Schema(
       type: Date,
       default: null
     },
+    
+    // Onboarding progress tracking
+    onboardingProgress: {
+      hasBrandImage: { type: Boolean, default: false },
+      hasFirstProduct: { type: Boolean, default: false },
+      hasBusinessDescription: { type: Boolean, default: false },
+      hasBankAccount: { type: Boolean, default: false },
+      onboardingCompleted: { type: Boolean, default: false },
+      onboardingDismissed: { type: Boolean, default: false }
+    },
   },
   { timestamps: true }
 );

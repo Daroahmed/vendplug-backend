@@ -66,6 +66,10 @@ const createVendorProduct = asyncHandler(async (req, res) => {
       images: additionalImages,
     });
 
+    // Update onboarding progress (mark first product as complete)
+    const { updateOnboardingProgress } = require('./vendorAuthController');
+    await updateOnboardingProgress(vendorId);
+
     res.status(201).json(product);
   } catch (error) {
     console.error('❌ Error creating vendor product:', error);
