@@ -247,7 +247,7 @@ const getDashboardOverview = async (req, res) => {
               model = require('../models/Buyer');
               break;
             case 'Vendor':
-              model = require('../models/Vendor');
+              model = require('../models/vendorModel');
               break;
             case 'Agent':
               model = require('../models/Agent');

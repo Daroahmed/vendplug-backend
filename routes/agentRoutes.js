@@ -127,6 +127,7 @@ router.put("/profile", protectAgent, upload.single("brandImage"), updateAgentPro
 
 // ✅ Onboarding routes
 router.post("/onboarding/dismiss", protectAgent, dismissOnboarding);
+router.post("/onboarding/reset", protectAgent, require('../controllers/agentController').resetOnboarding);
 
 router.get('/by-category-and-state', getAgentsByCategoryAndState);
 

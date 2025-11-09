@@ -273,20 +273,45 @@ const getVendorProfile = asyncHandler(async (req, res) => {
 });
 
 const getCurrentVendorProfile = asyncHandler(async (req, res) => {
+  const rid = req.requestId || Math.random().toString(16).slice(2);
+  const t0 = Date.now();
+  console.log(`[vendorProfile][${rid}] start GET /api/vendors/profile`);
+
   const vendor = await Vendor.findById(req.user._id).select('-password');
+  console.log(`[vendorProfile][${rid}] fetched vendor doc in ${Date.now() - t0}ms`);
 
   if (!vendor) {
     res.status(404).json({ message: 'Vendor not found' });
     return;
   }
 
-  // Update onboarding progress before returning
-  await updateOnboardingProgress(vendor._id);
-  
-  // Refresh vendor data to get updated onboarding progress
-  const updatedVendor = await Vendor.findById(req.user._id).select('-password');
+  const force = (req.query && (req.query.force === '1' || req.query.force === 'true'));
+  if (force) {
+    const t1 = Date.now();
+    await updateOnboardingProgress(vendor._id);
+    console.log(`[vendorProfile][${rid}] onboarding update (force) in ${Date.now() - t1}ms`);
+    const updated = await Vendor.findById(req.user._id).select('-password');
+    res.json({ vendor: updated });
+    return;
+  } else {
+    // Trigger onboarding progress update in the background (non-blocking)
+    setImmediate(async () => {
+      const t1 = Date.now();
+      try {
+        await updateOnboardingProgress(vendor._id);
+        const took = Date.now() - t1;
+        console.log(`[vendorProfile][${rid}] onboarding update (bg) completed in ${took}ms`);
+        if (took > 500) {
+          console.warn(`[vendorProfile][${rid}] onboarding update exceeded budget: ${took}ms`);
+        }
+      } catch (e) {
+        console.error(`[vendorProfile][${rid}] onboarding update (bg) error:`, e.message);
+      }
+    });
 
-  res.json({ vendor: updatedVendor });
+    // Return current vendor snapshot immediately
+    res.json({ vendor });
+  }
 });
 
 
@@ -671,6 +696,25 @@ const dismissOnboarding = asyncHandler(async (req, res) => {
   }
 });
 
+// ✅ Reset onboarding guide (allow it to show again)
+const resetOnboarding = asyncHandler(async (req, res) => {
+  try {
+    const vendor = await Vendor.findById(req.vendor._id);
+    if (!vendor) {
+      return res.status(404).json({ message: 'Vendor not found' });
+    }
+
+    vendor.onboardingProgress = vendor.onboardingProgress || {};
+    vendor.onboardingProgress.onboardingDismissed = false;
+    await vendor.save();
+
+    res.json({ message: 'Onboarding guide reset', vendor });
+  } catch (error) {
+    console.error('Error resetting onboarding:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 module.exports = {
   registerVendor,
   loginVendor,
@@ -686,6 +730,7 @@ module.exports = {
   getVendorReviews,
   updateVendorProfile,
   dismissOnboarding,
+  resetOnboarding,
   updateOnboardingProgress
 };
 

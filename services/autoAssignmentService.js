@@ -46,6 +46,13 @@ class AutoAssignmentService {
     // Process automatic assignment
     async processAutoAssignment() {
         try {
+            // Check if MongoDB is connected
+            const mongoose = require('mongoose');
+            if (mongoose.connection.readyState !== 1) {
+                console.log('⚠️  MongoDB not connected, skipping auto-assignment');
+                return;
+            }
+
             console.log('🔍 Checking for disputes that need assignment...');
 
             // Get unassigned disputes

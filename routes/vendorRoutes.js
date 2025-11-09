@@ -121,6 +121,7 @@ router.put("/profile", protectVendor, upload.single("brandImage"), updateVendorP
 
 // ✅ Onboarding routes
 router.post("/onboarding/dismiss", protectVendor, dismissOnboarding);
+router.post("/onboarding/reset", protectVendor, require('../controllers/vendorAuthController').resetOnboarding);
 
 router.get('/by-category-and-state', getVendorsByCategoryAndState);
 

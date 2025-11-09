@@ -7,6 +7,13 @@ const Notification = require('../models/Notification');
  */
 async function emitPendingNotifications(userId, socket) {
   try {
+    // Check if MongoDB is connected
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState !== 1) {
+      console.log('⚠️  MongoDB not connected, skipping pending notifications');
+      return;
+    }
+
     // Find unread notifications for this user
     const notifications = await Notification.find({
       recipientId: userId,

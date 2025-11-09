@@ -175,22 +175,50 @@ const verifyPayment = async (req, res) => {
       });
     }
 
-    // Find the pending transaction
-    const pendingTransaction = await Transaction.findOne({ ref: reference });
-    
-    if (!pendingTransaction) {
-      return res.status(404).json({
-        success: false,
-        message: 'Pending transaction not found'
-      });
+    // Process wallet credit idempotently
+    const result = await creditWalletFromReference(reference, verificationResult.data);
+    if (!result.success) {
+      return res.status(result.statusCode || 400).json({ success: false, message: result.message });
     }
 
-    if (pendingTransaction.status !== 'pending') {
-      return res.status(400).json({
-        success: false,
-        message: 'Transaction already processed'
-      });
-    }
+    const { newBalance, amount, walletId } = result.data;
+
+    res.json({
+      success: true,
+      message: 'Payment verified and wallet credited successfully',
+      data: {
+        reference,
+        amount,
+        newBalance,
+        walletId
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Payment verification failed:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to verify payment',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Internal helper: Idempotently credit wallet from reference.
+ * If the pending transaction is already processed, returns early.
+ */
+async function creditWalletFromReference(reference, paystackData) {
+  // Find the pending transaction
+  const pendingTransaction = await Transaction.findOne({ ref: reference });
+  
+  if (!pendingTransaction) {
+    return { success: false, statusCode: 404, message: 'Pending transaction not found' };
+  }
+
+  if (pendingTransaction.status !== 'pending') {
+    return { success: false, statusCode: 409, message: 'Transaction already processed' };
+  }
 
     // Start database transaction
     const session = await mongoose.startSession();
@@ -199,7 +227,12 @@ const verifyPayment = async (req, res) => {
     try {
       // Update transaction status
       pendingTransaction.status = 'successful';
-      pendingTransaction.metadata.paystackData = verificationResult.data;
+      if (paystackData) {
+        pendingTransaction.metadata = {
+          ...(pendingTransaction.metadata || {}),
+          paystackData
+        };
+      }
       await pendingTransaction.save({ session });
 
       // Find or create wallet
@@ -289,16 +322,14 @@ const verifyPayment = async (req, res) => {
         newBalance
       });
 
-      res.json({
+      return {
         success: true,
-        message: 'Payment verified and wallet credited successfully',
         data: {
-          reference,
           amount: pendingTransaction.amount,
           newBalance,
           walletId: wallet._id
         }
-      });
+      };
 
     } catch (sessionError) {
       console.error('❌ Payment verification failed:', sessionError);
@@ -307,7 +338,7 @@ const verifyPayment = async (req, res) => {
       } catch (abortError) {
         console.error('⚠️ Error aborting transaction:', abortError);
       }
-      throw sessionError;
+      return { success: false, statusCode: 500, message: sessionError.message };
     } finally {
       try {
         session.endSession();
@@ -315,16 +346,7 @@ const verifyPayment = async (req, res) => {
         console.error('⚠️ Error ending session:', endError);
       }
     }
-
-  } catch (error) {
-    console.error('❌ Payment verification failed:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to verify payment',
-      error: error.message
-    });
-  }
-};
+}
 
 /**
  * Get list of Nigerian banks for transfer setup
@@ -533,20 +555,28 @@ const handleWebhook = async (req, res) => {
 
     console.log('🔔 Paystack webhook received:', event);
 
-    // Verify webhook signature (you should implement this for production)
-    // const signature = req.headers['x-paystack-signature'];
-    // const hash = crypto.createHmac('sha512', process.env.PAYSTACK_SECRET_KEY)
-    //   .update(JSON.stringify(req.body))
-    //   .digest('hex');
-    // if (signature !== hash) {
-    //   return res.status(401).json({ message: 'Invalid signature' });
-    // }
+    // Verify webhook signature
+    const crypto = require('crypto');
+    const signature = req.headers['x-paystack-signature'];
+    const hash = crypto.createHmac('sha512', process.env.PAYSTACK_SECRET_KEY || '')
+      .update(JSON.stringify(req.body))
+      .digest('hex');
+    if (!signature || signature !== hash) {
+      return res.status(401).json({ message: 'Invalid signature' });
+    }
 
     switch (event) {
       case 'charge.success':
-        // Handle successful payment
+        // Idempotently credit wallet using the pending transaction reference
         console.log('✅ Payment successful via webhook:', data.reference);
-        // You can trigger additional actions here
+        try {
+          const result = await creditWalletFromReference(data.reference, data);
+          if (!result.success) {
+            console.warn('⚠️ Webhook credit skipped:', result.message);
+          }
+        } catch (e) {
+          console.error('❌ Webhook credit error:', e);
+        }
         break;
 
       case 'transfer.success':
