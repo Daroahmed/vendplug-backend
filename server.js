@@ -40,6 +40,9 @@ cloudinary.config({
 // ✅ Express app
 const app = express();
 
+// If behind a reverse proxy (e.g., Nginx/DO LB), trust the X-Forwarded-* headers
+// This ensures rate limiters and IP-based logic use the real client IP
+app.set('trust proxy', 1);
 // Initialize Sentry if DSN is provided
 if (Sentry && process.env.SENTRY_DSN) {
   Sentry.init({ dsn: process.env.SENTRY_DSN, tracesSampleRate: 0.1 });
@@ -132,7 +135,7 @@ app.use(express.static(path.join(__dirname, '../frontend'), { maxAge: '1h', etag
 // ✅ MongoDB Connection with optimized settings
 const mongooseOptions = {
   // Connection pool settings
-  maxPoolSize: 10, // Maximum number of connections in the pool
+  maxPoolSize: 5, // Keep pool small for canary; raise later if needed
   minPoolSize: 2, // Minimum number of connections to maintain
   maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
   
@@ -148,20 +151,17 @@ const mongooseOptions = {
   // Note: In Mongoose 7.x, bufferCommands is deprecated but we handle connection checks manually
 };
 
-// Connection retry logic
-let reconnectAttempts = 0;
-const MAX_RECONNECT_ATTEMPTS = 5;
-const RECONNECT_DELAY = 5000; // 5 seconds
-
 async function connectToMongoDB() {
   try {
+    // Avoid duplicate connects
+    if (mongoose.connection.readyState === 1 || mongoose.connection.readyState === 2) {
+      return;
+    }
     await mongoose.connect(process.env.MONGO_URI, mongooseOptions);
     console.log('✅ Connected to MongoDB');
     console.log(`   Host: ${mongoose.connection.host}`);
     console.log(`   Database: ${mongoose.connection.name}`);
-    reconnectAttempts = 0; // Reset on successful connection
   } catch (err) {
-    reconnectAttempts++;
     console.error('❌ MongoDB connection error:', err.message);
     
     // Provide specific error diagnostics
@@ -178,15 +178,6 @@ async function connectToMongoDB() {
     } else if (err.message.includes('ENOTFOUND')) {
       console.error('   ⚠️  Host not found');
       console.error('   💡 Check your MONGO_URI connection string');
-    }
-    
-    // Attempt reconnection if under limit
-    if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-      console.log(`   🔄 Retrying connection (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}) in ${RECONNECT_DELAY/1000}s...`);
-      setTimeout(connectToMongoDB, RECONNECT_DELAY);
-    } else {
-      console.error('   ❌ Max reconnection attempts reached. Please check your MongoDB connection.');
-      console.error('   💡 The app will continue but database operations may fail.');
     }
   }
 }
@@ -206,11 +197,7 @@ mongoose.connection.on('error', (err) => {
 
 mongoose.connection.on('disconnected', () => {
   console.warn('⚠️  MongoDB disconnected. Mongoose will attempt to reconnect automatically...');
-  // Mongoose automatically reconnects, but we can also manually trigger
-  if (mongoose.connection.readyState === 0 && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-    reconnectAttempts++;
-    setTimeout(connectToMongoDB, RECONNECT_DELAY);
-  }
+  // Rely on Mongoose auto-reconnect (no manual reconnect loop)
 });
 
 // Graceful shutdown
