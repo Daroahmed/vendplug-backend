@@ -175,7 +175,7 @@ const loginAgent = async (req, res) => {
         state: agent.state,
         businessAddress: agent.businessAddress,
         cacNumber: agent.cacNumber,
-        shopDescription: agent.shopDescription,
+        businessDescription: agent.businessDescription,
         brandImage: agent.brandImage
       },
     });
@@ -188,20 +188,46 @@ const loginAgent = async (req, res) => {
 
 // ✅ Get Agent Profile
 const getAgentProfile = asyncHandler(async (req, res) => {
+  const rid = req.requestId || Math.random().toString(16).slice(2);
+  const t0 = Date.now();
+  console.log(`[agentProfile][${rid}] start GET /api/agents/profile`);
+
   const agent = await Agent.findById(req.agent._id).select('-password');
-  
+  console.log(`[agentProfile][${rid}] fetched agent doc in ${Date.now() - t0}ms`);
+
   if (!agent) {
+    console.log(`[agentProfile][${rid}] agent not found`);
     res.status(404).json({ message: 'Agent not found' });
     return;
   }
 
-  // Update onboarding progress before returning
-  await updateOnboardingProgress(agent._id);
-  
-  // Refresh agent data to get updated onboarding progress
-  const updatedAgent = await Agent.findById(req.agent._id).select('-password');
+  const force = (req.query && (req.query.force === '1' || req.query.force === 'true'));
+  if (force) {
+    const t1 = Date.now();
+    await updateOnboardingProgress(agent._id);
+    console.log(`[agentProfile][${rid}] onboarding update (force) in ${Date.now() - t1}ms`);
+    const updated = await Agent.findById(req.agent._id).select('-password');
+    res.json({ agent: updated });
+    return;
+  } else {
+    // Trigger onboarding progress update in the background (non-blocking)
+    setImmediate(async () => {
+      const t1 = Date.now();
+      try {
+        await updateOnboardingProgress(agent._id);
+        const took = Date.now() - t1;
+        console.log(`[agentProfile][${rid}] onboarding update (bg) completed in ${took}ms`);
+        if (took > 500) {
+          console.warn(`[agentProfile][${rid}] onboarding update exceeded budget: ${took}ms`);
+        }
+      } catch (e) {
+        console.error(`[agentProfile][${rid}] onboarding update (bg) error:`, e.message);
+      }
+    });
 
-  res.json({ agent: updatedAgent });
+    // Return current agent snapshot immediately
+    res.json({ agent });
+  }
 });
 
 // ✅ GET /api/agents/stats
@@ -654,6 +680,28 @@ const dismissOnboarding = asyncHandler(async (req, res) => {
   res.json({ message: 'Onboarding guide dismissed', agent });
 });
 
+// ✅ Reset onboarding guide (allow it to show again)
+const resetOnboarding = asyncHandler(async (req, res) => {
+  const agent = await Agent.findById(req.agent._id);
+  if (!agent) {
+    res.status(404).json({ message: 'Agent not found' });
+    return;
+  }
+
+  agent.onboardingProgress = agent.onboardingProgress || {
+    hasBrandImage: false,
+    hasFirstProduct: false,
+    hasBusinessDescription: false,
+    hasBankAccount: false,
+    onboardingCompleted: false,
+    onboardingDismissed: false
+  };
+  agent.onboardingProgress.onboardingDismissed = false;
+  await agent.save();
+
+  res.json({ message: 'Onboarding guide reset', agent });
+});
+
 module.exports = {
   registerAgent,
   loginAgent,
@@ -669,5 +717,6 @@ module.exports = {
   getAgentReviews,
   updateAgentProfile,
   dismissOnboarding,
+  resetOnboarding,
   updateOnboardingProgress
 };

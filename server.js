@@ -4,6 +4,9 @@ const dotenv = require('dotenv');
 dotenv.config({ path: path.join(__dirname, '.env') });
 // console.log('✅ Loaded MONGO_URI:', process.env.MONGO_URI);
 
+// Prefer IPv4 when resolving hostnames to avoid rare IPv6 DNS issues in some environments
+try { require('dns').setDefaultResultOrder('ipv4first'); } catch (_) {}
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -100,12 +103,17 @@ const generalApiLimiter = rateLimit({
     const isDashboardEndpoint = path.includes('/vendor-orders') ||
                                 path.includes('/agent-orders') ||
                                 path.includes('/buyer-orders') ||
+                                // Frequently polled profile endpoints for dashboards/onboarding
+                                path.includes('/vendors/profile') ||
+                                path.includes('/agents/profile') ||
                                 path.includes('/vendor-payout') ||
                                 path.includes('/stats') ||
                                 path.includes('/notifications') ||
                                 path.includes('/analytics') ||
                                 path.includes('/wallet') ||
-                                path.includes('/transactions');
+                                path.includes('/transactions') ||
+                                // Unread chat badge polling
+                                path.includes('/chats/unread-count');
     
     return isBrowsingEndpoint || isRefreshEndpoint || isDashboardEndpoint;
   }
@@ -121,10 +129,96 @@ app.use('/assets', express.static(path.join(__dirname, '../frontend/assets'), st
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), { maxAge: '1h', etag: true }));
 app.use(express.static(path.join(__dirname, '../frontend'), { maxAge: '1h', etag: true }));
 
-// ✅ MongoDB Connection
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('✅ Connected to MongoDB'))
-  .catch(err => console.error('❌ MongoDB connection error:', err));
+// ✅ MongoDB Connection with optimized settings
+const mongooseOptions = {
+  // Connection pool settings
+  maxPoolSize: 10, // Maximum number of connections in the pool
+  minPoolSize: 2, // Minimum number of connections to maintain
+  maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
+  
+  // Timeout settings
+  serverSelectionTimeoutMS: 30000, // How long to try selecting a server (30 seconds)
+  socketTimeoutMS: 45000, // How long to wait for socket operations (45 seconds)
+  connectTimeoutMS: 30000, // How long to wait for initial connection (30 seconds)
+  
+  // Retry settings
+  retryWrites: true,
+  retryReads: true,
+  
+  // Note: In Mongoose 7.x, bufferCommands is deprecated but we handle connection checks manually
+};
+
+// Connection retry logic
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
+const RECONNECT_DELAY = 5000; // 5 seconds
+
+async function connectToMongoDB() {
+  try {
+    await mongoose.connect(process.env.MONGO_URI, mongooseOptions);
+    console.log('✅ Connected to MongoDB');
+    console.log(`   Host: ${mongoose.connection.host}`);
+    console.log(`   Database: ${mongoose.connection.name}`);
+    reconnectAttempts = 0; // Reset on successful connection
+  } catch (err) {
+    reconnectAttempts++;
+    console.error('❌ MongoDB connection error:', err.message);
+    
+    // Provide specific error diagnostics
+    if (err.message.includes('ETIMEOUT') || err.message.includes('queryTxt')) {
+      console.error('   ⚠️  DNS/Network timeout detected');
+      console.error('   💡 Possible causes:');
+      console.error('      - Network connectivity issues');
+      console.error('      - DNS resolution problems');
+      console.error('      - Firewall blocking MongoDB Atlas');
+      console.error('      - MongoDB Atlas service issues');
+    } else if (err.message.includes('authentication')) {
+      console.error('   ⚠️  Authentication failed');
+      console.error('   💡 Check your MongoDB username and password');
+    } else if (err.message.includes('ENOTFOUND')) {
+      console.error('   ⚠️  Host not found');
+      console.error('   💡 Check your MONGO_URI connection string');
+    }
+    
+    // Attempt reconnection if under limit
+    if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+      console.log(`   🔄 Retrying connection (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}) in ${RECONNECT_DELAY/1000}s...`);
+      setTimeout(connectToMongoDB, RECONNECT_DELAY);
+    } else {
+      console.error('   ❌ Max reconnection attempts reached. Please check your MongoDB connection.');
+      console.error('   💡 The app will continue but database operations may fail.');
+    }
+  }
+}
+
+// Initial connection
+connectToMongoDB();
+
+// Handle connection events
+mongoose.connection.on('connected', () => {
+  console.log('✅ MongoDB connection established');
+  reconnectAttempts = 0; // Reset on successful connection
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('❌ MongoDB connection error:', err.message);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.warn('⚠️  MongoDB disconnected. Mongoose will attempt to reconnect automatically...');
+  // Mongoose automatically reconnects, but we can also manually trigger
+  if (mongoose.connection.readyState === 0 && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+    reconnectAttempts++;
+    setTimeout(connectToMongoDB, RECONNECT_DELAY);
+  }
+});
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  await mongoose.connection.close();
+  console.log('✅ MongoDB connection closed through app termination');
+  process.exit(0);
+});
 
 // ✅ Import routes
 const buyerRoutes = require('./routes/buyerRoutes');
@@ -212,6 +306,12 @@ const io = socketIO(server, {
 // Function to emit pending notifications
 async function emitPendingNotifications(userId, socket) {
   try {
+    // Check if MongoDB is connected
+    if (mongoose.connection.readyState !== 1) {
+      console.log('⚠️  MongoDB not connected, skipping pending notifications');
+      return;
+    }
+
     // Find unread notifications for this user
     const notifications = await Notification.find({
       recipientId: userId,

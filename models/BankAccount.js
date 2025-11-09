@@ -39,5 +39,7 @@ const bankAccountSchema = new mongoose.Schema({
 
 // Ensure only one default account per user
 bankAccountSchema.index({ userId: 1, userType: 1, isDefault: 1 });
+// Speed up verified-account lookups used in onboarding progress checks
+bankAccountSchema.index({ userId: 1, userType: 1, isVerified: 1 });
 
 module.exports = mongoose.model('BankAccount', bankAccountSchema);
