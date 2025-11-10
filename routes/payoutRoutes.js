@@ -10,7 +10,9 @@ const {
   setPayoutPin,
   checkPayoutPinStatus,
   requestPinReset,
-  resetPin
+  resetPin,
+  listPayoutsAdmin,
+  processPayoutQueue
 } = payoutController;
 const { protectAgent, protectVendor, protectAdmin } = require('../middleware/authMiddleware');
 const { payoutLimiter, pinResetLimiter, pinVerifyLimiter, dashboardLimiter } = require('../middleware/rateLimiter');
@@ -67,6 +69,15 @@ router.post('/pin/reset/verify', pinResetLimiter, protectAnyUser, resetPin);
 
 // Admin/System routes (for processing payouts)
 router.post('/process', processPayouts); // This could be protected with admin middleware later
+router.get('/admin/list', protectAdmin, listPayoutsAdmin);
+router.post('/admin/process-queue', protectAdmin, async (req, res) => {
+  try {
+    await processPayoutQueue();
+    res.json({ success: true, message: 'Payout queue processed' });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
 // Fix stuck processing payouts - define function inline to avoid circular dependency
 router.post('/fix-stuck-processing', protectAdmin, async (req, res) => {
   try {
