@@ -659,9 +659,13 @@ const updatePayoutStatus = async (req, res) => {
 
     let updateData = {};
     if (action === 'approve') {
-      updateData.status = 'processing';
-      updateData.processedAt = new Date();
+      // Do NOT flip to 'processing' here for queued payouts.
+      // We mark approval and nudge the queue to process immediately.
       updateData.metadata = { ...payout.metadata, approvedBy: req.admin.id, approvedAt: new Date() };
+      // Preserve current status; if it's pending, let the queue pick it up
+      if (payout.status === 'pending') {
+        updateData.nextAttemptAt = new Date(); // trigger immediate queue attempt
+      }
     } else if (action === 'reject') {
       updateData.status = 'failed';
       updateData.failureReason = reason || 'Rejected by admin';

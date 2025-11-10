@@ -217,7 +217,7 @@ class PaystackService {
    */
   async initiateTransfer(transferData) {
     try {
-      const { source, amount, recipient, reason, currency = 'NGN' } = transferData;
+      const { source, amount, recipient, reason, currency = 'NGN', reference } = transferData;
       
       if (!source || !amount || !recipient) {
         throw new Error('Missing required fields: source, amount, recipient');
@@ -233,7 +233,8 @@ class PaystackService {
         amount: amountInKobo,
         recipient,
         reason,
-        currency
+        currency,
+        ...(reference ? { reference } : {})
       };
 
       const response = await this.httpClient.post('/transfer', payload);
@@ -262,6 +263,32 @@ class PaystackService {
         error: error.message || 'Transfer initiation failed',
         code: 'NETWORK_ERROR'
       };
+    }
+  }
+
+  /**
+   * Get transfer by reference (Paystack: /transfer/verify/:reference)
+   * @param {string} reference - Our idempotent transfer reference
+   * @returns {Promise<Object>} - Transfer details (status, transfer_code, amount, etc.)
+   */
+  async getTransfer(reference) {
+    try {
+      if (!reference) {
+        throw new Error('Reference is required');
+      }
+
+      console.log('🔍 Verifying transfer by reference:', reference);
+
+      const response = await this.httpClient.get(`/transfer/verify/${reference}`);
+
+      // Paystack returns { status: true, data: { status: 'success' | 'failed' | 'pending', ... } }
+      const transfer = response.data.data;
+      console.log('📦 Transfer verify result:', { status: transfer.status, transfer_code: transfer.transfer_code });
+
+      return transfer;
+    } catch (error) {
+      console.error('❌ Transfer verify failed:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || error.message || 'Failed to verify transfer');
     }
   }
 
