@@ -451,4 +451,16 @@ server.listen(PORT, () => {
   
   // Start auto-assignment service
   autoAssignmentService.start();
+
+  // Lightweight payout queue processor (runs every 60s)
+  try {
+    const { processPayoutQueue } = require('./controllers/payoutController');
+    setInterval(() => {
+      // Fire-and-forget; internal guards prevent duplicate transfers
+      processPayoutQueue();
+    }, 60 * 1000);
+    console.log('⏱️  Payout queue processor started (every 60s)');
+  } catch (e) {
+    console.error('⚠️ Failed to start payout queue processor:', e.message);
+  }
 });

@@ -186,6 +186,8 @@ const requestPayout = async (req, res) => {
     }
     
     // Create payout request
+    // Deterministic, idempotent reference we will use with Paystack
+    const transferReference = `PAYOUT_${userType}_${String(userId)}_${Date.now()}`;
     const payoutRequest = new PayoutRequest({
       userId,
       userType,
@@ -194,6 +196,7 @@ const requestPayout = async (req, res) => {
       netAmount,
       transferFee,
       status: canProcessInstantly ? 'processing' : 'pending',
+      transferReference,
       metadata: {
         paystackBalance,
         canProcessInstantly,
@@ -202,6 +205,36 @@ const requestPayout = async (req, res) => {
     });
 
     await payoutRequest.save({ session });
+
+    // Notify admins of payout request
+    try {
+      const io = req.app.get('io');
+      const { sendNotification } = require('../utils/notificationHelper');
+      const Admin = require('../models/Admin');
+      const admins = await Admin.find({ isActive: true });
+      for (const admin of admins) {
+        await sendNotification(io, {
+          recipientId: admin._id,
+          recipientType: 'Admin',
+          notificationType: 'ADMIN_PAYOUT_REQUESTED',
+          args: [amount, userType]
+        });
+      }
+      // Low Paystack balance alert
+      const LOW_BALANCE_THRESHOLD = Number(process.env.PAYSTACK_LOW_BALANCE_THRESHOLD || 50000);
+      if (Number(paystackBalance) < LOW_BALANCE_THRESHOLD) {
+        for (const admin of admins) {
+          await sendNotification(io, {
+            recipientId: admin._id,
+            recipientType: 'Admin',
+            notificationType: 'ADMIN_LOW_PAYSTACK_BALANCE',
+            args: [paystackBalance, LOW_BALANCE_THRESHOLD]
+          });
+        }
+      }
+    } catch (adminNotifyError) {
+      console.error('⚠️ Admin payout notification error:', adminNotifyError?.message || adminNotifyError);
+    }
 
     // ✅ ATOMIC: Deduct balance only if sufficient funds exist (prevents race conditions)
     // This ensures no negative balances can occur from concurrent requests
@@ -254,74 +287,121 @@ const requestPayout = async (req, res) => {
     // Audit: payout requested
     try { const AuditLog = require('../models/AuditLog'); await AuditLog.create({ eventType: 'PAYOUT_REQUESTED', userId, userType, amount, refId: String(payoutRequest._id) }); } catch(_){ }
 
-    // Initiate Paystack transfer
-    try {
-      const transferResult = await initiatePaystackTransfer(payoutRequest, bankAccount, amount);
-      
-      if (transferResult.success) {
-        // Update payout request with Paystack reference
-        payoutRequest.status = 'processing';
-        payoutRequest.paystackReference = transferResult.reference;
-        await payoutRequest.save({ session });
+    // Initiate Paystack transfer (only if balance allows instant processing)
+    if (canProcessInstantly) {
+      try {
+        const transferResult = await initiatePaystackTransfer(payoutRequest, bankAccount, amount, transferReference);
         
-        // Update transaction
-        transaction.status = 'processing';
-        transaction.metadata.paystackReference = transferResult.reference;
-        await transaction.save({ session });
-        
-        console.log(`🔄 Paystack transfer initiated: ${transferResult.reference}`);
-        try { const AuditLog = require('../models/AuditLog'); await AuditLog.create({ eventType: 'PAYOUT_PROCESSING', userId, userType, amount, refId: transferResult.reference }); } catch(_){ }
-      } else {
-        // Transfer failed, refund wallet atomically
-        await Wallet.findByIdAndUpdate(
-          wallet._id,
-          { $inc: { balance: totalRequired } },
-          { session }
-        );
-        
-        // Update payout status
-        payoutRequest.status = 'failed';
-        payoutRequest.failureReason = transferResult.error;
-        await payoutRequest.save({ session });
-        
-        // Update transaction
-        transaction.status = 'failed';
-        transaction.metadata.failureReason = transferResult.error;
-        await transaction.save({ session });
-        
-        console.log(`❌ Paystack transfer failed: ${transferResult.error}`);
-        try { const AuditLog = require('../models/AuditLog'); await AuditLog.create({ eventType: 'PAYOUT_FAILED', userId, userType, amount, refId: String(payoutRequest._id), metadata: { reason: transferResult.error } }); } catch(_){ }
-        
-        return res.status(400).json({
-          success: false,
-          message: `Transfer failed: ${transferResult.error}`
-        });
+        if (transferResult.success) {
+          // Update payout request with Paystack reference
+          payoutRequest.status = 'processing';
+          payoutRequest.paystackReference = transferResult.reference;
+          await payoutRequest.save({ session });
+          
+          // Update transaction
+          transaction.status = 'processing';
+          transaction.metadata.paystackReference = transferResult.reference;
+          await transaction.save({ session });
+          
+          console.log(`🔄 Paystack transfer initiated: ${transferResult.reference}`);
+          try { const AuditLog = require('../models/AuditLog'); await AuditLog.create({ eventType: 'PAYOUT_PROCESSING', userId, userType, amount, refId: transferResult.reference }); } catch(_){ }
+        } else {
+          // If failure looks like insufficient balance, queue instead of failing/refunding
+          const isInsufficient = /insufficient/i.test(String(transferResult.error || ''));
+          if (isInsufficient) {
+            payoutRequest.status = 'pending';
+            payoutRequest.failureReason = 'Queued due to low Paystack balance';
+            payoutRequest.queuedAt = new Date();
+            payoutRequest.attempts = (payoutRequest.attempts || 0) + 1;
+            payoutRequest.nextAttemptAt = new Date(Date.now() + 5 * 60 * 1000); // retry in 5 min
+            await payoutRequest.save({ session });
+
+            // Leave transaction as pending and keep wallet deducted (funds reserved)
+            transaction.status = 'pending';
+            transaction.metadata.queueReason = 'Low Paystack balance';
+            await transaction.save({ session });
+
+            console.log('⏳ Transfer queued due to low Paystack balance');
+          } else {
+            // Other failure modes: refund and fail
+            await Wallet.findByIdAndUpdate(
+              wallet._id,
+              { $inc: { balance: totalRequired } },
+              { session }
+            );
+            
+            payoutRequest.status = 'failed';
+            payoutRequest.failureReason = transferResult.error;
+            await payoutRequest.save({ session });
+            
+            transaction.status = 'failed';
+            transaction.metadata.failureReason = transferResult.error;
+            await transaction.save({ session });
+            
+            console.log(`❌ Paystack transfer failed: ${transferResult.error}`);
+            try { const AuditLog = require('../models/AuditLog'); await AuditLog.create({ eventType: 'PAYOUT_FAILED', userId, userType, amount, refId: String(payoutRequest._id), metadata: { reason: transferResult.error } }); } catch(_){ }
+            
+            return res.status(400).json({
+              success: false,
+              message: `Transfer failed: ${transferResult.error}`
+            });
+          }
+        }
+      } catch (error) {
+        // Unknown error: treat as queued if possible, else fail
+        const isInsufficient = /insufficient/i.test(String(error?.message || ''));
+        if (isInsufficient) {
+          payoutRequest.status = 'pending';
+          payoutRequest.failureReason = 'Queued due to low Paystack balance';
+          payoutRequest.queuedAt = new Date();
+          payoutRequest.attempts = (payoutRequest.attempts || 0) + 1;
+          payoutRequest.nextAttemptAt = new Date(Date.now() + 5 * 60 * 1000);
+          await payoutRequest.save({ session });
+
+          transaction.status = 'pending';
+          transaction.metadata.queueReason = 'Low Paystack balance';
+          await transaction.save({ session });
+
+          console.log('⏳ Transfer queued due to low Paystack balance (exception)');
+        } else {
+          await Wallet.findByIdAndUpdate(
+            wallet._id,
+            { $inc: { balance: totalRequired } },
+            { session }
+          );
+          
+          payoutRequest.status = 'failed';
+          payoutRequest.failureReason = error.message;
+          await payoutRequest.save({ session });
+          
+          transaction.status = 'failed';
+          transaction.metadata.failureReason = error.message;
+          await transaction.save({ session });
+          
+          console.log(`❌ Paystack transfer error: ${error.message}`);
+          try { const AuditLog = require('../models/AuditLog'); await AuditLog.create({ eventType: 'PAYOUT_FAILED', userId, userType, amount, refId: String(payoutRequest._id), metadata: { reason: error.message } }); } catch(_){ }
+          
+          return res.status(500).json({
+            success: false,
+            message: `Transfer error: ${error.message}`
+          });
+        }
       }
-    } catch (error) {
-      // Transfer error, refund wallet atomically
-      await Wallet.findByIdAndUpdate(
-        wallet._id,
-        { $inc: { balance: totalRequired } },
-        { session }
-      );
-      
-      // Update payout status
-      payoutRequest.status = 'failed';
-      payoutRequest.failureReason = error.message;
+    } else {
+      // Queue immediately if balance cannot cover this payout
+      payoutRequest.status = 'pending';
+      payoutRequest.failureReason = 'Queued due to low Paystack balance';
+      payoutRequest.queuedAt = new Date();
+      payoutRequest.attempts = 0;
+      payoutRequest.nextAttemptAt = new Date(Date.now() + 5 * 60 * 1000);
       await payoutRequest.save({ session });
-      
-      // Update transaction
-      transaction.status = 'failed';
-      transaction.metadata.failureReason = error.message;
+
+      // Leave transaction pending; wallet remains deducted (reserved)
+      transaction.status = 'pending';
+      transaction.metadata.queueReason = 'Low Paystack balance (initial)';
       await transaction.save({ session });
-      
-      console.log(`❌ Paystack transfer error: ${error.message}`);
-      try { const AuditLog = require('../models/AuditLog'); await AuditLog.create({ eventType: 'PAYOUT_FAILED', userId, userType, amount, refId: String(payoutRequest._id), metadata: { reason: error.message } }); } catch(_){ }
-      
-      return res.status(500).json({
-        success: false,
-        message: `Transfer error: ${error.message}`
-      });
+
+      console.log('⏳ Payout queued due to low Paystack balance (no initiation attempted)');
     }
 
     await session.commitTransaction();
@@ -351,13 +431,14 @@ const requestPayout = async (req, res) => {
       success: true,
       message: canProcessInstantly ? 
         'Payout request submitted and will be processed instantly!' : 
-        'Payout request submitted successfully. Processing may take up to 24 hours.',
+        'Payout queued due to low Paystack balance. It will be processed automatically once funds are available.',
       data: {
         payoutRequest,
         newBalance: wallet.balance,
         instantProcessing: canProcessInstantly,
         paystackBalance,
-        estimatedProcessingTime: canProcessInstantly ? 'Instant' : 'Up to 24 hours'
+        estimatedProcessingTime: canProcessInstantly ? 'Instant' : 'Up to 24 hours',
+        transferReference
       }
     });
 
@@ -592,7 +673,7 @@ const getPayoutDetails = async (req, res) => {
 };
 
 // Initiate Paystack transfer
-const initiatePaystackTransfer = async (payoutRequest, bankAccount, amount) => {
+const initiatePaystackTransfer = async (payoutRequest, bankAccount, amount, reference) => {
   try {
     console.log(`🔄 Initiating Paystack transfer for payout: ${payoutRequest._id}`);
     
@@ -614,7 +695,8 @@ const initiatePaystackTransfer = async (payoutRequest, bankAccount, amount) => {
     const transferResult = await paystackService.initiateTransfer(
       recipientResult.data.recipient_code,
       amount, // Amount in naira (Paystack service will convert to kobo)
-      `Payout for ${payoutRequest.userType} - ${payoutRequest._id}`
+      `Payout for ${payoutRequest.userType} - ${payoutRequest._id}`,
+      reference || payoutRequest.transferReference
     );
 
     if (!transferResult.success) {
@@ -640,6 +722,143 @@ const initiatePaystackTransfer = async (payoutRequest, bankAccount, amount) => {
   }
 };
 
+// Background-safe processor for queued payouts
+const processPayoutQueue = async () => {
+  try {
+    const now = new Date();
+    // Fetch pending payouts whose retry time has arrived, in FIFO order
+    const queued = await PayoutRequest.find({
+      status: 'pending',
+      $or: [
+        { nextAttemptAt: { $lte: now } },
+        { nextAttemptAt: { $exists: false } },
+        { nextAttemptAt: null }
+      ]
+    }).sort({ createdAt: 1 }).limit(25);
+
+    if (!queued.length) return;
+
+    const paystackServiceInstance = new PaystackService();
+    const balanceResponse = await paystackServiceInstance.getBalance();
+    let available = (balanceResponse?.data?.[0]?.balance || 0) / 100;
+
+    console.log(`🧮 Processing payout queue: ${queued.length} queued, Paystack balance ₦${available}`);
+
+    for (const p of queued) {
+      // Ensure required financial fields exist for legacy records
+      if (p.netAmount == null) {
+        const fee = p.transferFee != null ? Number(p.transferFee) : 50;
+        p.transferFee = fee;
+        const amt = Number(p.amount || 0);
+        p.netAmount = Math.max(0, amt - fee);
+      }
+      // Skip if a transfer was already initiated (idempotency)
+      if (p.paystackReference) continue;
+
+      // Stop if insufficient for this payout
+      if (available < p.amount) {
+        // Push next attempt by a few minutes to avoid hammering
+        p.nextAttemptAt = new Date(Date.now() + 5 * 60 * 1000);
+        // Guard required fields on save
+        if (p.netAmount == null) {
+          const fee = p.transferFee != null ? Number(p.transferFee) : 50;
+          p.transferFee = fee;
+          const amt = Number(p.amount || 0);
+          p.netAmount = Math.max(0, amt - fee);
+        }
+        await p.save();
+        continue;
+      }
+
+      // Fetch related bank account and user wallet role for logging
+      const bankAccount = await BankAccount.findById(p.bankAccountId);
+      if (!bankAccount) {
+        // Permanently fail if bank account vanished
+        p.status = 'failed';
+        p.failureReason = 'Bank account not found during queued processing';
+        // Guard required fields on save
+        if (p.netAmount == null) {
+          const fee = p.transferFee != null ? Number(p.transferFee) : 50;
+          p.transferFee = fee;
+          const amt = Number(p.amount || 0);
+          p.netAmount = Math.max(0, amt - fee);
+        }
+        await p.save();
+        continue;
+      }
+
+      // Try initiate
+      const transferRef = p.transferReference || `PAYOUT_${p.userType}_${String(p.userId)}_${Date.now()}`;
+      const result = await initiatePaystackTransfer(p, bankAccount, p.amount, transferRef);
+
+      if (result.success) {
+        p.status = 'processing';
+        p.paystackReference = result.reference;
+        p.attempts = (p.attempts || 0) + 1;
+        p.nextAttemptAt = undefined;
+        // Guard required fields on save
+        if (p.netAmount == null) {
+          const fee = p.transferFee != null ? Number(p.transferFee) : 50;
+          p.transferFee = fee;
+          const amt = Number(p.amount || 0);
+          p.netAmount = Math.max(0, amt - fee);
+        }
+        await p.save();
+
+        // Update linked transaction to processing
+        await Transaction.findOneAndUpdate(
+          { 'metadata.payoutRequestId': p._id },
+          { status: 'processing', $set: { 'metadata.paystackReference': result.reference } }
+        );
+
+        available -= p.amount;
+        console.log(`🚀 Initiated queued payout ${p._id} → ${result.reference}; remaining ₦${available}`);
+      } else {
+        const isInsufficient = /insufficient/i.test(String(result.error || ''));
+        p.attempts = (p.attempts || 0) + 1;
+        p.nextAttemptAt = new Date(Date.now() + (isInsufficient ? 5 : 10) * 60 * 1000);
+        p.failureReason = result.error;
+        // Guard required fields on save
+        if (p.netAmount == null) {
+          const fee = p.transferFee != null ? Number(p.transferFee) : 50;
+          p.transferFee = fee;
+          const amt = Number(p.amount || 0);
+          p.netAmount = Math.max(0, amt - fee);
+        }
+        await p.save();
+
+        if (!isInsufficient) {
+          // Hard failure for non-balance reasons: refund wallet and mark failed
+          const wallet = await Wallet.findOne({ user: p.userId, role: p.userType.toLowerCase() });
+          if (wallet) {
+            await Wallet.findByIdAndUpdate(wallet._id, { $inc: { balance: p.amount } });
+          }
+          p.status = 'failed';
+          // Guard required fields on save
+          if (p.netAmount == null) {
+            const fee = p.transferFee != null ? Number(p.transferFee) : 50;
+            p.transferFee = fee;
+            const amt = Number(p.amount || 0);
+            p.netAmount = Math.max(0, amt - fee);
+          }
+          await p.save();
+
+          await Transaction.findOneAndUpdate(
+            { 'metadata.payoutRequestId': p._id },
+            { status: 'failed', $set: { 'metadata.failureReason': result.error } }
+          );
+
+          console.log(`❌ Queued payout ${p._id} hard-failed: ${result.error} (refunded)`);
+        } else {
+          console.log(`⏳ Queued payout ${p._id} deferred: ${result.error}`);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('❌ Error processing payout queue:', err.message);
+  }
+};
+
 // Fix stuck processing payouts (Admin function)
 const fixStuckProcessingPayouts = async (req, res) => {
   try {
@@ -660,59 +879,103 @@ const fixStuckProcessingPayouts = async (req, res) => {
       try {
         // Check if we have a Paystack reference
         if (payout.paystackReference) {
-          // Assume it was successful if we have a reference
-          payout.status = 'completed';
-          payout.processedAt = new Date();
-          await payout.save();
-
-          // Update transaction status
-          await Transaction.findOneAndUpdate(
-            { ref: { $regex: `PAYOUT_${payout._id}` } },
-            { 
-              status: 'completed',
-              metadata: {
-                ...payout.metadata,
-                fixedAt: new Date(),
-                note: 'Status fixed from stuck processing'
+          // Verify actual status with Paystack instead of assuming success
+          const paystackService = new PaystackService();
+          try {
+            const transferDetails = await paystackService.getTransfer(payout.paystackReference);
+            if (transferDetails.status === 'success') {
+              payout.status = 'completed';
+              payout.paystackTransferCode = transferDetails.transfer_code;
+              payout.processedAt = new Date();
+              // Guard required fields for legacy docs
+              if (payout.netAmount == null) {
+                const fee = payout.transferFee != null ? Number(payout.transferFee) : 50;
+                payout.transferFee = fee;
+                const amt = Number(payout.amount || 0);
+                payout.netAmount = Math.max(0, amt - fee);
               }
-            }
-          );
+              await payout.save();
 
-          results.push({ 
-            payoutId: payout._id, 
-            status: 'fixed', 
-            message: 'Marked as completed (had Paystack reference)' 
-          });
-          
-          console.log(`✅ Fixed payout ${payout._id} - marked as completed`);
+              // Update transaction status
+              await Transaction.findOneAndUpdate(
+                { ref: { $regex: `PAYOUT_${payout._id}` } },
+                { 
+                  status: 'completed',
+                  metadata: {
+                    ...payout.metadata,
+                    paystackTransferCode: transferDetails.transfer_code,
+                    fixedAt: new Date(),
+                    note: 'Status fixed from stuck processing'
+                  }
+                }
+              );
+
+              results.push({ 
+                payoutId: payout._id, 
+                status: 'fixed', 
+                message: 'Marked as completed after verifying with Paystack' 
+              });
+              console.log(`✅ Fixed payout ${payout._id} - marked as completed (verified)`);
+            } else if (transferDetails.status === 'failed') {
+              // If Paystack says failed, mark failed and refund
+              payout.status = 'failed';
+              payout.failureReason = transferDetails.failure_reason || 'Transfer failed';
+              payout.processedAt = new Date();
+              if (payout.netAmount == null) {
+                const fee = payout.transferFee != null ? Number(payout.transferFee) : 50;
+                payout.transferFee = fee;
+                const amt = Number(payout.amount || 0);
+                payout.netAmount = Math.max(0, amt - fee);
+              }
+              await payout.save();
+
+              const wallet = await Wallet.findOne({
+                user: payout.userId,
+                role: payout.userType.toLowerCase()
+              });
+              if (wallet) {
+                await Wallet.findByIdAndUpdate(wallet._id, { $inc: { balance: payout.amount } });
+                console.log(`💰 Refunded ₦${payout.amount} to wallet for failed payout ${payout._id}`);
+              }
+
+              await Transaction.findOneAndUpdate(
+                { ref: { $regex: `PAYOUT_${payout._id}` } },
+                { status: 'failed', $set: { 'metadata.failureReason': payout.failureReason, fixedAt: new Date() } }
+              );
+
+              results.push({ payoutId: payout._id, status: 'failed', message: 'Marked as failed per Paystack and refunded' });
+              console.log(`❌ Fixed payout ${payout._id} - marked as failed (verified) and refunded`);
+            } else {
+              // pending/other → leave as processing; no change
+              results.push({ payoutId: payout._id, status: 'skipped', message: `Still ${transferDetails.status} on Paystack` });
+              console.log(`⏳ Skipped payout ${payout._id} - Paystack status: ${transferDetails.status}`);
+            }
+          } catch (psErr) {
+            // If Paystack lookup fails, skip rather than making assumptions
+            results.push({ payoutId: payout._id, status: 'skipped', message: `Could not verify with Paystack: ${psErr.message}` });
+            console.warn(`⚠️ Skip payout ${payout._id} - Paystack lookup failed: ${psErr.message}`);
+          }
         } else {
-          // No Paystack reference - mark as failed
-          payout.status = 'failed';
-          payout.failureReason = 'No Paystack reference found - transfer may have failed';
-          payout.processedAt = new Date();
+          // No Paystack reference -> do NOT refund automatically.
+          // Re-queue by moving back to pending and triggering immediate attempt.
+          payout.status = 'pending';
+          payout.nextAttemptAt = new Date();
+          // Guard required fields for legacy docs
+          if (payout.netAmount == null) {
+            const fee = payout.transferFee != null ? Number(payout.transferFee) : 50;
+            payout.transferFee = fee;
+            const amt = Number(payout.amount || 0);
+            payout.netAmount = Math.max(0, amt - fee);
+          }
           await payout.save();
 
-          // Refund wallet
-          const wallet = await Wallet.findOne({
-            user: payout.userId,
-            role: payout.userType.toLowerCase()
-          });
-
-          if (wallet) {
-            await Wallet.findByIdAndUpdate(
-              wallet._id,
-              { $inc: { balance: payout.amount } }
-            );
-            console.log(`💰 Refunded ₦${payout.amount} to wallet for failed payout ${payout._id}`);
-          }
-
           results.push({ 
             payoutId: payout._id, 
-            status: 'failed', 
-            message: 'Marked as failed - no Paystack reference, refunded wallet' 
+            status: 'requeued', 
+            message: 'Moved back to pending; will be retried by queue' 
           });
           
-          console.log(`❌ Fixed payout ${payout._id} - marked as failed and refunded`);
+          console.log(`🔁 Re-queued payout ${payout._id} - moved to pending for retry`);
         }
 
       } catch (error) {
@@ -1180,6 +1443,42 @@ const resetPin = async (req, res) => {
   }
 };
 
+// Admin: list payouts with queue info
+const listPayoutsAdmin = async (req, res) => {
+  try {
+    const { status, page = 1, limit = 20 } = req.query;
+    const query = {};
+    if (status) query.status = status;
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [items, total] = await Promise.all([
+      PayoutRequest.find(query)
+        .populate('bankAccountId')
+        .populate({ path: 'userId', select: 'fullName businessName email phoneNumber role' })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit)),
+      PayoutRequest.countDocuments(query)
+    ]);
+
+    res.json({
+      success: true,
+      data: items,
+      page: Number(page),
+      limit: Number(limit),
+      total,
+      totalPages: Math.ceil(total / Number(limit)) || 1
+    });
+  } catch (error) {
+    console.error('Error listing payouts (admin):', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to list payouts'
+    });
+  }
+};
+
 module.exports = {
   requestPayout,
   processPayouts,
@@ -1190,7 +1489,9 @@ module.exports = {
   setPayoutPin,
   checkPayoutPinStatus,
   requestPinReset,
-  resetPin
+  resetPin,
+  processPayoutQueue,
+  listPayoutsAdmin
 };
 
 

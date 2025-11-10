@@ -233,6 +233,14 @@ const NOTIFICATION_TYPES = {
     title: '📢 Platform Announcement',
     getMessage: (title, message) => `${title}: ${message}`,
   },
+  ADMIN_PAYOUT_REQUESTED: {
+    title: '💸 Payout Requested',
+    getMessage: (amount, userType) => `New payout request: ₦${amount} from ${userType}`,
+  },
+  ADMIN_LOW_PAYSTACK_BALANCE: {
+    title: '⚠️ Low Paystack Balance',
+    getMessage: (current, threshold) => `Paystack balance low: ₦${current}. Threshold: ₦${threshold}`,
+  },
 
   // Chat & Messaging Notifications
   NEW_MESSAGE: {

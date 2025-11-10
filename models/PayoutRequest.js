@@ -36,6 +36,13 @@ const payoutRequestSchema = new mongoose.Schema({
     enum: ['pending', 'processing', 'completed', 'failed', 'reversed'],
     default: 'pending'
   },
+  // Deterministic, idempotent reference we use when initiating a Paystack transfer
+  transferReference: {
+    type: String,
+    index: true,
+    unique: true,
+    sparse: true
+  },
   paystackReference: { 
     type: String 
   },
@@ -51,6 +58,17 @@ const payoutRequestSchema = new mongoose.Schema({
   metadata: {
     type: mongoose.Schema.Types.Mixed,
     default: {}
+  },
+  // Lightweight retry/queue controls for low Paystack balance scenarios
+  attempts: {
+    type: Number,
+    default: 0
+  },
+  nextAttemptAt: {
+    type: Date
+  },
+  queuedAt: {
+    type: Date
   }
 }, { timestamps: true });
 

@@ -150,7 +150,7 @@ const protectAnyUser = asyncHandler(async (req, res, next) => {
 
     if (admin) {
       user = admin;
-      role = 'staff';
+      role = 'admin';
     } else if (vendor) {
       user = vendor;
       role = 'vendor';

@@ -755,7 +755,7 @@ const paystackService = {
     }
   },
 
-  async initiateTransfer(recipientCode, amount, description) {
+  async initiateTransfer(recipientCode, amount, description, reference) {
     try {
       console.log('💸 Initiating transfer:', { recipientCode, amount, description });
 
@@ -765,7 +765,9 @@ const paystackService = {
           source: 'balance',
           amount: amount * 100, // Convert naira to kobo
           recipient: recipientCode,
-          reason: description
+          reason: description,
+          // Using a deterministic reference prevents double transfers on retries
+          ...(reference ? { reference } : {})
         },
         {
           headers: {
