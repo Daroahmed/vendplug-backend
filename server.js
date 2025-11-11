@@ -95,6 +95,9 @@ const generalApiLimiter = rateLimit({
                                 path.includes('/shop-agents') || 
                                 path.includes('/vendor-products/shop') ||
                                 path.includes('/agent-products/shop') ||
+                                // direct product lists for a single vendor/agent (public shop views)
+                                path.includes('/vendor-products/vendor/') ||
+                                path.includes('/agent-products/agent/') ||
                                 path.includes('/products/search') ||
                                 path.includes('/product-search');
     
@@ -129,6 +132,12 @@ const generalApiLimiter = rateLimit({
                                 path.includes('/transactions') ||
                                 // Unread chat badge polling
                                 path.includes('/chats/unread-count');
+
+    // Public vendor/agent profile pages (direct entity fetch for shop/business views)
+    // Treat these like browsing endpoints to avoid surprising rate-limits during discovery
+    const isPublicProfileEndpoint =
+      /\/vendors\/[a-f0-9]{24}$/i.test(path) ||
+      /\/agents\/[a-f0-9]{24}$/i.test(path);
     
     return (
       isBrowsingEndpoint ||
@@ -137,6 +146,7 @@ const generalApiLimiter = rateLimit({
       isWebhook ||
       isHealth ||
       isBanks ||
+      isPublicProfileEndpoint ||
       isDashboardEndpoint
     );
   }
