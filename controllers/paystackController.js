@@ -348,32 +348,74 @@ async function creditWalletFromReference(reference, paystackData) {
     }
 }
 
+// Simple in-memory cache for banks list (24h TTL)
+let banksCache = { data: null, fetchedAt: 0 };
+const BANKS_TTL_MS = 24 * 60 * 60 * 1000;
+
 /**
- * Get list of Nigerian banks for transfer setup
+ * Get list of Nigerian banks for transfer setup (with 24h cache)
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  */
 const getBanks = async (req, res) => {
   try {
-    console.log('🏦 Fetching Nigerian banks list');
+    const now = Date.now();
+    const fresh = banksCache.data && (now - banksCache.fetchedAt) < BANKS_TTL_MS;
 
+    if (fresh) {
+      return res.json({
+        success: true,
+        message: 'Banks list (cache)',
+        data: banksCache.data,
+        fromCache: true,
+        cachedAt: new Date(banksCache.fetchedAt).toISOString()
+      });
+    }
+
+    console.log('🏦 Fetching Nigerian banks list (Paystack)');
     const banksResult = await paystackService.getBanks();
 
     if (!banksResult.success) {
+      // Fall back to cache if we have one
+      if (banksCache.data) {
+        return res.json({
+          success: true,
+          message: 'Banks list (stale cache)',
+          data: banksCache.data,
+          fromCache: true,
+          cachedAt: new Date(banksCache.fetchedAt).toISOString(),
+          warning: banksResult.error || 'Upstream fetch failed; served cached data'
+        });
+      }
       return res.status(400).json({
         success: false,
         message: banksResult.error || 'Failed to fetch banks'
       });
     }
 
+    // Cache result
+    banksCache = { data: banksResult.data, fetchedAt: now };
+
     res.json({
       success: true,
       message: 'Banks list fetched successfully',
-      data: banksResult.data
+      data: banksResult.data,
+      fromCache: false
     });
 
   } catch (error) {
     console.error('❌ Banks fetch failed:', error);
+    // Fall back to cache if available
+    if (banksCache.data) {
+      return res.json({
+        success: true,
+        message: 'Banks list (stale cache)',
+        data: banksCache.data,
+        fromCache: true,
+        cachedAt: new Date(banksCache.fetchedAt).toISOString(),
+        warning: error.message
+      });
+    }
     res.status(500).json({
       success: false,
       message: 'Failed to fetch banks',

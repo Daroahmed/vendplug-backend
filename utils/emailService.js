@@ -22,8 +22,107 @@ if (!process.env.EMAIL_USER || (!process.env.EMAIL_PASSWORD && !process.env.EMAI
   console.warn('⚠️ Email credentials not configured. Check your .env file.');
 }
 
+// ------------------------
+// Email rendering helpers
+// ------------------------
+function getLogoUrl() {
+  // Priority: explicit EMAIL_LOGO_URL
+  if (process.env.EMAIL_LOGO_URL) return process.env.EMAIL_LOGO_URL;
+
+  // Derive from known public base URL if available
+  let base =
+    process.env.FRONTEND_URL ||
+    process.env.SERVER_URL ||
+    process.env.BACKEND_URL ||
+    '';
+
+  if (base) {
+    // Remove trailing /api if present
+    base = base.replace(/\/api\/?$/, '');
+    return `${base}/logo1.png`;
+  }
+
+  // Final fallback to a generic placeholder (HTTPS to avoid mixed content)
+  return 'https://via.placeholder.com/120x40.png?text=Vendplug';
+}
+
+function buildEmailHtml({ title, preheader, heading, introHtml, actionText, actionUrl, footerHtml, uniqueLine }) {
+  const safePreheader = (preheader || '').replace(/\s+/g, ' ').trim();
+  const safeUnique = (uniqueLine || '').replace(/\s+/g, ' ').trim();
+  const btn = actionText && actionUrl ? `
+      <div style="text-align:center;margin:18px 0 4px 0;">
+        <a href="${actionUrl}" style="background-color:#00cc99;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:6px;display:inline-block;font-weight:600">
+          ${actionText}
+        </a>
+      </div>
+  ` : '';
+
+  return `<!doctype html>
+  <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <meta http-equiv="x-ua-compatible" content="ie=edge">
+      <title>${title || 'Vendplug'}</title>
+      <style>
+        @media (prefers-color-scheme: dark) {
+          body{background:#0b0f14 !important;color:#e5e7eb !important}
+          .card{background:#0f1720 !important}
+        }
+      </style>
+    </head>
+    <body style="margin:0;padding:0;background-color:#f5f7fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,'Noto Sans',sans-serif;color:#111827">
+      <span style="display:none !important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;overflow:hidden">${safePreheader}</span>
+      <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+          <td align="center" style="padding:32px 12px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:640px">
+              <tr>
+                <td style="text-align:center;padding-bottom:16px">
+                  <img src="${getLogoUrl()}" alt="Vendplug" height="40" style="display:inline-block;border:0"/>
+                </td>
+              </tr>
+              <tr>
+                <td class="card" style="background:#ffffff;border-radius:12px;padding:28px 24px;box-shadow:0 2px 10px rgba(0,0,0,0.06)">
+                  <div style="color:#6b7280;font-size:12px;margin-bottom:8px">${safeUnique}</div>
+                  <h1 style="margin:0;font-size:22px;line-height:28px;color:#111827">${heading || ''}</h1>
+                  <div style="margin-top:12px;font-size:14px;line-height:22px;color:#111827">
+                    ${introHtml || ''}
+                  </div>
+                  ${btn}
+                  ${footerHtml ? `<div style="margin-top:20px;font-size:12px;color:#6b7280">${footerHtml}</div>` : ''}
+                </td>
+              </tr>
+              <tr>
+                <td style="text-align:center;color:#9ca3af;font-size:11px;padding-top:16px">
+                  © ${new Date().getFullYear()} Vendplug • This is an automated message
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+  </html>`;
+}
+
+function buildEmailText({ heading, introText, actionText, actionUrl, footerText, uniqueLine }) {
+  const parts = [];
+  if (uniqueLine) parts.push(`${uniqueLine}`);
+  if (heading) parts.push(heading);
+  if (introText) parts.push('', introText);
+  if (actionText && actionUrl) {
+    parts.push('', `${actionText}: ${actionUrl}`);
+  } else if (actionUrl) {
+    parts.push('', `${actionUrl}`);
+  }
+  if (footerText) parts.push('', footerText);
+  parts.push('', '— Vendplug');
+  return parts.join('\n');
+}
+
 // Lightweight HTTP sender using Resend API (preferred in production)
-async function sendViaResend(to, subject, html) {
+async function sendViaResend(to, subject, payload) {
   if (!process.env.RESEND_API_KEY) {
     throw new Error('RESEND_API_KEY not configured');
   }
@@ -33,6 +132,10 @@ async function sendViaResend(to, subject, html) {
     throw new Error('RESEND_FROM/EMAIL_FROM not configured');
   }
 
+  const body = typeof payload === 'string'
+    ? { from, to: [to], subject, html: payload }
+    : { from, to: [to], subject, html: payload.html, text: payload.text };
+
   console.log(`📤 Attempting to send email via Resend to: ${to}`);
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -40,7 +143,7 @@ async function sendViaResend(to, subject, html) {
       'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ from, to: [to], subject, html })
+    body: JSON.stringify(body)
   });
 
   if (!res.ok) {
@@ -108,6 +211,11 @@ async function sendVerificationEmail(email, token) {
   if (await tryEnqueueEmail(job)) return true;
   // fallback: run old logic
   try {
+    const nowIso = new Date().toISOString();
+    const tokenStr = (token || '').toString();
+    const masked = tokenStr ? `•••${tokenStr.slice(-6)}` : '';
+    const uniqueLine = masked ? `Ref: ${masked} • ${nowIso}` : `Ref: ${nowIso}`;
+
     // Prefer Resend if configured (no SMTP egress required)
     if (process.env.RESEND_API_KEY) {
       let baseUrl = process.env.FRONTEND_URL;
@@ -122,22 +230,28 @@ async function sendVerificationEmail(email, token) {
         }
       }
       const verificationLink = `${baseUrl}/verify-email.html?token=${token}`;
-      const html = `
-        <h2>Welcome to Vendplug!</h2>
-        <p>Thank you for registering. Please click the link below to verify your email address:</p>
-        <a href="${verificationLink}" style="
-          background-color: #00cc99;
-          color: white;
-          padding: 10px 20px;
-          text-decoration: none;
-          border-radius: 5px;
-          display: inline-block;
-          margin: 10px 0;
-        ">Verify Email</a>
-        <p>If you didn't create an account with Vendplug, please ignore this email.</p>
-        <p>This link will expire in 24 hours.</p>
-      `;
-      await sendViaResend(email, 'Verify Your Vendplug Account', html);
+
+      const html = buildEmailHtml({
+        title: 'Verify Your Vendplug Account',
+        preheader: 'Confirm your email to activate your Vendplug account.',
+        heading: 'Verify your email',
+        introHtml: `Thank you for registering. Click the button below to verify your email address and activate your account.`,
+        actionText: 'Verify Email',
+        actionUrl: verificationLink,
+        footerHtml: `If you didn’t create an account with Vendplug, you can safely ignore this message.<br/>This link will expire in 24 hours.`,
+        uniqueLine
+      });
+
+      const text = buildEmailText({
+        heading: 'Verify your email',
+        introText: 'Thank you for registering. Open the link below to verify your email and activate your account.',
+        actionText: 'Verify Email',
+        actionUrl: verificationLink,
+        footerText: 'If you did not create an account, ignore this message. Link expires in 24 hours.',
+        uniqueLine
+      });
+
+      await sendViaResend(email, 'Verify Your Vendplug Account', { html, text });
       console.log('✉️ Verification email sent successfully via Resend to:', email);
       return true;
     }
@@ -177,25 +291,32 @@ async function sendVerificationEmail(email, token) {
     console.log('  - token:', token);
     console.log('  - full verification link:', verificationLink);
     
+    const html = buildEmailHtml({
+      title: 'Verify Your Vendplug Account',
+      preheader: 'Confirm your email to activate your Vendplug account.',
+      heading: 'Verify your email',
+      introHtml: `Thank you for registering. Click the button below to verify your email address and activate your account.`,
+      actionText: 'Verify Email',
+      actionUrl: verificationLink,
+      footerHtml: `If you didn’t create an account with Vendplug, you can safely ignore this message.<br/>This link will expire in 24 hours.`,
+      uniqueLine
+    });
+
+    const text = buildEmailText({
+      heading: 'Verify your email',
+      introText: 'Thank you for registering. Open the link below to verify your email and activate your account.',
+      actionText: 'Verify Email',
+      actionUrl: verificationLink,
+      footerText: 'If you did not create an account, ignore this message. Link expires in 24 hours.',
+      uniqueLine
+    });
+
     const mailOptions = {
       from: `"Vendplug" <${process.env.EMAIL_USER}>`, // Use authenticated email
       to: email,
       subject: 'Verify Your Vendplug Account',
-      html: `
-        <h2>Welcome to Vendplug!</h2>
-        <p>Thank you for registering. Please click the link below to verify your email address:</p>
-        <a href="${verificationLink}" style="
-          background-color: #00cc99;
-          color: white;
-          padding: 10px 20px;
-          text-decoration: none;
-          border-radius: 5px;
-          display: inline-block;
-          margin: 10px 0;
-        ">Verify Email</a>
-        <p>If you didn't create an account with Vendplug, please ignore this email.</p>
-        <p>This link will expire in 24 hours.</p>
-      `
+      html,
+      text
     };
 
     const result = await transporter.sendMail(mailOptions);
@@ -215,6 +336,11 @@ async function sendPasswordResetEmail(email, token) {
   if (await tryEnqueueEmail(job)) return true;
   // fallback: existing code
   try {
+    const nowIso = new Date().toISOString();
+    const tokenStr = (token || '').toString();
+    const masked = tokenStr ? `•••${tokenStr.slice(-6)}` : '';
+    const uniqueLine = masked ? `Ref: ${masked} • ${nowIso}` : `Ref: ${nowIso}`;
+
     // Prefer Resend if configured
     if (process.env.RESEND_API_KEY) {
       let baseUrl = process.env.FRONTEND_URL;
@@ -229,22 +355,28 @@ async function sendPasswordResetEmail(email, token) {
         }
       }
       const resetLink = `${baseUrl}/reset-password.html?token=${token}`;
-      const html = `
-        <h2>Password Reset Request</h2>
-        <p>You requested to reset your password. Please click the link below to set a new password:</p>
-        <a href="${resetLink}" style="
-          background-color: #ff6b6b;
-          color: white;
-          padding: 10px 20px;
-          text-decoration: none;
-          border-radius: 5px;
-          display: inline-block;
-          margin: 10px 0;
-        ">Reset Password</a>
-        <p>If you didn't request a password reset, please ignore this email.</p>
-        <p>This link will expire in 1 hour.</p>
-      `;
-      await sendViaResend(email, 'Reset Your Vendplug Password', html);
+
+      const html = buildEmailHtml({
+        title: 'Reset Your Vendplug Password',
+        preheader: 'Use the secure link to reset your Vendplug password.',
+        heading: 'Password reset request',
+        introHtml: `You requested to reset your password. Click the button below to set a new password.`,
+        actionText: 'Reset Password',
+        actionUrl: resetLink,
+        footerHtml: `If you didn’t request this, please ignore this email.<br/>This link will expire in 1 hour.`,
+        uniqueLine
+      });
+
+      const text = buildEmailText({
+        heading: 'Password reset request',
+        introText: 'You requested to reset your password. Open the link below to set a new password.',
+        actionText: 'Reset Password',
+        actionUrl: resetLink,
+        footerText: 'If you did not request this, ignore this message. Link expires in 1 hour.',
+        uniqueLine
+      });
+
+      await sendViaResend(email, 'Reset Your Vendplug Password', { html, text });
       console.log('✉️ Password reset email sent successfully via Resend to:', email);
       return true;
     }
@@ -279,25 +411,32 @@ async function sendPasswordResetEmail(email, token) {
     
     const resetLink = `${baseUrl}/reset-password.html?token=${token}`;
     
+    const html = buildEmailHtml({
+      title: 'Reset Your Vendplug Password',
+      preheader: 'Use the secure link to reset your Vendplug password.',
+      heading: 'Password reset request',
+      introHtml: `You requested to reset your password. Click the button below to set a new password.`,
+      actionText: 'Reset Password',
+      actionUrl: resetLink,
+      footerHtml: `If you didn’t request this, please ignore this email.<br/>This link will expire in 1 hour.`,
+      uniqueLine
+    });
+
+    const text = buildEmailText({
+      heading: 'Password reset request',
+      introText: 'You requested to reset your password. Open the link below to set a new password.',
+      actionText: 'Reset Password',
+      actionUrl: resetLink,
+      footerText: 'If you did not request this, ignore this message. Link expires in 1 hour.',
+      uniqueLine
+    });
+
     const mailOptions = {
       from: `"Vendplug" <${process.env.EMAIL_USER}>`, // Use authenticated email
       to: email,
       subject: 'Reset Your Vendplug Password',
-      html: `
-        <h2>Password Reset Request</h2>
-        <p>You requested to reset your password. Please click the link below to set a new password:</p>
-        <a href="${resetLink}" style="
-          background-color: #ff6b6b;
-          color: white;
-          padding: 10px 20px;
-          text-decoration: none;
-          border-radius: 5px;
-          display: inline-block;
-          margin: 10px 0;
-        ">Reset Password</a>
-        <p>If you didn't request a password reset, please ignore this email.</p>
-        <p>This link will expire in 1 hour.</p>
-      `
+      html,
+      text
     };
 
     const result = await transporter.sendMail(mailOptions);
@@ -317,40 +456,34 @@ async function sendPinResetEmail(email, resetCode, userType) {
   if (await tryEnqueueEmail(job)) return true;
   // fallback: existing code
   try {
+    const nowIso = new Date().toISOString();
+    const uniqueLine = `Ref: ${String(resetCode).slice(0, 4)} • ${nowIso}`;
+
     // Prefer Resend if configured
     if (process.env.RESEND_API_KEY) {
-      const html = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
-          <div style="background: linear-gradient(135deg, #00cc99, #00a67e); color: white; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-            <h1 style="margin: 0; font-size: 28px;">🔐 PIN Reset Request</h1>
-            <p style="margin: 10px 0 0 0; font-size: 16px;">Your ${userType} payout PIN reset code</p>
-          </div>
-          
-          <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <h2 style="color: #333; margin-top: 0;">Hello!</h2>
-            <p style="color: #666; font-size: 16px; line-height: 1.6;">You requested to reset your payout PIN for your ${userType.toLowerCase()} account. Use the code below to complete the reset process:</p>
-            
-            <div style="background: #f8f9fa; border: 2px dashed #00cc99; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
-              <div style="font-size: 32px; font-weight: bold; color: #00cc99; letter-spacing: 4px; font-family: monospace;">${resetCode}</div>
-              <p style="color: #666; margin: 10px 0 0 0; font-size: 14px;">Enter this code in the PIN reset form</p>
-            </div>
-            
-            <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 15px; margin: 20px 0;">
-              <p style="margin: 0; color: #856404; font-size: 14px;">
-                <strong>⏰ Important:</strong> This code will expire in 15 minutes for security reasons.
-              </p>
-            </div>
-            
-            <p style="color: #666; font-size: 14px; line-height: 1.6;">If you didn't request this PIN reset, please ignore this email. Your account remains secure.</p>
-            
-            <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px; text-align: center;">
-              <p style="color: #999; font-size: 12px; margin: 0;">This is an automated message from Vendplug Escrow System</p>
-            </div>
-          </div>
-        </div>
-      `;
-      
-      await sendViaResend(email, `PIN Reset Code - ${userType} Account`, html);
+      const html = buildEmailHtml({
+        title: `PIN Reset Code - ${userType} Account`,
+        preheader: 'Use the verification code to complete your PIN reset.',
+        heading: 'PIN reset code',
+        introHtml: `You requested to reset your payout PIN for your ${userType.toLowerCase()} account. Use the code below to complete the reset process:` +
+          `<div style="background:#f8f9fa;border:2px dashed #00cc99;border-radius:8px;padding:18px 20px;text-align:center;margin:16px 0">
+             <div style="font-size:28px;font-weight:700;color:#00cc99;letter-spacing:4px;font-family:monospace">${resetCode}</div>
+             <div style="color:#6b7280;margin-top:8px;font-size:12px">Enter this code in the PIN reset form</div>
+           </div>`,
+        footerHtml: `This code will expire in 15 minutes for security reasons.<br/>If you didn’t request this, please ignore this email.`,
+        uniqueLine
+      });
+
+      const text = buildEmailText({
+        heading: 'PIN reset code',
+        introText: `Use this code to complete your ${userType.toLowerCase()} payout PIN reset:`,
+        actionText: 'PIN Code',
+        actionUrl: String(resetCode),
+        footerText: 'Code expires in 15 minutes. If you did not request this, ignore this message.',
+        uniqueLine
+      });
+
+      await sendViaResend(email, `PIN Reset Code - ${userType} Account`, { html, text });
       console.log('✉️ PIN reset email sent successfully via Resend to:', email);
       return true;
     }
@@ -366,40 +499,34 @@ async function sendPinResetEmail(email, resetCode, userType) {
       throw new Error('Email service not available - SMTP connection failed');
     }
 
+    const html = buildEmailHtml({
+      title: `PIN Reset Code - ${userType} Account`,
+      preheader: 'Use the verification code to complete your PIN reset.',
+      heading: 'PIN reset code',
+      introHtml: `You requested to reset your payout PIN for your ${userType.toLowerCase()} account. Use the code below to complete the reset process:` +
+        `<div style="background:#f8f9fa;border:2px dashed #00cc99;border-radius:8px;padding:18px 20px;text-align:center;margin:16px 0">
+           <div style="font-size:28px;font-weight:700;color:#00cc99;letter-spacing:4px;font-family:monospace">${resetCode}</div>
+           <div style="color:#6b7280;margin-top:8px;font-size:12px">Enter this code in the PIN reset form</div>
+         </div>`,
+      footerHtml: `This code will expire in 15 minutes for security reasons.<br/>If you didn’t request this, please ignore this email.`,
+      uniqueLine
+    });
+
+    const text = buildEmailText({
+      heading: 'PIN reset code',
+      introText: `Use this code to complete your ${userType.toLowerCase()} payout PIN reset:`,
+      actionText: 'PIN Code',
+      actionUrl: String(resetCode),
+      footerText: 'Code expires in 15 minutes. If you did not request this, ignore this message.',
+      uniqueLine
+    });
+
     const mailOptions = {
       from: `"Vendplug" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: `PIN Reset Code - ${userType} Account`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
-          <div style="background: linear-gradient(135deg, #00cc99, #00a67e); color: white; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-            <h1 style="margin: 0; font-size: 28px;">🔐 PIN Reset Request</h1>
-            <p style="margin: 10px 0 0 0; font-size: 16px;">Your ${userType} payout PIN reset code</p>
-          </div>
-          
-          <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <h2 style="color: #333; margin-top: 0;">Hello!</h2>
-            <p style="color: #666; font-size: 16px; line-height: 1.6;">You requested to reset your payout PIN for your ${userType.toLowerCase()} account. Use the code below to complete the reset process:</p>
-            
-            <div style="background: #f8f9fa; border: 2px dashed #00cc99; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
-              <div style="font-size: 32px; font-weight: bold; color: #00cc99; letter-spacing: 4px; font-family: monospace;">${resetCode}</div>
-              <p style="color: #666; margin: 10px 0 0 0; font-size: 14px;">Enter this code in the PIN reset form</p>
-            </div>
-            
-            <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 15px; margin: 20px 0;">
-              <p style="margin: 0; color: #856404; font-size: 14px;">
-                <strong>⏰ Important:</strong> This code will expire in 15 minutes for security reasons.
-              </p>
-            </div>
-            
-            <p style="color: #666; font-size: 14px; line-height: 1.6;">If you didn't request this PIN reset, please ignore this email. Your account remains secure.</p>
-            
-            <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px; text-align: center;">
-              <p style="color: #999; font-size: 12px; margin: 0;">This is an automated message from Vendplug Escrow System</p>
-            </div>
-          </div>
-        </div>
-      `
+      html,
+      text
     };
 
     const result = await transporter.sendMail(mailOptions);
