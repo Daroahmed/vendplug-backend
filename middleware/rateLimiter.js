@@ -22,6 +22,24 @@ const authLimiter = rateLimit({
   skipSuccessfulRequests: true,
   // Count failed requests to detect brute force attacks
   skipFailedRequests: false,
+  // Key by IP + credential identifier to avoid one shared IP blocking everyone
+  keyGenerator: (req /*, res */) => {
+    const ip =
+      req.ip ||
+      req.headers['x-forwarded-for'] ||
+      (req.connection && req.connection.remoteAddress) ||
+      'unknown';
+    let identifier = '';
+    try {
+      const body = req.body || {};
+      identifier = String(
+        (body.email || body.username || body.user || '').toString().trim().toLowerCase()
+      );
+    } catch (_) {
+      // no-op
+    }
+    return `${ip}:${identifier}`;
+  },
   // Store rate limit info in memory (can be upgraded to Redis for distributed systems)
   store: undefined,
 });
@@ -138,8 +156,8 @@ const dashboardLimiter = rateLimit({
 
 // Very lenient limiter for token refresh (needed for session management)
 const refreshLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 30, // Allow 30 refresh requests per minute (should be enough for auto-refresh)
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 60, // Allow 60 refresh requests per 5 minutes
   message: {
     success: false,
     message: 'Too many refresh requests. Please wait a moment.'

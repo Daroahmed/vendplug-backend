@@ -71,10 +71,10 @@ app.use((req, res, next) => {
 const { apiLimiter } = require('./middleware/rateLimiter');
 const rateLimit = require('express-rate-limit');
 
-// Custom apiLimiter that skips browsing endpoints (they have their own limiter)
+// Custom apiLimiter that skips browsing endpoints and sensitive/auth endpoints (they have their own limiter)
 const generalApiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 600, // Higher ceiling for general API traffic
   message: {
     success: false,
     message: 'Too many requests. Please slow down.'
@@ -98,8 +98,20 @@ const generalApiLimiter = rateLimit({
                                 path.includes('/products/search') ||
                                 path.includes('/product-search');
     
+    // Skip auth endpoints (they have dedicated limiters)
+    const isAuthEndpoint =
+      path.includes('/auth/') || // /api/auth/...
+      /\/(vendors|agents|buyers|staff|admin)\/login/i.test(path) ||
+      /\/(vendors|agents|buyers)\/register/i.test(path) ||
+      path.includes('/logout');
     // Skip refresh token endpoint (it has refreshLimiter)
     const isRefreshEndpoint = path.includes('/auth/refresh');
+    // Skip webhook endpoints (external systems)
+    const isWebhook = path.includes('/webhooks') || path.includes('/paystack/webhook');
+    // Skip health checks
+    const isHealth = path.endsWith('/health') || path === '/api/health';
+    // Skip Paystack banks endpoint (we add server-side caching)
+    const isBanks = path.includes('/paystack/banks');
     
     // Skip dashboard endpoints (they have dashboardLimiter)
     // These are authenticated endpoints that are polled frequently
@@ -118,7 +130,15 @@ const generalApiLimiter = rateLimit({
                                 // Unread chat badge polling
                                 path.includes('/chats/unread-count');
     
-    return isBrowsingEndpoint || isRefreshEndpoint || isDashboardEndpoint;
+    return (
+      isBrowsingEndpoint ||
+      isAuthEndpoint ||
+      isRefreshEndpoint ||
+      isWebhook ||
+      isHealth ||
+      isBanks ||
+      isDashboardEndpoint
+    );
   }
 });
 
