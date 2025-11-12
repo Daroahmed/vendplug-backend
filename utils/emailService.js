@@ -25,13 +25,12 @@ if (!process.env.EMAIL_USER || (!process.env.EMAIL_PASSWORD && !process.env.EMAI
 // ------------------------
 // Email rendering helpers
 // ------------------------
-function getLogoUrl() {
-  // Priority: explicit EMAIL_LOGO_URL
-  if (process.env.EMAIL_LOGO_URL) return process.env.EMAIL_LOGO_URL;
-
-  // Derive from known public base URL if available
+function getPublicBaseUrl() {
+  // Try multiple env names; first non-empty wins
   let base =
+    process.env.PUBLIC_URL ||
     process.env.FRONTEND_URL ||
+    process.env.WEB_URL ||
     process.env.SERVER_URL ||
     process.env.BACKEND_URL ||
     '';
@@ -39,8 +38,23 @@ function getLogoUrl() {
   if (base) {
     // Remove trailing /api if present
     base = base.replace(/\/api\/?$/, '');
-    return `${base}/logo1.png`;
+    // Ensure protocol
+    if (!/^https?:\/\//i.test(base)) {
+      const preferHttps = process.env.NODE_ENV === 'production';
+      base = `${preferHttps ? 'https' : 'http'}://${base}`;
+    }
+    // Remove trailing slash for consistent join
+    base = base.replace(/\/+$/, '');
   }
+  return base;
+}
+
+function getLogoUrl() {
+  // Priority: explicit EMAIL_LOGO_URL
+  if (process.env.EMAIL_LOGO_URL) return process.env.EMAIL_LOGO_URL;
+
+  const base = getPublicBaseUrl();
+  if (base) return `${base}/logo1.png`;
 
   // Final fallback to a generic placeholder (HTTPS to avoid mixed content)
   return 'https://via.placeholder.com/120x40.png?text=Vendplug';
@@ -218,11 +232,7 @@ async function sendVerificationEmail(email, token) {
 
     // Prefer Resend if configured (no SMTP egress required)
     if (process.env.RESEND_API_KEY) {
-      let baseUrl = process.env.FRONTEND_URL;
-      if (!baseUrl) {
-        const serverUrl = process.env.SERVER_URL || process.env.BACKEND_URL || 'http://localhost:5000';
-        baseUrl = serverUrl.replace('/api', '');
-      }
+      let baseUrl = getPublicBaseUrl() || 'http://localhost:5000';
       if (baseUrl.includes('localhost') && process.env.NODE_ENV === 'development') {
         const devIp = process.env.DEV_IP;
         if (devIp) {
@@ -251,6 +261,7 @@ async function sendVerificationEmail(email, token) {
         uniqueLine
       });
 
+      console.log('✉️ Using Resend with base URL:', baseUrl);
       await sendViaResend(email, 'Verify Your Vendplug Account', { html, text });
       console.log('✉️ Verification email sent successfully via Resend to:', email);
       return true;
@@ -267,13 +278,8 @@ async function sendVerificationEmail(email, token) {
       throw new Error('Email service not available - SMTP connection failed');
     }
 
-    // Use environment variable or try to detect the actual server URL
-    let baseUrl = process.env.FRONTEND_URL;
-    if (!baseUrl) {
-      // Try to get the actual server IP/domain
-             const serverUrl = process.env.SERVER_URL || process.env.BACKEND_URL || 'http://localhost:5000';
-       baseUrl = serverUrl.replace('/api', ''); // Remove /api if present
-     }
+    // Use normalized public base URL
+    let baseUrl = getPublicBaseUrl() || 'http://localhost:5000';
      
      // For development, use your computer's IP address so phone can access it
      if (baseUrl.includes('localhost') && process.env.NODE_ENV === 'development') {
@@ -287,7 +293,7 @@ async function sendVerificationEmail(email, token) {
     const verificationLink = `${baseUrl}/verify-email.html?token=${token}`;
     
     console.log('🔍 Email verification debug:');
-    console.log('  - baseUrl:', baseUrl);
+    console.log('  - baseUrl (SMTP):', baseUrl);
     console.log('  - token:', token);
     console.log('  - full verification link:', verificationLink);
     
@@ -343,11 +349,7 @@ async function sendPasswordResetEmail(email, token) {
 
     // Prefer Resend if configured
     if (process.env.RESEND_API_KEY) {
-      let baseUrl = process.env.FRONTEND_URL;
-      if (!baseUrl) {
-        const serverUrl = process.env.SERVER_URL || process.env.BACKEND_URL || 'http://localhost:5000';
-        baseUrl = serverUrl.replace('/api', '');
-      }
+      let baseUrl = getPublicBaseUrl() || 'http://localhost:5000';
       if (baseUrl.includes('localhost') && process.env.NODE_ENV === 'development') {
         const devIp = process.env.DEV_IP;
         if (devIp) {
@@ -376,6 +378,7 @@ async function sendPasswordResetEmail(email, token) {
         uniqueLine
       });
 
+      console.log('✉️ Using Resend with base URL:', baseUrl);
       await sendViaResend(email, 'Reset Your Vendplug Password', { html, text });
       console.log('✉️ Password reset email sent successfully via Resend to:', email);
       return true;
@@ -392,13 +395,8 @@ async function sendPasswordResetEmail(email, token) {
       throw new Error('Email service not available - SMTP connection failed');
     }
 
-    // Use environment variable or try to detect the actual server URL
-    let baseUrl = process.env.FRONTEND_URL;
-    if (!baseUrl) {
-      // Try to get the actual server IP/domain
-             const serverUrl = process.env.SERVER_URL || process.env.BACKEND_URL || 'http://localhost:5000';
-       baseUrl = serverUrl.replace('/api', ''); // Remove /api if present
-     }
+    // Use normalized public base URL
+    let baseUrl = getPublicBaseUrl() || 'http://localhost:5000';
      
      // For development, use your computer's IP address so phone can access it
      if (baseUrl.includes('localhost') && process.env.NODE_ENV === 'development') {
