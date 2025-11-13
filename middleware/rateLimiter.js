@@ -157,7 +157,7 @@ const dashboardLimiter = rateLimit({
 // Very lenient limiter for token refresh (needed for session management)
 const refreshLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 60, // Allow 60 refresh requests per 5 minutes
+  max: 120, // Allow 120 refresh requests per 5 minutes
   message: {
     success: false,
     message: 'Too many refresh requests. Please wait a moment.'

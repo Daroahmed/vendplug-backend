@@ -74,7 +74,7 @@ const rateLimit = require('express-rate-limit');
 // Custom apiLimiter that skips browsing endpoints and sensitive/auth endpoints (they have their own limiter)
 const generalApiLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 600, // Higher ceiling for general API traffic
+  max: 1000, // Higher ceiling for general API traffic
   message: {
     success: false,
     message: 'Too many requests. Please slow down.'
@@ -133,6 +133,10 @@ const generalApiLimiter = rateLimit({
                                 // Unread chat badge polling
                                 path.includes('/chats/unread-count');
 
+    // Additional safe skips for public/read-only GET endpoints to avoid accidental throttling
+    const isAds = req.method === 'GET' && path.includes('/admin-ads');
+    const isCategories = req.method === 'GET' && path.includes('/categories');
+
     // Public vendor/agent profile pages (direct entity fetch for shop/business views)
     // Treat these like browsing endpoints to avoid surprising rate-limits during discovery
     const isPublicProfileEndpoint =
@@ -147,7 +151,9 @@ const generalApiLimiter = rateLimit({
       isHealth ||
       isBanks ||
       isPublicProfileEndpoint ||
-      isDashboardEndpoint
+      isDashboardEndpoint ||
+      isAds ||
+      isCategories
     );
   }
 });
