@@ -497,13 +497,38 @@ module.exports = {
  */
 function setRefreshCookie(res, token) {
   const isProd = (process.env.NODE_ENV || 'production') === 'production';
-  res.cookie('vp_refresh', token, {
+
+  // Derive a public cookie domain if provided, so cookies work on both apex and www
+  // e.g., COOKIE_DOMAIN=.vendplug.com.ng or from FRONTEND_URL/PUBLIC_URL
+  let domain = process.env.COOKIE_DOMAIN || '';
+  if (!domain) {
+    const url =
+      process.env.PUBLIC_URL ||
+      process.env.FRONTEND_URL ||
+      process.env.WEB_URL ||
+      process.env.SERVER_URL ||
+      process.env.BACKEND_URL ||
+      '';
+    try {
+      if (url) {
+        const host = new URL(url).hostname;
+        domain = host ? (host.startsWith('.') ? host : `.${host}`) : '';
+      }
+    } catch (_) { /* no-op */ }
+  }
+
+  // If we explicitly set a domain, prefer SameSite=None for maximum compatibility across subdomains
+  // Requires Secure=true which we already enable in production
+  const cookieOptions = {
     httpOnly: true,
     secure: isProd,
-    sameSite: 'lax',
+    sameSite: domain ? 'none' : 'lax',
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-    path: '/'
-  });
+    path: '/',
+    ...(domain ? { domain } : {}),
+  };
+
+  res.cookie('vp_refresh', token, cookieOptions);
 }
 
 async function mintRefreshToken(userId, userModel) {
