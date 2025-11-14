@@ -42,13 +42,17 @@ const registerVendor = asyncHandler(async (req, res) => {
 
     const tempVirtualAccount = "VP" + Date.now();
 
+    // Canonicalize name: prefer businessName; fall back to shopName
+    const canonicalName = (businessName && String(businessName).trim()) || (shopName && String(shopName).trim()) || fullName;
+
     const vendor = new Vendor({
       fullName,
       email,
-      shopName,
+      // Maintain both fields for backward compatibility
+      shopName: canonicalName,
       phoneNumber,
       password, // 👈 DO NOT manually hash it — the model handles it
-      businessName,
+      businessName: canonicalName,
       businessAddress,
       cacNumber: cacNumber || undefined, // Make CAC number optional
       category,
@@ -114,6 +118,7 @@ const registerVendor = asyncHandler(async (req, res) => {
         fullName: savedVendor.fullName,
         email: savedVendor.email,
         shopName: savedVendor.shopName,
+        businessName: savedVendor.businessName,
         phoneNumber: savedVendor.phoneNumber,
         virtualAccount: savedVendor.virtualAccount,
         category: savedVendor.category,

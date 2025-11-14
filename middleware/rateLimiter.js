@@ -5,6 +5,12 @@
 
 const rateLimit = require('express-rate-limit');
 
+// Global toggle to enable/disable all rate limiters via environment
+// Set RATE_LIMIT_ENABLED=false to disable (useful for incident mitigation/canary)
+const rateLimitEnabled = String(process.env.RATE_LIMIT_ENABLED || 'true').toLowerCase() !== 'false';
+const passthrough = (req, res, next) => next();
+const useLimiter = (limiter) => (rateLimitEnabled ? limiter : passthrough);
+
 // Rate limiter for authentication endpoints (login, password reset)
 // CTO Recommendation: Allow reasonable attempts (10) for legitimate users while preventing brute force
 // Skip successful logins so users aren't penalized for correct credentials
@@ -168,15 +174,15 @@ const refreshLimiter = rateLimit({
 });
 
 module.exports = {
-  authLimiter,
-  pinResetLimiter,
-  payoutLimiter,
-  paymentLimiter,
-  apiLimiter,
-  pinVerifyLimiter,
-  registrationLimiter,
-  browsingLimiter,
-  dashboardLimiter,
-  refreshLimiter,
+  authLimiter: useLimiter(authLimiter),
+  pinResetLimiter: useLimiter(pinResetLimiter),
+  payoutLimiter: useLimiter(payoutLimiter),
+  paymentLimiter: useLimiter(paymentLimiter),
+  apiLimiter: useLimiter(apiLimiter),
+  pinVerifyLimiter: useLimiter(pinVerifyLimiter),
+  registrationLimiter: useLimiter(registrationLimiter),
+  browsingLimiter: useLimiter(browsingLimiter),
+  dashboardLimiter: useLimiter(dashboardLimiter),
+  refreshLimiter: useLimiter(refreshLimiter),
 };
 

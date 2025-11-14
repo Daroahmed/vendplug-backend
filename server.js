@@ -72,7 +72,14 @@ const { apiLimiter } = require('./middleware/rateLimiter');
 const rateLimit = require('express-rate-limit');
 
 // Custom apiLimiter that skips browsing endpoints and sensitive/auth endpoints (they have their own limiter)
-const generalApiLimiter = rateLimit({
+const rateLimitEnabled = String(process.env.RATE_LIMIT_ENABLED || 'true').toLowerCase() !== 'false';
+
+// Small diagnostic header to confirm limiter state in responses (helps field debugging)
+app.use((req, res, next) => {
+  try { res.setHeader('x-app-rate-limit-enabled', String(rateLimitEnabled)); } catch (_) {}
+  next();
+});
+const generalApiLimiter = rateLimitEnabled ? rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
   max: 1000, // Higher ceiling for general API traffic
   message: {
@@ -136,6 +143,8 @@ const generalApiLimiter = rateLimit({
     // Additional safe skips for public/read-only GET endpoints to avoid accidental throttling
     const isAds = req.method === 'GET' && path.includes('/admin-ads');
     const isCategories = req.method === 'GET' && path.includes('/categories');
+    // Carts (badges) are lightweight; skip to avoid surprising throttles
+    const isCart = path.includes('/vendor-cart') || path.includes('/agent-cart');
 
     // Public vendor/agent profile pages (direct entity fetch for shop/business views)
     // Treat these like browsing endpoints to avoid surprising rate-limits during discovery
@@ -153,10 +162,11 @@ const generalApiLimiter = rateLimit({
       isPublicProfileEndpoint ||
       isDashboardEndpoint ||
       isAds ||
-      isCategories
+      isCategories ||
+      isCart
     );
   }
-});
+}) : (req, res, next) => next();
 
 app.use('/api', generalApiLimiter); // Apply to all /api routes (with exceptions)
 
