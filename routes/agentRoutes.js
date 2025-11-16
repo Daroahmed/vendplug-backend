@@ -116,7 +116,16 @@ router.get('/:agentId/transactions', asyncHandler(async (req, res) => {
 
 // ✅ NOW THE DYNAMIC ONES
 
-router.post('/register', registrationLimiter, registerAgent);
+// Registration limiter with runtime kill‑switch and debug header
+const registrationGuard = (req, res, next) => {
+  const globalOn = String(process.env.RATE_LIMIT_ENABLED || 'true').trim().toLowerCase() !== 'false';
+  const regOn = String(process.env.REGISTRATION_RATE_LIMIT_ENABLED || 'true').trim().toLowerCase() !== 'false';
+  try { res.setHeader('x-app-registration-limit-enabled', String(globalOn && regOn)); } catch (_) {}
+  if (!globalOn || !regOn) return next();
+  return registrationLimiter(req, res, next);
+};
+
+router.post('/register', registrationGuard, registerAgent);
 router.post("/login", authLimiter, loginAgent);
 // Dashboard endpoints are polled frequently, so they need lenient rate limiting
 router.get('/stats', dashboardLimiter, protectAgent, getAgentStats);

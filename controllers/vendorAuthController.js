@@ -657,6 +657,22 @@ const updateVendorProfile = asyncHandler(async (req, res) => {
       vendor.businessAddress = req.body.businessAddress;
     }
 
+    // 🏷️ Update categories (if provided)
+    if (typeof req.body.category !== 'undefined') {
+      try {
+        const parsed = Array.isArray(req.body.category)
+          ? req.body.category
+          : JSON.parse(req.body.category || '[]');
+        if (Array.isArray(parsed)) {
+          vendor.category = parsed.filter(c => typeof c === 'string' && c.trim() !== '');
+        }
+      } catch (_) {}
+    }
+    if (typeof req.body.otherCategory !== 'undefined') {
+      const val = String(req.body.otherCategory || '').trim();
+      vendor.otherCategory = val || undefined;
+    }
+
     await vendor.save();
 
     // Update onboarding progress

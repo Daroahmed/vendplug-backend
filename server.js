@@ -67,106 +67,91 @@ app.use((req, res, next) => {
   next();
 });
 
-// ✅ Apply general API rate limiting (protects all routes except browsing/search endpoints)
+// ✅ Apply general API rate limiting with a kill‑switch and broad skip list
 const { apiLimiter } = require('./middleware/rateLimiter');
-const rateLimit = require('express-rate-limit');
+const RATE_LIMIT_ENABLED = String(process.env.RATE_LIMIT_ENABLED || 'true').toLowerCase() !== 'false';
 
-// Custom apiLimiter that skips browsing endpoints and sensitive/auth endpoints (they have their own limiter)
-const rateLimitEnabled = String(process.env.RATE_LIMIT_ENABLED || 'true').toLowerCase() !== 'false';
+const generalApiLimiter = (req, res, next) => {
+  // Diagnostic header so we can verify on live with curl -I
+  try { res.setHeader('x-app-rate-limit-enabled', String(RATE_LIMIT_ENABLED)); } catch (_) {}
+  if (!RATE_LIMIT_ENABLED) return next();
 
-// Small diagnostic header to confirm limiter state in responses (helps field debugging)
-app.use((req, res, next) => {
-  try { res.setHeader('x-app-rate-limit-enabled', String(rateLimitEnabled)); } catch (_) {}
-  next();
-});
-const generalApiLimiter = rateLimitEnabled ? rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 1000, // Higher ceiling for general API traffic
-  message: {
-    success: false,
-    message: 'Too many requests. Please slow down.'
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => {
-    // Skip rate limiting for browsing/search endpoints (they have their own limiter)
-    // When middleware is mounted at /api, req.path is relative (e.g., /vendors/shop-vendors)
-    // req.originalUrl includes full path (e.g., /api/vendors/shop-vendors)
-    // Check both to handle different Express path contexts
-    const originalPath = req.originalUrl?.split('?')[0] || '';
-    const relativePath = req.path || req.url?.split('?')[0] || '';
-    const path = originalPath || relativePath;
-    
-    // Skip browsing/search endpoints (they have browsingLimiter)
-    const isBrowsingEndpoint = path.includes('/shop-vendors') || 
-                                path.includes('/shop-agents') || 
-                                path.includes('/vendor-products/shop') ||
-                                path.includes('/agent-products/shop') ||
-                                // direct product lists for a single vendor/agent (public shop views)
-                                path.includes('/vendor-products/vendor/') ||
-                                path.includes('/agent-products/agent/') ||
-                                path.includes('/products/search') ||
-                                path.includes('/product-search');
-    
-    // Skip auth endpoints (they have dedicated limiters)
-    const isAuthEndpoint =
-      path.includes('/auth/') || // /api/auth/...
-      /\/(vendors|agents|buyers|staff|admin)\/login/i.test(path) ||
-      /\/(vendors|agents|buyers)\/register/i.test(path) ||
-      path.includes('/logout');
-    // Skip refresh token endpoint (it has refreshLimiter)
-    const isRefreshEndpoint = path.includes('/auth/refresh');
-    // Skip webhook endpoints (external systems)
-    const isWebhook = path.includes('/webhooks') || path.includes('/paystack/webhook');
-    // Skip health checks
-    const isHealth = path.endsWith('/health') || path === '/api/health';
-    // Skip Paystack banks endpoint (we add server-side caching)
-    const isBanks = path.includes('/paystack/banks');
-    
-    // Skip dashboard endpoints (they have dashboardLimiter)
-    // These are authenticated endpoints that are polled frequently
-    const isDashboardEndpoint = path.includes('/vendor-orders') ||
-                                path.includes('/agent-orders') ||
-                                path.includes('/buyer-orders') ||
-                                // Frequently polled profile endpoints for dashboards/onboarding
-                                path.includes('/vendors/profile') ||
-                                path.includes('/agents/profile') ||
-                                path.includes('/vendor-payout') ||
-                                path.includes('/stats') ||
-                                path.includes('/notifications') ||
-                                path.includes('/analytics') ||
-                                path.includes('/wallet') ||
-                                path.includes('/transactions') ||
-                                // Unread chat badge polling
-                                path.includes('/chats/unread-count');
+  const originalPath = req.originalUrl?.split('?')[0] || '';
+  const relativePath = req.path || req.url?.split('?')[0] || '';
+  const path = originalPath || relativePath;
 
-    // Additional safe skips for public/read-only GET endpoints to avoid accidental throttling
-    const isAds = req.method === 'GET' && path.includes('/admin-ads');
-    const isCategories = req.method === 'GET' && path.includes('/categories');
-    // Carts (badges) are lightweight; skip to avoid surprising throttles
-    const isCart = path.includes('/vendor-cart') || path.includes('/agent-cart');
+  // Browsing/search/public endpoints (skip)
+  const isBrowsingEndpoint =
+    path.includes('/shop-vendors') ||
+    path.includes('/shop-agents') ||
+    path.includes('/vendor-products/shop') ||
+    path.includes('/agent-products/shop') ||
+    path.includes('/vendor-products/vendor/') ||
+    path.includes('/agent-products/agent/') ||
+    path.includes('/products/search') ||
+    path.includes('/product-search');
 
-    // Public vendor/agent profile pages (direct entity fetch for shop/business views)
-    // Treat these like browsing endpoints to avoid surprising rate-limits during discovery
-    const isPublicProfileEndpoint =
-      /\/vendors\/[a-f0-9]{24}$/i.test(path) ||
-      /\/agents\/[a-f0-9]{24}$/i.test(path);
-    
-    return (
-      isBrowsingEndpoint ||
-      isAuthEndpoint ||
-      isRefreshEndpoint ||
-      isWebhook ||
-      isHealth ||
-      isBanks ||
-      isPublicProfileEndpoint ||
-      isDashboardEndpoint ||
-      isAds ||
-      isCategories ||
-      isCart
-    );
+  // Public product reads used by detail pages
+  const isProductsPublic =
+    path.includes('/vendor-products/public/') ||
+    path.includes('/agent-products/public/');
+
+  // Auth and sensitive endpoints (handled by dedicated limiters)
+  const isAuthEndpoint =
+    path.includes('/auth/') ||
+    /\/(vendors|agents|buyers|staff|admin)\/login/i.test(path) ||
+    /\/(vendors|agents|buyers)\/register/i.test(path) ||
+    path.includes('/logout');
+  const isRefreshEndpoint = path.includes('/auth/refresh');
+
+  // Infra/utility
+  const isWebhook = path.includes('/webhooks') || path.includes('/paystack/webhook');
+  const isHealth = path.endsWith('/health') || path === '/api/health';
+  const isBanks = path.includes('/paystack/banks');
+
+  // Dashboard polling
+  const isDashboardEndpoint =
+    path.includes('/vendor-orders') ||
+    path.includes('/agent-orders') ||
+    path.includes('/buyer-orders') ||
+    path.includes('/vendors/profile') ||
+    path.includes('/agents/profile') ||
+    path.includes('/vendor-payout') ||
+    path.includes('/stats') ||
+    path.includes('/notifications') ||
+    path.includes('/analytics') ||
+    path.includes('/wallet') ||
+    path.includes('/transactions') ||
+    path.includes('/chats/unread-count');
+
+  // Public content
+  const isAds = req.method === 'GET' && path.includes('/admin-ads');
+  const isCategories = req.method === 'GET' && path.includes('/categories');
+  const isCart = path.includes('/vendor-cart') || path.includes('/agent-cart');
+
+  // Public entity fetch
+  const isPublicProfileEndpoint =
+    /\/vendors\/[a-f0-9]{24}$/i.test(path) ||
+    /\/agents\/[a-f0-9]{24}$/i.test(path);
+
+  if (
+    isBrowsingEndpoint ||
+    isProductsPublic ||
+    isAuthEndpoint ||
+    isRefreshEndpoint ||
+    isWebhook ||
+    isHealth ||
+    isBanks ||
+    isPublicProfileEndpoint ||
+    isDashboardEndpoint ||
+    isAds ||
+    isCategories ||
+    isCart
+  ) {
+    return next();
   }
-}) : (req, res, next) => next();
+  return apiLimiter(req, res, next);
+};
 
 app.use('/api', generalApiLimiter); // Apply to all /api routes (with exceptions)
 
