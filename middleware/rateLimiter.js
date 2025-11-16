@@ -5,11 +5,25 @@
 
 const rateLimit = require('express-rate-limit');
 
+// Helpers to read boolean envs robustly
+function envBool(name, defaultValueTrue = true) {
+  const v = process.env[name];
+  if (v === undefined || v === null) return !!defaultValueTrue;
+  const s = String(v).trim().toLowerCase();
+  if (['false', '0', 'no', 'off', 'disabled'].includes(s)) return false;
+  if (['true', '1', 'yes', 'on', 'enabled'].includes(s)) return true;
+  return !!defaultValueTrue;
+}
+
 // Global toggle to enable/disable all rate limiters via environment
-// Set RATE_LIMIT_ENABLED=false to disable (useful for incident mitigation/canary)
-const rateLimitEnabled = String(process.env.RATE_LIMIT_ENABLED || 'true').toLowerCase() !== 'false';
+// Examples to disable: RATE_LIMIT_ENABLED=false, or 0, or "off"
+const rateLimitEnabled = envBool('RATE_LIMIT_ENABLED', true);
 const passthrough = (req, res, next) => next();
-const useLimiter = (limiter) => (rateLimitEnabled ? limiter : passthrough);
+const useLimiter = (limiter, featureFlagName) => {
+  if (!rateLimitEnabled) return passthrough;
+  if (featureFlagName && !envBool(featureFlagName, true)) return passthrough;
+  return limiter;
+};
 
 // Rate limiter for authentication endpoints (login, password reset)
 // CTO Recommendation: Allow reasonable attempts (10) for legitimate users while preventing brute force
@@ -174,15 +188,16 @@ const refreshLimiter = rateLimit({
 });
 
 module.exports = {
-  authLimiter: useLimiter(authLimiter),
-  pinResetLimiter: useLimiter(pinResetLimiter),
-  payoutLimiter: useLimiter(payoutLimiter),
-  paymentLimiter: useLimiter(paymentLimiter),
-  apiLimiter: useLimiter(apiLimiter),
-  pinVerifyLimiter: useLimiter(pinVerifyLimiter),
-  registrationLimiter: useLimiter(registrationLimiter),
-  browsingLimiter: useLimiter(browsingLimiter),
-  dashboardLimiter: useLimiter(dashboardLimiter),
-  refreshLimiter: useLimiter(refreshLimiter),
+  // Per-feature flags allow targeted disable if needed (default inherits global)
+  authLimiter: useLimiter(authLimiter, 'AUTH_RATE_LIMIT_ENABLED'),
+  pinResetLimiter: useLimiter(pinResetLimiter, 'PIN_RESET_RATE_LIMIT_ENABLED'),
+  payoutLimiter: useLimiter(payoutLimiter, 'PAYOUT_RATE_LIMIT_ENABLED'),
+  paymentLimiter: useLimiter(paymentLimiter, 'PAYMENT_RATE_LIMIT_ENABLED'),
+  apiLimiter: useLimiter(apiLimiter, 'API_RATE_LIMIT_ENABLED'),
+  pinVerifyLimiter: useLimiter(pinVerifyLimiter, 'PIN_VERIFY_RATE_LIMIT_ENABLED'),
+  registrationLimiter: useLimiter(registrationLimiter, 'REGISTRATION_RATE_LIMIT_ENABLED'),
+  browsingLimiter: useLimiter(browsingLimiter, 'BROWSING_RATE_LIMIT_ENABLED'),
+  dashboardLimiter: useLimiter(dashboardLimiter, 'DASHBOARD_RATE_LIMIT_ENABLED'),
+  refreshLimiter: useLimiter(refreshLimiter, 'REFRESH_RATE_LIMIT_ENABLED'),
 };
 

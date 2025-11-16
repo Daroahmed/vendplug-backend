@@ -1,9 +1,22 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
+
+const { listPublic, create, update, remove } = require('../controllers/categoryController');
+const { protectAdmin } = require('../middleware/authMiddleware');
 const Vendor = require('../models/vendorModel');
 const Agent = require('../models/Agent');
 const asyncHandler = require('express-async-handler');
 const { browsingLimiter } = require('../middleware/rateLimiter');
+
+// Public list
+router.get('/public', listPublic);
+
+// Admin managed
+router.post('/', protectAdmin, upload.single('image'), create);
+router.put('/:id', protectAdmin, upload.single('image'), update);
+router.delete('/:id', protectAdmin, remove);
 
 /**
  * GET /api/categories/active-counts
@@ -87,4 +100,3 @@ router.get('/active-counts', browsingLimiter, asyncHandler(async (req, res) => {
 }));
 
 module.exports = router;
-

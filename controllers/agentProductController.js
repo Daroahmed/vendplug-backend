@@ -122,36 +122,77 @@ const updateAgentProduct = asyncHandler(async (req, res) => {
   if (description !== undefined) product.description = description;
   if (stock !== undefined) product.stock = stock;
 
+  // Parse kept additional images (from UI) if provided
+  let keptAdditionalImages = [];
+  let hasKeptAdditionalPayload = false;
+  try {
+    if (typeof req.body.keptAdditionalImages !== 'undefined') {
+      keptAdditionalImages = JSON.parse(req.body.keptAdditionalImages || '[]');
+      if (!Array.isArray(keptAdditionalImages)) keptAdditionalImages = [];
+      hasKeptAdditionalPayload = true;
+    }
+  } catch (_) { keptAdditionalImages = []; }
+
   // 📷 Update images if new ones are uploaded
   if (req.files && req.files.length > 0) {
-    // Upload first image as primary
-    const firstImage = req.files[0];
-    const firstResult = await cloudinary.uploader.upload(firstImage.path, {
-      folder: 'vendplug/agent-products',
-    });
-    product.image = firstResult.secure_url;
-    fs.unlinkSync(firstImage.path);
+    const preservePrimary = req.body.preservePrimary === 'true';
+    const keepPrimaryFlag = req.body.keepPrimary === 'true';
 
-    // Upload remaining images
-    const additionalImages = [];
-    for (let i = 1; i < req.files.length; i++) {
-      try {
-        const result = await cloudinary.uploader.upload(req.files[i].path, {
-          folder: 'vendplug/agent-products',
-        });
-        additionalImages.push(result.secure_url);
-        fs.unlinkSync(req.files[i].path);
-      } catch (error) {
-        console.error(`Error uploading image ${i}:`, error);
-        fs.unlinkSync(req.files[i].path);
+    if ((preservePrimary || keepPrimaryFlag) && product.image) {
+      // Don't replace primary; upload all as additional images
+      const additionalImages = [];
+      for (let i = 0; i < req.files.length; i++) {
+        try {
+          const result = await cloudinary.uploader.upload(req.files[i].path, {
+            folder: 'vendplug/agent-products',
+          });
+          additionalImages.push(result.secure_url);
+        } catch (error) {
+          console.error(`Error uploading image ${i}:`, error);
+        } finally {
+          try { fs.unlinkSync(req.files[i].path); } catch (_) {}
+        }
       }
-    }
-    
-    // Merge with existing images if any, or replace if clearImages flag is set
-    if (req.body.clearImages === 'true') {
-      product.images = additionalImages;
+
+      if (hasKeptAdditionalPayload) {
+        product.images = [...keptAdditionalImages, ...additionalImages];
+      } else if (req.body.clearImages === 'true') {
+        product.images = additionalImages;
+      } else {
+        product.images = [...(product.images || []), ...additionalImages];
+      }
     } else {
-      product.images = [...(product.images || []), ...additionalImages];
+      // Replace primary with first uploaded (or if no existing primary)
+      const firstImage = req.files[0];
+      const firstResult = await cloudinary.uploader.upload(firstImage.path, {
+        folder: 'vendplug/agent-products',
+      });
+      product.image = firstResult.secure_url;
+      try { fs.unlinkSync(firstImage.path); } catch (_) {}
+
+      // Upload remaining images
+      const additionalImages = [];
+      for (let i = 1; i < req.files.length; i++) {
+        try {
+          const result = await cloudinary.uploader.upload(req.files[i].path, {
+            folder: 'vendplug/agent-products',
+          });
+          additionalImages.push(result.secure_url);
+        } catch (error) {
+          console.error(`Error uploading image ${i}:`, error);
+        } finally {
+          try { fs.unlinkSync(req.files[i].path); } catch (_) {}
+        }
+      }
+      
+      // Merge with existing images honoring explicit keep list if provided
+      if (hasKeptAdditionalPayload) {
+        product.images = [...keptAdditionalImages, ...additionalImages];
+      } else if (req.body.clearImages === 'true') {
+        product.images = additionalImages;
+      } else {
+        product.images = [...(product.images || []), ...additionalImages];
+      }
     }
   } else if (req.file) {
     // Backward compatibility: handle single file upload
@@ -160,6 +201,20 @@ const updateAgentProduct = asyncHandler(async (req, res) => {
     });
     product.image = result.secure_url;
     fs.unlinkSync(req.file.path);
+  }
+
+  // Handle case: user removed primary and didn't upload new files
+  if (typeof req.body.keepPrimary !== 'undefined' && req.body.keepPrimary !== 'true' && (!req.files || req.files.length === 0)) {
+    if (hasKeptAdditionalPayload && keptAdditionalImages.length > 0) {
+      product.image = keptAdditionalImages[0];
+      product.images = keptAdditionalImages.slice(1);
+    } else if (hasKeptAdditionalPayload && keptAdditionalImages.length === 0) {
+      product.image = null;
+      product.images = [];
+    }
+  } else if (hasKeptAdditionalPayload && (!req.files || req.files.length === 0)) {
+    // No new uploads; just update additional images per kept list
+    product.images = keptAdditionalImages;
   }
 
   await product.save();
