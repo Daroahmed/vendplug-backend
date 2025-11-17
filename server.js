@@ -67,6 +67,27 @@ app.use((req, res, next) => {
   next();
 });
 
+// ✅ If global rate limiting is disabled, scrub any RateLimit-* headers set by deeper middleware
+(() => {
+  const RATE_LIMIT_ENABLED = String(process.env.RATE_LIMIT_ENABLED || 'true').toLowerCase() !== 'false';
+  if (!RATE_LIMIT_ENABLED) {
+    app.use((req, res, next) => {
+      const originalSetHeader = res.setHeader.bind(res);
+      res.setHeader = (name, value) => {
+        const key = String(name || '').toLowerCase();
+        if (key.startsWith('ratelimit-')) {
+          // Drop RateLimit-* headers when globally disabled
+          return;
+        }
+        return originalSetHeader(name, value);
+      };
+      // Signal header scrub is active
+      try { res.setHeader('x-app-ratelimit-scrub', 'true'); } catch (_) {}
+      next();
+    });
+  }
+})();
+
 // ✅ Apply general API rate limiting with a kill‑switch and broad skip list
 const { apiLimiter } = require('./middleware/rateLimiter');
 const RATE_LIMIT_ENABLED = String(process.env.RATE_LIMIT_ENABLED || 'true').toLowerCase() !== 'false';
