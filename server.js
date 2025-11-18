@@ -324,6 +324,60 @@ app.use('/api/admin-ads', require('./routes/adminAdRoutes'));
 app.use('/api/commission', require('./routes/commissionRoutes'));
 app.use('/api/paystack-wallet', require('./routes/paystackWalletRoutes'));
 
+// ✅ Explicit public category endpoints (inline handler with DB and static fallback)
+(() => {
+  let handler;
+  try {
+    const CategoryModel = require('./models/Category');
+    handler = async (req, res) => {
+      try {
+        const { type } = req.query; // 'vendor' | 'agent' | 'both' | undefined
+        const filter = { isActive: true };
+        if (type === 'vendor') {
+          filter.$or = [{ type: 'vendor' }, { type: 'both' }];
+        } else if (type === 'agent') {
+          filter.$or = [{ type: 'agent' }, { type: 'both' }];
+        }
+        const categories = await CategoryModel.find(filter).sort({ displayOrder: 1, name: 1 }).lean();
+        return res.json({ success: true, categories });
+      } catch (err) {
+        console.error('Category public handler (db) error:', err.message);
+        return res.status(500).json({ success: false, message: 'Failed to load categories' });
+      }
+    };
+    console.log('✅ Category model found; DB-backed public category route will be used');
+  } catch (e) {
+    console.warn('⚠️ Category model not found, falling back to static category list:', e.message);
+    const fallbackNames = [
+      'Phones & Accessories / Laptops & Computers','Game Consoles & Accessories','Solar & Inverters','CCTV & Security Devices',
+      'Boutiques','Thrift / Okrika / Gonjo','Tokunbo / Belgium Products','Shoes and Bags','Jewelry & Accessories','Tailoring & Fashion Design','Textiles & Fabrics','Wigs & Hair','Cosmetics & Skincare','Perfumes, Incense & Fragrances','Nigerian Caps e.g. Zana',
+      'Supermarkets/Groceries and Provisions','Soft Drinks & Water','Kitchen Utensils & Plastics','Tea & Spices','Fruits & Vegetables','Grains',
+      'Suya, Kebabs & Balango','Raw Meat Sellers','Poultry (Chicken, Eggs, Turkey)','Livestock (Goat, Ram, Cow)','Fish & Seafood',
+      'Restaurants','Catering & Small Chops','Hotels & Apartments','Event Rentals (Canopies, Chairs)',
+      'Furniture','Home Appliances','Interior Decor & Curtains','Cleaning Services','Flowers & Gardens',
+      'Building Materials','Aluminium & Roofing','Cement, Blocks & Interlock','Gravel, Sharp Sand & Quarry','Electrical Supplies','Plumbing Materials','Tiles & Paints','Metal & Iron Works','Carpenters & Artisans',
+      'Pharmacy & Patent Stores','Hospital & Medical Equipment','Herbal Medicine','Maternity & Clinics','Fitness & Supplements',
+      'Printing Press','Stationery & Office Supplies','Internet & Data Services','Freelancers & Digital Services',
+      'Car Dealers / New, Tokunbo $ Used Cars ','Car Spare Parts','Auto Mechanics','Tyres, Batteries & Accessories','Car Wash & Detailing',
+      'Laundry Services','Dry Cleaning','House Cleaning',
+      'Animal Feed & Supplements','Fish Farming',
+      'Pets (Dogs, Cats, Birds)','Pet Food & Accessories','Veterinary Clinics','Pet Grooming',
+      'Real Estate Agents','Rentals & Sales','Facility Management','Movers & Packers',
+      'Legal Services','Accounting & Tax','Private Tutors','Event Planners','Photography & Videography','Tech Repairs'
+    ];
+    const fallbackCategories = fallbackNames.map(n => ({ name: n, type: 'both', imageUrl: '', groupName: '' }));
+    handler = (req, res) => {
+      // For vendor/agent/both we just return the same list marked as type 'both'
+      res.json({ success: true, categories: fallbackCategories });
+    };
+  }
+  app.get('/api/categories/public', handler);
+  app.get('/api/categories', handler); // legacy/mirror
+  // Catch-all for any GET under /api/categories/** (e.g., /api/categories/public?type=...)
+  app.get('/api/categories/*', handler);
+  console.log('✅ Bound /api/categories(public) routes');
+})();
+
 // ✅ Admin routes
 app.get('/admin/wallet-management', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/paystack-wallet-management.html'));
