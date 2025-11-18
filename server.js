@@ -347,29 +347,78 @@ app.use('/api/paystack-wallet', require('./routes/paystackWalletRoutes'));
     };
     console.log('✅ Category model found; DB-backed public category route will be used');
   } catch (e) {
-    console.warn('⚠️ Category model not found, falling back to static category list:', e.message);
-    const fallbackNames = [
-      'Phones & Accessories / Laptops & Computers','Game Consoles & Accessories','Solar & Inverters','CCTV & Security Devices',
-      'Boutiques','Thrift / Okrika / Gonjo','Tokunbo / Belgium Products','Shoes and Bags','Jewelry & Accessories','Tailoring & Fashion Design','Textiles & Fabrics','Wigs & Hair','Cosmetics & Skincare','Perfumes, Incense & Fragrances','Nigerian Caps e.g. Zana',
-      'Supermarkets/Groceries and Provisions','Soft Drinks & Water','Kitchen Utensils & Plastics','Tea & Spices','Fruits & Vegetables','Grains',
-      'Suya, Kebabs & Balango','Raw Meat Sellers','Poultry (Chicken, Eggs, Turkey)','Livestock (Goat, Ram, Cow)','Fish & Seafood',
-      'Restaurants','Catering & Small Chops','Hotels & Apartments','Event Rentals (Canopies, Chairs)',
-      'Furniture','Home Appliances','Interior Decor & Curtains','Cleaning Services','Flowers & Gardens',
-      'Building Materials','Aluminium & Roofing','Cement, Blocks & Interlock','Gravel, Sharp Sand & Quarry','Electrical Supplies','Plumbing Materials','Tiles & Paints','Metal & Iron Works','Carpenters & Artisans',
-      'Pharmacy & Patent Stores','Hospital & Medical Equipment','Herbal Medicine','Maternity & Clinics','Fitness & Supplements',
-      'Printing Press','Stationery & Office Supplies','Internet & Data Services','Freelancers & Digital Services',
-      'Car Dealers / New, Tokunbo $ Used Cars ','Car Spare Parts','Auto Mechanics','Tyres, Batteries & Accessories','Car Wash & Detailing',
-      'Laundry Services','Dry Cleaning','House Cleaning',
-      'Animal Feed & Supplements','Fish Farming',
-      'Pets (Dogs, Cats, Birds)','Pet Food & Accessories','Veterinary Clinics','Pet Grooming',
-      'Real Estate Agents','Rentals & Sales','Facility Management','Movers & Packers',
-      'Legal Services','Accounting & Tax','Private Tutors','Event Planners','Photography & Videography','Tech Repairs'
-    ];
-    const fallbackCategories = fallbackNames.map(n => ({ name: n, type: 'both', imageUrl: '', groupName: '' }));
-    handler = (req, res) => {
-      // For vendor/agent/both we just return the same list marked as type 'both'
-      res.json({ success: true, categories: fallbackCategories });
-    };
+    console.warn('⚠️ Category model not found, attempting inline schema:', e.message);
+    try {
+      const mongoose = require('mongoose');
+      const inlineSchema = new mongoose.Schema({
+        name: { type: String, required: true },
+        imageUrl: { type: String, default: '' },
+        groupName: { type: String, default: 'Uncategorized' },
+        type: { type: String, default: 'both' },
+        isActive: { type: Boolean, default: true },
+        displayOrder: { type: Number, default: 0 }
+      }, { collection: 'categories', timestamps: false });
+      const CategoryInline = mongoose.models.Category || mongoose.model('Category', inlineSchema);
+      handler = async (req, res) => {
+        try {
+          const { type } = req.query;
+          const filter = { isActive: true };
+          if (type === 'vendor') {
+            filter.$or = [{ type: 'vendor' }, { type: 'both' }];
+          } else if (type === 'agent') {
+            filter.$or = [{ type: 'agent' }, { type: 'both' }];
+          }
+          const categories = await CategoryInline.find(filter).sort({ displayOrder: 1, name: 1 }).lean();
+          return res.json({ success: true, categories });
+        } catch (err) {
+          console.error('Category public handler (inline schema) error:', err.message);
+          // Final fallback to static list if DB query fails
+          const fallbackNames = [
+            'Phones & Accessories / Laptops & Computers','Game Consoles & Accessories','Solar & Inverters','CCTV & Security Devices',
+            'Boutiques','Thrift / Okrika / Gonjo','Tokunbo / Belgium Products','Shoes and Bags','Jewelry & Accessories','Tailoring & Fashion Design','Textiles & Fabrics','Wigs & Hair','Cosmetics & Skincare','Perfumes, Incense & Fragrances','Nigerian Caps e.g. Zana',
+            'Supermarkets/Groceries and Provisions','Soft Drinks & Water','Kitchen Utensils & Plastics','Tea & Spices','Fruits & Vegetables','Grains',
+            'Suya, Kebabs & Balango','Raw Meat Sellers','Poultry (Chicken, Eggs, Turkey)','Livestock (Goat, Ram, Cow)','Fish & Seafood',
+            'Restaurants','Catering & Small Chops','Hotels & Apartments','Event Rentals (Canopies, Chairs)',
+            'Furniture','Home Appliances','Interior Decor & Curtains','Cleaning Services','Flowers & Gardens',
+            'Building Materials','Aluminium & Roofing','Cement, Blocks & Interlock','Gravel, Sharp Sand & Quarry','Electrical Supplies','Plumbing Materials','Tiles & Paints','Metal & Iron Works','Carpenters & Artisans',
+            'Pharmacy & Patent Stores','Hospital & Medical Equipment','Herbal Medicine','Maternity & Clinics','Fitness & Supplements',
+            'Printing Press','Stationery & Office Supplies','Internet & Data Services','Freelancers & Digital Services',
+            'Car Dealers / New, Tokunbo $ Used Cars ','Car Spare Parts','Auto Mechanics','Tyres, Batteries & Accessories','Car Wash & Detailing',
+            'Laundry Services','Dry Cleaning','House Cleaning',
+            'Animal Feed & Supplements','Fish Farming',
+            'Pets (Dogs, Cats, Birds)','Pet Food & Accessories','Veterinary Clinics','Pet Grooming',
+            'Real Estate Agents','Rentals & Sales','Facility Management','Movers & Packers',
+            'Legal Services','Accounting & Tax','Private Tutors','Event Planners','Photography & Videography','Tech Repairs'
+          ];
+          const fallbackCategories = fallbackNames.map(n => ({ name: n, type: 'both', imageUrl: '', groupName: '' }));
+          return res.json({ success: true, categories: fallbackCategories });
+        }
+      };
+      console.log('✅ Using inline Category schema for public category route');
+    } catch (schemaErr) {
+      console.warn('⚠️ Inline schema failed; falling back to static category list:', schemaErr.message);
+      const fallbackNames = [
+        'Phones & Accessories / Laptops & Computers','Game Consoles & Accessories','Solar & Inverters','CCTV & Security Devices',
+        'Boutiques','Thrift / Okrika / Gonjo','Tokunbo / Belgium Products','Shoes and Bags','Jewelry & Accessories','Tailoring & Fashion Design','Textiles & Fabrics','Wigs & Hair','Cosmetics & Skincare','Perfumes, Incense & Fragrances','Nigerian Caps e.g. Zana',
+        'Supermarkets/Groceries and Provisions','Soft Drinks & Water','Kitchen Utensils & Plastics','Tea & Spices','Fruits & Vegetables','Grains',
+        'Suya, Kebabs & Balango','Raw Meat Sellers','Poultry (Chicken, Eggs, Turkey)','Livestock (Goat, Ram, Cow)','Fish & Seafood',
+        'Restaurants','Catering & Small Chops','Hotels & Apartments','Event Rentals (Canopies, Chairs)',
+        'Furniture','Home Appliances','Interior Decor & Curtains','Cleaning Services','Flowers & Gardens',
+        'Building Materials','Aluminium & Roofing','Cement, Blocks & Interlock','Gravel, Sharp Sand & Quarry','Electrical Supplies','Plumbing Materials','Tiles & Paints','Metal & Iron Works','Carpenters & Artisans',
+        'Pharmacy & Patent Stores','Hospital & Medical Equipment','Herbal Medicine','Maternity & Clinics','Fitness & Supplements',
+        'Printing Press','Stationery & Office Supplies','Internet & Data Services','Freelancers & Digital Services',
+        'Car Dealers / New, Tokunbo $ Used Cars ','Car Spare Parts','Auto Mechanics','Tyres, Batteries & Accessories','Car Wash & Detailing',
+        'Laundry Services','Dry Cleaning','House Cleaning',
+        'Animal Feed & Supplements','Fish Farming',
+        'Pets (Dogs, Cats, Birds)','Pet Food & Accessories','Veterinary Clinics','Pet Grooming',
+        'Real Estate Agents','Rentals & Sales','Facility Management','Movers & Packers',
+        'Legal Services','Accounting & Tax','Private Tutors','Event Planners','Photography & Videography','Tech Repairs'
+      ];
+      const fallbackCategories = fallbackNames.map(n => ({ name: n, type: 'both', imageUrl: '', groupName: '' }));
+      handler = (req, res) => {
+        res.json({ success: true, categories: fallbackCategories });
+      };
+    }
   }
   app.get('/api/categories/public', handler);
   app.get('/api/categories', handler); // legacy/mirror
