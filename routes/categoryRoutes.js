@@ -12,6 +12,9 @@ const { browsingLimiter } = require('../middleware/rateLimiter');
 
 // Public list
 router.get('/public', listPublic);
+// Legacy/public fallback: GET /api/categories?type=vendor|agent|both
+// This mirrors /public so older clients or fallbacks continue to work
+router.get('/', listPublic);
 
 // Admin managed
 router.post('/', protectAdmin, upload.single('image'), create);
