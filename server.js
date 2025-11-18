@@ -506,12 +506,16 @@ server.listen(PORT, () => {
 
   // Lightweight payout queue processor (runs every 60s)
   try {
-    const { processPayoutQueue } = require('./controllers/payoutController');
-    setInterval(() => {
-      // Fire-and-forget; internal guards prevent duplicate transfers
-      processPayoutQueue();
-    }, 60 * 1000);
-    console.log('⏱️  Payout queue processor started (every 60s)');
+    const mod = require('./controllers/payoutController');
+    const processPayoutQueue = mod && typeof mod.processPayoutQueue === 'function' ? mod.processPayoutQueue : null;
+    if (processPayoutQueue) {
+      setInterval(async () => {
+        try { await processPayoutQueue(); } catch (e) { console.warn('Queue error:', e.message); }
+      }, 60 * 1000);
+      console.log('⏱️  Payout queue processor started (every 60s)');
+    } else {
+      console.log('ℹ️  Skipping payout queue (no processPayoutQueue export)');
+    }
   } catch (e) {
     console.error('⚠️ Failed to start payout queue processor:', e.message);
   }
