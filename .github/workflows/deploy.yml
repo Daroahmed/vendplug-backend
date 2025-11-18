@@ -2,8 +2,13 @@ name: Deploy backend
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
   workflow_dispatch: {}
+
+# Prevent overlapping deploys to the same env
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -16,96 +21,63 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          script_stop: true
+          script_stop: false
           script: |
-            set -e
-            PROJECT_PATH=${PROJECT_PATH:-/var/www/vendplug-backend}
-            PM2_NAME=${PM2_NAME:-vendplug-api}
+            set -euo pipefail
+            PROJECT_PATH="${PROJECT_PATH:-/var/www/vendplug-backend}"
+            PM2_NAME="${PM2_NAME:-vendplug-api}"
             REPO_URL="https://github.com/Daroahmed/vendplug-backend.git"
 
-            echo "🚀 Starting deployment..."
-            echo "📁 Project path: $PROJECT_PATH"
-            echo "🔧 PM2 name: $PM2_NAME"
+            echo "🚀 Starting deployment"
+            echo "📁 PROJECT_PATH=$PROJECT_PATH"
+            echo "🔧 PM2_NAME=$PM2_NAME"
+            echo "👤 USER=$(whoami) HOST=$(hostname)"
+            mkdir -p "$PROJECT_PATH" 2>/dev/null || { command -v sudo >/dev/null && sudo mkdir -p "$PROJECT_PATH" && sudo chown -R "$(whoami)":"$(whoami)" "$PROJECT_PATH"; }
+            cd "$PROJECT_PATH" || { echo "❌ cd failed"; exit 1; }
+            echo "CWD=$(pwd)"
 
-            # Create directory if it doesn't exist
-            if [ ! -d "$PROJECT_PATH" ]; then
-              echo "📂 Creating project directory: $PROJECT_PATH"
-              mkdir -p "$PROJECT_PATH" || {
-                echo "⚠️  Failed to create directory (may need sudo or different path)"
-                echo "💡 Trying with sudo..."
-                sudo mkdir -p "$PROJECT_PATH" && sudo chown -R $USER:$USER "$PROJECT_PATH" || {
-                  echo "❌ Cannot create directory. Please create $PROJECT_PATH manually with proper permissions."
-                  exit 1
-                }
-              }
+            # Ensure prerequisites
+            if ! command -v git >/dev/null; then
+              echo "📥 Installing git"; (command -v sudo >/dev/null && sudo apt-get update -y && sudo apt-get install -y git) || (apt-get update -y && apt-get install -y git)
+            fi
+            if ! command -v node >/dev/null; then
+              echo "📥 Installing Node.js 20"; (command -v sudo >/dev/null && curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && sudo apt-get install -y nodejs) || (curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs)
+            fi
+            if ! command -v pm2 >/dev/null; then
+              echo "📥 Installing PMAW"; (command -v sudo >/dev/null && sudo npm i -g pm2) || npm i -g pm2
             fi
 
-            # Navigate to project directory
-            cd "$PROJECT_PATH" || {
-              echo "❌ Failed to change directory to $PROJECT_PATH"
-              exit 1
-            }
-
-            # Initialize git repo if it doesn't exist
-            if [ ! -d ".git" ]; then
-              echo "📦 Initializing git repository..."
+            # Sync source from GitHub (server pulls)
+            if [ ! -d .git ]; then
+              echo "📦 init git"
               git init
-              git remote add origin "$REPO_URL" || git remote set-url origin "$REPO_URL"
-              git fetch origin
-              git checkout -b main origin/main || git checkout -t origin/main || true
+              git remote add origin "$REPO_URL" 2>/dev/null || git remote set-url origin "$REPO_URL"
+              git fetch --quiet origin
+              git checkout -f -B main origin/main || git checkout -t origin/main || true
             else
-              echo "🔄 Syncing code from repository..."
-              # Ensure remote is set correctly
-              git remote set-url origin "$REPO_URL" 2>/dev/null || git remote add origin "$REPO_URL"
-              # Fetch and reset
-              git fetch --all --prune || {
-                echo "⚠️  Git fetch failed, trying to reset remote..."
-                git remote set-url origin "$REPO_URL"
-                git fetch --all --prune
-              }
-              git reset --hard origin/main || {
-                echo "❌ Failed to reset to origin/main"
-                exit 1
-              }
+              echo "🔄 fetch & reset"
+              git remote set-url origin "$REPO_URL" || true
+              git fetch --all --prune
+              git reset --hard origin/main
               git clean -fd
             fi
 
-            echo "📥 Installing dependencies..."
-            # Install deps (lock + fallback)
-            if [ -f "package-lock.json" ]; then
+            echo "📦 deps"
+            if [ -f package-lock.json ]; then
               npm ci --omit=dev || npm install --omit=dev
             else
               npm install --omit=dev
             fi
 
-            echo "🔄 Managing PM2 process..."
-            # Check if PM2 is installed
-            if ! command -v pm2 &> /dev/null; then
-              echo "❌ PM2 is not installed. Please install PM2 first: npm install -g pm2"
-              exit 1
-            fi
-
-            # Restart with env
+            echo "🔁 PM2"
             if pm2 describe "$PM2_NAME" >/dev/null 2>&1; then
-              echo "♻️  Restarting existing PM2 process: $PM2_NAME"
-              pm2 restart "$PM2_NAME" --update-env
+              pm2 restart "$PM2_NAME" --cwd "$PROJECT_PATH" --update-env || pm2 restart "$PM2_NAME"
             else
-              echo "🆕 Starting new PM2 process: $PM2_NAME"
               pm2 start server.js --name "$PM2_NAME" --cwd "$PROJECT_PATH"
             fi
             pm2 save
 
-            echo "⏳ Waiting for server to start..."
-            sleep 5
-
-            echo "🏥 Running health check..."
-            # Local health check (backend port)
-            if curl -fsS http://127.0.0.1:5000/ | grep -q 'Backend is running'; then
-              echo "✅ Health check passed! Deployment successful."
-            else
-              echo "⚠️  Health check failed, but deployment completed."
-              echo "💡 Check PM2 logs: pm2 logs $PM2_NAME"
-              # Don't exit with error, as the server might need more time
-            fi
-
-            echo "✨ Deployment completed!"
+            echo "⏳ wait for boot"; sleep 8
+            echo "🏥 health:"; curl -fsS http://127.0.0.1:5000/api/health || true
+            echo "🔎 category header:"; curl -s -D - "http://127.0.0.1:5000/api/categories/public?type=vendor" -o /dev/null | tr -d '\r' | egrep -i 'HTTP/|x-category-source|content-length' || true
+            echo "✨ done"
