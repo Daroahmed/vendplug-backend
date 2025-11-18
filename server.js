@@ -339,6 +339,7 @@ app.use('/api/paystack-wallet', require('./routes/paystackWalletRoutes'));
           filter.$or = [{ type: 'agent' }, { type: 'both' }];
         }
         const categories = await CategoryModel.find(filter).sort({ displayOrder: 1, name: 1 }).lean();
+        res.set('x-category-source', 'db-model');
         return res.json({ success: true, categories });
       } catch (err) {
         console.error('Category public handler (db) error:', err.message);
@@ -369,6 +370,7 @@ app.use('/api/paystack-wallet', require('./routes/paystackWalletRoutes'));
             filter.$or = [{ type: 'agent' }, { type: 'both' }];
           }
           const categories = await CategoryInline.find(filter).sort({ displayOrder: 1, name: 1 }).lean();
+          res.set('x-category-source', 'db-inline');
           return res.json({ success: true, categories });
         } catch (err) {
           console.error('Category public handler (inline schema) error:', err.message);
@@ -391,6 +393,7 @@ app.use('/api/paystack-wallet', require('./routes/paystackWalletRoutes'));
             'Legal Services','Accounting & Tax','Private Tutors','Event Planners','Photography & Videography','Tech Repairs'
           ];
           const fallbackCategories = fallbackNames.map(n => ({ name: n, type: 'both', imageUrl: '', groupName: '' }));
+          res.set('x-category-source', 'static-fallback-inline-error');
           return res.json({ success: true, categories: fallbackCategories });
         }
       };
@@ -416,6 +419,7 @@ app.use('/api/paystack-wallet', require('./routes/paystackWalletRoutes'));
       ];
       const fallbackCategories = fallbackNames.map(n => ({ name: n, type: 'both', imageUrl: '', groupName: '' }));
       handler = (req, res) => {
+        res.set('x-category-source', 'static-fallback-no-model');
         res.json({ success: true, categories: fallbackCategories });
       };
     }
