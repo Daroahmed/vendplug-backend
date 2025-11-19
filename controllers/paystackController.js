@@ -301,19 +301,21 @@ async function creditWalletFromReference(reference, paystackData) {
       const { syncWalletBalance } = require('./walletHelper');
       await syncWalletBalance(pendingTransaction.to, pendingTransaction.initiatorType, newBalance);
 
-      // Send payment verified notification
+      // Send payment verified notification (optional, guard io export)
       try {
-        const io = req.app.get('io');
         const { sendNotification } = require('../utils/notificationHelper');
-        
-        await sendNotification(io, {
-          recipientId: pendingTransaction.to,
-          recipientType: pendingTransaction.initiatorType,
-          notificationType: 'PAYMENT_VERIFIED',
-          args: [pendingTransaction.amount]
-        });
+        let io = null;
+        try { io = require('../server').io; } catch (_) { io = null; }
+        if (io) {
+          await sendNotification(io, {
+            recipientId: pendingTransaction.to,
+            recipientType: pendingTransaction.initiatorType,
+            notificationType: 'PAYMENT_VERIFIED',
+            args: [pendingTransaction.amount]
+          });
+        }
       } catch (notificationError) {
-        console.error('⚠️ Payment verification notification error:', notificationError);
+        console.error('⚠️ Payment verification notification error:', notificationError.message || notificationError);
       }
 
       console.log('✅ Wallet credited successfully:', {
@@ -346,6 +348,40 @@ async function creditWalletFromReference(reference, paystackData) {
         console.error('⚠️ Error ending session:', endError);
       }
     }
+}
+
+/**
+ * Reconcile pending wallet-funding transactions by verifying with Paystack.
+ * Intended to run periodically from the server.
+ */
+async function reconcilePendingTopups(limit = 25) {
+  try {
+    const pending = await Transaction.find({
+      type: 'fund',
+      status: 'pending'
+    }).sort({ createdAt: -1 }).limit(limit);
+
+    if (!pending.length) return { scanned: 0, credited: 0 };
+
+    let credited = 0;
+    for (const txn of pending) {
+      try {
+        const ref = txn.ref;
+        const verification = await paystackService.verifyPayment(ref);
+        if (verification && verification.success) {
+          const res = await creditWalletFromReference(ref, verification.data);
+          if (res && res.success) credited += 1;
+        }
+        // If not success, leave as pending to retry later (don't mark failed blindly)
+      } catch (e) {
+        console.warn('Reconcile verify error for', txn.ref, e.message || e);
+      }
+    }
+    return { scanned: pending.length, credited };
+  } catch (err) {
+    console.error('❌ reconcilePendingTopups error:', err.message || err);
+    return { scanned: 0, credited: 0, error: err.message };
+  }
 }
 
 // Simple in-memory cache for banks list (24h TTL)
@@ -885,5 +921,7 @@ module.exports = {
   createTransferRecipient,
   initiatePayout,
   handleWebhook,
-  paystackService
+  paystackService,
+  creditWalletFromReference,
+  reconcilePendingTopups
 };

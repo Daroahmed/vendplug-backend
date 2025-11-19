@@ -4,6 +4,7 @@ const { protectBuyer, protectAgent, protectVendor } = require('../middleware/aut
 const { fundUserWallet} = require('../controllers/fundUserWallet'); // controller we'll create next
 const { transferFunds } = require('../controllers/walletTransferController');
 const { getWallet, getTransactions, resolveWallet } = require('../controllers/walletController');
+const Transaction = require('../models/Transaction');
 const { protectAnyUser } = require('../middleware/authMiddleware');
 const { dashboardLimiter } = require('../middleware/rateLimiter');
 
@@ -31,6 +32,29 @@ router.get('/lookup/:accountNumber', resolveWallet);
 
 // Dashboard endpoints are polled frequently, so they need lenient rate limiting
 router.get('/transactions', dashboardLimiter, protectAnyUser, getTransactions);
+
+// Public: topup status by Paystack reference (no auth so user can poll even if token expired)
+router.get('/topup/status', async (req, res) => {
+  try {
+    const { reference } = req.query;
+    if (!reference) return res.status(400).json({ success: false, message: 'reference is required' });
+    const txn = await Transaction.findOne({ ref: reference });
+    if (!txn) return res.status(404).json({ success: false, message: 'Transaction not found' });
+    return res.json({
+      success: true,
+      data: {
+        reference: txn.ref,
+        type: txn.type,
+        status: txn.status,
+        amount: txn.amount,
+        createdAt: txn.createdAt
+      }
+    });
+  } catch (err) {
+    console.error('topup/status error:', err.message || err);
+    res.status(500).json({ success: false, message: 'Failed to fetch status' });
+  }
+});
 
 module.exports = router;
 
