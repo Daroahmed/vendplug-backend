@@ -23,8 +23,7 @@ const registerBuyer = asyncHandler(async (req, res) => {
 
   const buyerExists = await Buyer.findOne({ email });
   if (buyerExists) {
-    res.status(400);
-    throw new Error("Buyer already exists");
+    return res.status(409).json({ message: "Buyer already exists" });
   }
 
  
@@ -40,7 +39,16 @@ const registerBuyer = asyncHandler(async (req, res) => {
     virtualAccount: tempVirtualAccount, // ⛑️ prevent null insert
   });
   
-  const savedBuyer = await newBuyer.save();
+  let savedBuyer;
+  try {
+    savedBuyer = await newBuyer.save();
+  } catch (e) {
+    // Handle race condition duplicate key error gracefully
+    if (e && e.code === 11000) {
+      return res.status(409).json({ message: "Buyer already exists" });
+    }
+    throw e;
+  }
   console.log("🔍 Saved Buyer ID:", savedBuyer._id);
   
   console.log("📦 Creating wallet...");

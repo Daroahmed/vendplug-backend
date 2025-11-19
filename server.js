@@ -554,6 +554,8 @@ const io = socketIO(server, {
   cors: { origin: '*', methods: ['GET', 'POST'] }
 });
 
+// Export io for modules that need to emit without req/res
+try { module.exports.io = io; } catch (_) {}
 
 // Function to emit pending notifications
 async function emitPendingNotifications(userId, socket) {
@@ -699,8 +701,22 @@ if (Sentry && process.env.SENTRY_DSN) {
 
 // ✅ Global Error Handling
 app.use((err, req, res, next) => {
-  console.error('🔥 Uncaught Error:', err.stack);
-  res.status(500).json({ message: 'Internal Server Error', error: err.message, requestId: req.requestId });
+  try {
+    const status = res.statusCode && res.statusCode !== 200 ? res.statusCode : 500;
+    const payload = {
+      message: err.message || 'Internal Server Error',
+      requestId: req.requestId
+    };
+    // Include stack only in non-production for easier debugging
+    if (String(process.env.NODE_ENV).toLowerCase() !== 'production') {
+      payload.error = err.message;
+      payload.stack = err.stack;
+    }
+    console.error('🔥 Uncaught Error:', err.stack || err.message || err);
+    res.status(status).json(payload);
+  } catch (_) {
+    res.status(500).json({ message: 'Internal Server Error', requestId: req.requestId });
+  }
 });
 
 // ✅ 404 for unmatched routes
@@ -731,5 +747,23 @@ server.listen(PORT, () => {
     }
   } catch (e) {
     console.error('⚠️ Failed to start payout queue processor:', e.message);
+  }
+
+  // Reconcile pending wallet topups periodically (every 2 minutes)
+  try {
+    const { reconcilePendingTopups } = require('./controllers/paystackController');
+    setInterval(async () => {
+      try {
+        const res = await reconcilePendingTopups(25);
+        if (res && res.scanned) {
+          console.log(`🔁 Reconciled topups: scanned=${res.scanned}, credited=${res.credited || 0}`);
+        }
+      } catch (e) {
+        console.warn('Reconcile topups error:', e.message);
+      }
+    }, 2 * 60 * 1000);
+    console.log('⏱️  Topup reconciliation scheduler started (every 2m)');
+  } catch (e) {
+    console.error('⚠️ Failed to start topup reconciliation:', e.message);
   }
 });
