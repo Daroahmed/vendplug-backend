@@ -168,14 +168,13 @@ const verifyPayment = async (req, res) => {
     // Verify payment with Paystack
     const verificationResult = await paystackService.verifyPayment(reference);
 
-    if (!verificationResult.success) {
-      return res.status(400).json({
-        success: false,
-        message: verificationResult.error || 'Payment verification failed'
-      });
+    if (!verificationResult.success || verificationResult.paid !== true) {
+      // Not paid yet or verification failed
+      const message = verificationResult.message || `Payment not successful (${verificationResult.status || 'unknown'})`;
+      return res.status(202).json({ success: false, message, status: verificationResult.status || 'pending' });
     }
 
-    // Process wallet credit idempotently
+    // Process wallet credit idempotently (only when paid === true)
     const result = await creditWalletFromReference(reference, verificationResult.data);
     if (!result.success) {
       return res.status(result.statusCode || 400).json({ success: false, message: result.message });
@@ -218,6 +217,51 @@ async function creditWalletFromReference(reference, paystackData) {
 
   if (pendingTransaction.status !== 'pending') {
     return { success: false, statusCode: 409, message: 'Transaction already processed' };
+  }
+
+  // Do not credit unless Paystack confirms success
+  const payStatus = String(paystackData?.status || '').toLowerCase();
+  if (payStatus !== 'success') {
+    // Mark explicit terminal failures to avoid later auto-credit via reconcilers
+    if (['failed', 'abandoned', 'reversed', 'cancelled', 'declined', 'rejected'].includes(payStatus)) {
+      try {
+        pendingTransaction.status = 'failed';
+        pendingTransaction.metadata = { ...(pendingTransaction.metadata || {}), paystackData };
+        await pendingTransaction.save();
+      } catch (e) {
+        console.warn('⚠️ Failed to mark pending transaction as failed:', e.message || e);
+      }
+    }
+    return { success: false, statusCode: 400, message: `Payment not successful (status=${payStatus || 'unknown'})` };
+  }
+
+  // Sanity checks to prevent mismatched crediting
+  try {
+    const refMatches = String(paystackData.reference || '') === String(reference);
+    const meta = pendingTransaction.metadata || {};
+    const userMatches = !paystackData.metadata || !paystackData.metadata.userId || String(paystackData.metadata.userId) === String(pendingTransaction.to);
+    const currencyOk = !paystackData.currency || String(paystackData.currency).toUpperCase() === 'NGN';
+    const expectedKobo = Number(meta.totalAmountToPay || 0) * 100;
+    const amountOk = !expectedKobo || Number(paystackData.amount || 0) >= Number(expectedKobo);
+    const purposeOk = !paystackData.metadata || !paystackData.metadata.purpose || String(paystackData.metadata.purpose) === 'wallet_funding';
+
+    if (!refMatches) {
+      return { success: false, statusCode: 400, message: 'Reference mismatch' };
+    }
+    if (!userMatches) {
+      return { success: false, statusCode: 400, message: 'Payer does not match transaction owner' };
+    }
+    if (!currencyOk) {
+      return { success: false, statusCode: 400, message: 'Unsupported currency' };
+    }
+    if (!amountOk) {
+      return { success: false, statusCode: 400, message: 'Paid amount is less than expected total' };
+    }
+    if (!purposeOk) {
+      return { success: false, statusCode: 400, message: 'Payment purpose mismatch' };
+    }
+  } catch (safetyCheckErr) {
+    console.warn('⚠️ Safety check warning:', safetyCheckErr.message || safetyCheckErr);
   }
 
     // Start database transaction
@@ -364,23 +408,34 @@ async function reconcilePendingTopups(limit = 25) {
     if (!pending.length) return { scanned: 0, credited: 0 };
 
     let credited = 0;
+    let failedMarked = 0;
     for (const txn of pending) {
       try {
         const ref = txn.ref;
         const verification = await paystackService.verifyPayment(ref);
-        if (verification && verification.success) {
+        if (verification && verification.success && verification.paid === true) {
           const res = await creditWalletFromReference(ref, verification.data);
           if (res && res.success) credited += 1;
+        } else if (verification && ['failed', 'abandoned', 'reversed', 'cancelled', 'declined', 'rejected'].includes(String(verification?.status || '').toLowerCase())) {
+          // Mark terminal failure to prevent endless retries
+          try {
+            txn.status = 'failed';
+            txn.metadata = { ...(txn.metadata || {}), paystackData: verification.data, lastVerifiedAt: new Date().toISOString() };
+            await txn.save();
+            failedMarked += 1;
+          } catch (e2) {
+            console.warn('Mark failed error for', ref, e2.message || e2);
+          }
         }
         // If not success, leave as pending to retry later (don't mark failed blindly)
       } catch (e) {
         console.warn('Reconcile verify error for', txn.ref, e.message || e);
       }
     }
-    return { scanned: pending.length, credited };
+    return { scanned: pending.length, credited, failedMarked };
   } catch (err) {
     console.error('❌ reconcilePendingTopups error:', err.message || err);
-    return { scanned: 0, credited: 0, error: err.message };
+    return { scanned: 0, credited: 0, failedMarked: 0, error: err.message };
   }
 }
 
@@ -657,6 +712,22 @@ const handleWebhook = async (req, res) => {
         }
         break;
 
+      case 'charge.failed':
+      case 'charge.failure':
+        // Mark the pending transaction as failed to prevent later auto-credit
+        try {
+          const txn = await Transaction.findOne({ ref: data.reference, status: 'pending' });
+          if (txn) {
+            txn.status = 'failed';
+            txn.metadata = { ...(txn.metadata || {}), paystackData: data, failedAt: new Date().toISOString() };
+            await txn.save();
+            console.log('❌ Marked transaction as failed via webhook:', data.reference);
+          }
+        } catch (e) {
+          console.error('❌ Webhook fail-mark error:', e);
+        }
+        break;
+
       case 'transfer.success':
         // Handle successful transfer
         console.log('✅ Transfer successful via webhook:', data.transfer_code);
@@ -733,23 +804,32 @@ const paystackService = {
         }
       );
 
-      if (response.data.status) {
-        console.log('✅ Payment verified successfully');
-        return {
-          success: true,
-          data: response.data.data
-        };
-      } else {
-        console.log('❌ Payment verification failed:', response.data.message);
-        return {
-          success: false,
-          message: response.data.message
-        };
+      // response.data.status indicates API call success, NOT payment success.
+      const apiOk = !!response.data?.status;
+      const data = response.data?.data || null;
+      const paid = data && String(data.status).toLowerCase() === 'success';
+      const status = data ? String(data.status || '') : '';
+
+      if (apiOk && paid) {
+        console.log('✅ Payment verified as SUCCESS');
+        return { success: true, paid: true, status, data };
       }
+
+      // API call succeeded but payment not successful (could be pending/abandoned/failed)
+      if (apiOk) {
+        console.log('ℹ️ Payment not successful yet:', status || 'unknown');
+        return { success: false, paid: false, status, data, message: `Payment status: ${status || 'unknown'}` };
+      }
+
+      console.log('❌ Payment verification API failed:', response.data?.message);
+      return { success: false, paid: false, status, data, message: response.data?.message || 'Verification failed' };
+
     } catch (error) {
       console.error('❌ Error verifying payment:', error.response?.data || error.message);
       return {
         success: false,
+        paid: false,
+        status: 'error',
         message: error.response?.data?.message || 'Failed to verify payment'
       };
     }
