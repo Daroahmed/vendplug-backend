@@ -1,5 +1,12 @@
 // backend/services/emailNotificationService.js
 const nodemailer = require('nodemailer');
+let dkimPlugin = null;
+try {
+    // Optional DKIM plugin, only used if env keys are present
+    dkimPlugin = require('nodemailer-dkim');
+} catch (_) {
+    dkimPlugin = null;
+}
 
 class EmailNotificationService {
     constructor() {
@@ -11,15 +18,49 @@ class EmailNotificationService {
     init() {
         // Check if email configuration is available
         if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-            this.transporter = nodemailer.createTransporter({
+            const port = Number(process.env.EMAIL_PORT || 587);
+            const secure = port === 465; // only 465 is implicit TLS
+            this.transporter = nodemailer.createTransport({
                 host: process.env.EMAIL_HOST,
-                port: process.env.EMAIL_PORT || 587,
-                secure: false, // true for 465, false for other ports
+                port,
+                secure,
+                pool: true,
+                maxConnections: Number(process.env.EMAIL_MAX_CONNECTIONS || 5),
+                maxMessages: Number(process.env.EMAIL_MAX_MESSAGES || 200),
                 auth: {
                     user: process.env.EMAIL_USER,
                     pass: process.env.EMAIL_PASS
-                }
+                },
+                tls: {
+                    minVersion: 'TLSv1.2',
+                    // Allow override via env (e.g. self-signed during testing)
+                    rejectUnauthorized: String(process.env.EMAIL_TLS_REJECT_UNAUTHORIZED || 'true') !== 'false'
+                },
+                greetingTimeout: Number(process.env.EMAIL_GREETING_TIMEOUT || 10000),
+                connectionTimeout: Number(process.env.EMAIL_CONNECTION_TIMEOUT || 10000)
             });
+
+            // Default addressing for alignment and bounces
+            const userDomain = (process.env.EMAIL_FROM_DOMAIN)
+                || (process.env.EMAIL_USER.includes('@') ? process.env.EMAIL_USER.split('@').pop() : '');
+            this.fromAddress = process.env.EMAIL_FROM
+                || (userDomain ? `"Vendplug Escrow" <no-reply@${userDomain}>` : `"Vendplug Escrow" <${process.env.EMAIL_USER}>`);
+            this.replyTo = process.env.EMAIL_REPLY_TO || this.fromAddress;
+            this.returnPath = process.env.EMAIL_RETURN_PATH || ''; // set if you own a bounce mailbox, else leave empty
+
+            // Optional DKIM signing
+            if (dkimPlugin && process.env.DKIM_PRIVATE_KEY && (process.env.DKIM_DOMAIN || userDomain) && process.env.DKIM_SELECTOR) {
+                try {
+                    this.transporter.use('stream', dkimPlugin.signer({
+                        domainName: process.env.DKIM_DOMAIN || userDomain,
+                        keySelector: process.env.DKIM_SELECTOR,
+                        privateKey: process.env.DKIM_PRIVATE_KEY
+                    }));
+                    console.log('✅ DKIM signer enabled');
+                } catch (e) {
+                    console.warn('⚠️ Failed to enable DKIM signer:', e.message);
+                }
+            }
 
             this.isConfigured = true;
             console.log('✅ Email notification service configured');
@@ -27,6 +68,28 @@ class EmailNotificationService {
             console.log('⚠️ Email configuration not found. Email notifications disabled.');
             console.log('   Set EMAIL_HOST, EMAIL_USER, and EMAIL_PASS environment variables to enable email notifications.');
         }
+    }
+
+    /**
+     * Build normalized mail options to keep alignment and headers consistent.
+     */
+    buildMail({ to, subject, html, text, refId }) {
+        const mail = {
+            from: this.fromAddress || `"Vendplug Escrow" <${process.env.EMAIL_USER}>`,
+            to,
+            subject,
+            html,
+            text,
+            replyTo: this.replyTo,
+            headers: {
+                'Auto-Submitted': 'auto-generated',
+                ...(refId ? { 'X-Entity-Ref-ID': String(refId).slice(0, 120) } : {})
+            }
+        };
+        if (this.returnPath) {
+            mail.envelope = { from: this.returnPath, to };
+        }
+        return mail;
     }
 
     // Send dispute assignment notification
@@ -37,13 +100,13 @@ class EmailNotificationService {
         }
 
         try {
-            const mailOptions = {
-                from: `"Vendplug Escrow" <${process.env.EMAIL_USER}>`,
+            const mailOptions = this.buildMail({
                 to: staffEmail,
                 subject: `New Dispute Assignment - ${dispute.disputeId}`,
                 html: this.generateAssignmentEmailHTML(staffName, dispute),
-                text: this.generateAssignmentEmailText(staffName, dispute)
-            };
+                text: this.generateAssignmentEmailText(staffName, dispute),
+                refId: dispute && dispute.disputeId
+            });
 
             const result = await this.transporter.sendMail(mailOptions);
             console.log(`📧 Assignment notification sent to ${staffEmail}`);
@@ -63,13 +126,13 @@ class EmailNotificationService {
         }
 
         try {
-            const mailOptions = {
-                from: `"Vendplug Escrow" <${process.env.EMAIL_USER}>`,
+            const mailOptions = this.buildMail({
                 to: complainantEmail,
                 subject: `Dispute Resolution - ${dispute.disputeId}`,
                 html: this.generateResolutionEmailHTML(complainantName, dispute, resolution),
-                text: this.generateResolutionEmailText(complainantName, dispute, resolution)
-            };
+                text: this.generateResolutionEmailText(complainantName, dispute, resolution),
+                refId: dispute && dispute.disputeId
+            });
 
             const result = await this.transporter.sendMail(mailOptions);
             console.log(`📧 Resolution notification sent to ${complainantEmail}`);
@@ -89,13 +152,13 @@ class EmailNotificationService {
         }
 
         try {
-            const mailOptions = {
-                from: `"Vendplug Escrow" <${process.env.EMAIL_USER}>`,
+            const mailOptions = this.buildMail({
                 to: userEmail,
                 subject: `Dispute Status Update - ${dispute.disputeId}`,
                 html: this.generateStatusUpdateEmailHTML(userName, dispute, newStatus),
-                text: this.generateStatusUpdateEmailText(userName, dispute, newStatus)
-            };
+                text: this.generateStatusUpdateEmailText(userName, dispute, newStatus),
+                refId: dispute && dispute.disputeId
+            });
 
             const result = await this.transporter.sendMail(mailOptions);
             console.log(`📧 Status update notification sent to ${userEmail}`);
