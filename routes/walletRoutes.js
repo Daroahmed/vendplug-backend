@@ -9,8 +9,10 @@ const { protectAnyUser } = require('../middleware/authMiddleware');
 const { dashboardLimiter } = require('../middleware/rateLimiter');
 
 
- // optional shortcut for buyers
-router.post('/fund-buyer', fundUserWallet); // special test route
+// Deprecated dangerous test route (disabled). Use /api/paystack/fund-wallet instead.
+router.post('/fund-buyer', (req, res) => {
+  return res.status(410).json({ success: false, message: 'Deprecated: use /api/paystack/fund-wallet' });
+});
 
 
 router.post('/transfer', protectAnyUser, transferFunds);
@@ -26,7 +28,10 @@ router.get('/buyer', dashboardLimiter, protectAnyUser, getWallet);
 // For Vendor
 router.get('/vendor', dashboardLimiter, protectAnyUser, getWallet);
 
-router.post('/fund', fundUserWallet);
+// Deprecated unsafe direct funding endpoint (disabled). Use /api/paystack/fund-wallet instead.
+router.post('/fund', (req, res) => {
+  return res.status(410).json({ success: false, message: 'Deprecated: use /api/paystack/fund-wallet' });
+});
 
 router.get('/lookup/:accountNumber', resolveWallet);
 
