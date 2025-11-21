@@ -121,3 +121,27 @@ Thumbs.db
 uploads/
 
 .env
+
+# ===== Additional ignores (security and Android) =====
+# Secrets and key material
+*.pem
+*.key
+*.p8
+*.p12
+dkim-*.pem
+**/dkim/*
+**/certs/*
+**/keys/*
+
+# Android signing files
+**/key.properties
+**/*.keystore
+**/*.jks
+
+# Android build artifacts and IDE files
+**/.gradle/
+**/build/
+**/.idea/
+**/*.iml
+**/local.properties
+**/google-services.json

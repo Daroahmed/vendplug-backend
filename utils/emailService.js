@@ -1,4 +1,11 @@
 const nodemailer = require('nodemailer');
+let dkimPlugin = null;
+try {
+  // Optional DKIM (enables cryptographic signing if you provide keys)
+  dkimPlugin = require('nodemailer-dkim');
+} catch (_) {
+  dkimPlugin = null;
+}
 const { enqueueEmail } = require('./queue');
 
 // SMTP transporter (fallback when RESEND_API_KEY is not set)
@@ -16,6 +23,28 @@ const transporter = nodemailer.createTransport({
   },
   tls: { rejectUnauthorized: true, minVersion: 'TLSv1.2' }
 });
+
+// Enable DKIM signer when configured. This improves DMARC alignment and deliverability.
+(() => {
+  if (!dkimPlugin) return;
+  const fromLike = process.env.EMAIL_FROM || process.env.EMAIL_USER || '';
+  const fallbackDomain = fromLike.includes('@') ? fromLike.split('@').pop() : '';
+  const dkimDomain = process.env.DKIM_DOMAIN || fallbackDomain;
+  const dkimSelector = process.env.DKIM_SELECTOR;
+  const dkimPrivateKey = process.env.DKIM_PRIVATE_KEY;
+  if (dkimDomain && dkimSelector && dkimPrivateKey) {
+    try {
+      transporter.use('stream', dkimPlugin.signer({
+        domainName: dkimDomain,
+        keySelector: dkimSelector,
+        privateKey: dkimPrivateKey
+      }));
+      console.log('✅ DKIM signer enabled for', dkimDomain, '(selector:', dkimSelector, ')');
+    } catch (e) {
+      console.warn('⚠️ Failed to enable DKIM signer:', e.message);
+    }
+  }
+})();
 
 // Validate email configuration
 if (!process.env.EMAIL_USER || (!process.env.EMAIL_PASSWORD && !process.env.EMAIL_PASS)) {
@@ -60,7 +89,16 @@ function getLogoUrl() {
   return 'https://via.placeholder.com/120x40.png?text=Vendplug';
 }
 
-function buildEmailHtml({ title, preheader, heading, introHtml, actionText, actionUrl, footerHtml, uniqueLine }) {
+function getListUnsubscribeHeader() {
+  const mailto = process.env.EMAIL_UNSUBSCRIBE || process.env.EMAIL_FROM || process.env.EMAIL_USER;
+  const base = getPublicBaseUrl() || 'http://localhost:5000';
+  const url = `${base}/unsubscribe`;
+  const mailtoPart = mailto ? `<mailto:${mailto}?subject=unsubscribe>` : '';
+  const urlPart = `<${url}>`;
+  return mailtoPart ? `${mailtoPart}, ${urlPart}` : urlPart;
+}
+
+function buildEmailHtml({ title, preheader, heading, introHtml, actionText, actionUrl, footerHtml, uniqueLine, includeLogo = true }) {
   const safePreheader = (preheader || '').replace(/\s+/g, ' ').trim();
   const safeUnique = (uniqueLine || '').replace(/\s+/g, ' ').trim();
   const btn = actionText && actionUrl ? `
@@ -91,11 +129,11 @@ function buildEmailHtml({ title, preheader, heading, introHtml, actionText, acti
         <tr>
           <td align="center" style="padding:32px 12px;">
             <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:640px">
-              <tr>
+              ${includeLogo ? `<tr>
                 <td style="text-align:center;padding-bottom:16px">
                   <img src="${getLogoUrl()}" alt="Vendplug" height="40" style="display:inline-block;border:0"/>
                 </td>
-              </tr>
+              </tr>` : ''}
               <tr>
                 <td class="card" style="background:#ffffff;border-radius:12px;padding:28px 24px;box-shadow:0 2px 10px rgba(0,0,0,0.06)">
                   <div style="color:#6b7280;font-size:12px;margin-bottom:8px">${safeUnique}</div>
@@ -146,9 +184,17 @@ async function sendViaResend(to, subject, payload) {
     throw new Error('RESEND_FROM/EMAIL_FROM not configured');
   }
 
+  const headers = payload.headers || {
+    'List-Unsubscribe': getListUnsubscribeHeader(),
+    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    'X-Mailer': 'Vendplug Mailer'
+  };
+
+  const replyTo = process.env.EMAIL_REPLY_TO || process.env.EMAIL_FROM || process.env.EMAIL_USER;
+
   const body = typeof payload === 'string'
-    ? { from, to: [to], subject, html: payload }
-    : { from, to: [to], subject, html: payload.html, text: payload.text };
+    ? { from, to: [to], subject, html: payload, headers, reply_to: replyTo }
+    : { from, to: [to], subject, html: payload.html, text: payload.text, headers, reply_to: replyTo };
 
   console.log(`📤 Attempting to send email via Resend to: ${to}`);
   const res = await fetch('https://api.resend.com/emails', {
@@ -182,6 +228,22 @@ async function tryEnqueueEmail(job) {
     console.warn('⚠️ Email queue error, sending synchronously:', err.message);
     return false; // Fallback to synchronous
   }
+}
+
+function preferredFromAddress() {
+  // Prefer a domain-aligned from address if configured
+  if (process.env.EMAIL_FROM) return process.env.EMAIL_FROM;
+  if (process.env.RESEND_FROM) return process.env.RESEND_FROM;
+  return process.env.EMAIL_USER;
+}
+
+function standardHeaders() {
+  return {
+    'List-Unsubscribe': getListUnsubscribeHeader(),
+    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    'Auto-Submitted': 'auto-generated',
+    'X-Mailer': 'Vendplug Mailer'
+  };
 }
 
 // Test email connection
@@ -249,7 +311,8 @@ async function sendVerificationEmail(email, token) {
         actionText: 'Verify Email',
         actionUrl: verificationLink,
         footerHtml: `If you didn’t create an account with Vendplug, you can safely ignore this message.<br/>This link will expire in 24 hours.`,
-        uniqueLine
+        uniqueLine,
+        includeLogo: false
       });
 
       const text = buildEmailText({
@@ -305,7 +368,8 @@ async function sendVerificationEmail(email, token) {
       actionText: 'Verify Email',
       actionUrl: verificationLink,
       footerHtml: `If you didn’t create an account with Vendplug, you can safely ignore this message.<br/>This link will expire in 24 hours.`,
-      uniqueLine
+      uniqueLine,
+      includeLogo: false
     });
 
     const text = buildEmailText({
@@ -318,11 +382,17 @@ async function sendVerificationEmail(email, token) {
     });
 
     const mailOptions = {
-      from: `"Vendplug" <${process.env.EMAIL_USER}>`, // Use authenticated email
+      from: `"Vendplug" <${preferredFromAddress()}>`,
       to: email,
       subject: 'Verify Your Vendplug Account',
       html,
-      text
+      text,
+      replyTo: process.env.EMAIL_REPLY_TO || process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      headers: standardHeaders(),
+      envelope: {
+        from: process.env.EMAIL_RETURN_PATH || process.env.EMAIL_USER,
+        to: email
+      }
     };
 
     const result = await transporter.sendMail(mailOptions);
@@ -430,11 +500,17 @@ async function sendPasswordResetEmail(email, token) {
     });
 
     const mailOptions = {
-      from: `"Vendplug" <${process.env.EMAIL_USER}>`, // Use authenticated email
+      from: `"Vendplug" <${preferredFromAddress()}>`,
       to: email,
       subject: 'Reset Your Vendplug Password',
       html,
-      text
+      text,
+      replyTo: process.env.EMAIL_REPLY_TO || process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      headers: standardHeaders(),
+      envelope: {
+        from: process.env.EMAIL_RETURN_PATH || process.env.EMAIL_USER,
+        to: email
+      }
     };
 
     const result = await transporter.sendMail(mailOptions);
@@ -520,11 +596,17 @@ async function sendPinResetEmail(email, resetCode, userType) {
     });
 
     const mailOptions = {
-      from: `"Vendplug" <${process.env.EMAIL_USER}>`,
+      from: `"Vendplug" <${preferredFromAddress()}>`,
       to: email,
       subject: `PIN Reset Code - ${userType} Account`,
       html,
-      text
+      text,
+      replyTo: process.env.EMAIL_REPLY_TO || process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      headers: standardHeaders(),
+      envelope: {
+        from: process.env.EMAIL_RETURN_PATH || process.env.EMAIL_USER,
+        to: email
+      }
     };
 
     const result = await transporter.sendMail(mailOptions);

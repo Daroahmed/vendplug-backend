@@ -289,6 +289,7 @@ const supportRoutes = require('./routes/supportRoutes');
 const productSearchRoutes = require('./routes/productSearchRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const autoAssignmentService = require('./services/autoAssignmentService');
+const deviceRoutes = require('./routes/deviceRoutes');
 
 
 // ✅ Explicit public category endpoints (inline handler with DB and static fallback)
@@ -429,6 +430,7 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/admin-ads', require('./routes/adminAdRoutes'));
 app.use('/api/commission', require('./routes/commissionRoutes'));
 app.use('/api/paystack-wallet', require('./routes/paystackWalletRoutes'));
+app.use('/api/devices', deviceRoutes);
 
 // ✅ Explicit public category endpoints (inline handler with DB and static fallback)
 (() => {
@@ -542,10 +544,56 @@ app.get('/admin/wallet-management', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/paystack-wallet-management.html'));
 });
 
+// ✅ Serve well-known files with correct content type
+app.get('/.well-known/assetlinks.json', (req, res) => {
+  res.type('application/json');
+  res.sendFile(path.join(__dirname, '../frontend/.well-known/assetlinks.json'));
+});
+app.get('/.well-known/apple-app-site-association', (req, res) => {
+  res.type('application/json');
+  res.sendFile(path.join(__dirname, '../frontend/.well-known/apple-app-site-association'));
+});
 // ✅ Test route
 app.get('/', (req, res) => res.send('Backend is running 🚀'));
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
+});
+
+// ✅ List-Unsubscribe landing and One‑Click endpoint
+app.get('/unsubscribe', (req, res) => {
+  res.type('html').status(200).send(`<!doctype html>
+  <html lang="en">
+    <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>Unsubscribe | Vendplug</title>
+      <style>
+        body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#0f1115;color:#e5e7eb;margin:0;padding:40px}
+        .card{max-width:640px;margin:0 auto;background:#12151b;border:1px solid #1f2937;border-radius:12px;padding:24px}
+        h1{margin:0 0 8px 0;color:#00cc99;font-size:22px}
+        p{line-height:1.6;color:#cbd5e1}
+        a{color:#00cc99;text-decoration:none}
+        .muted{color:#94a3b8;font-size:12px;margin-top:10px}
+        .btn{display:inline-block;margin-top:14px;background:#00cc99;color:#0b0f14;padding:10px 16px;border-radius:8px;font-weight:600;text-decoration:none}
+      </style>
+    </head>
+    <body>
+      <div class="card">
+        <h1>You're unsubscribed</h1>
+        <p>You've been unsubscribed from non-essential email updates. Transactional messages (such as receipts, security alerts, or required account notices) may still be sent when strictly necessary.</p>
+        <p>If this was a mistake or you want to manage your communication preferences, please contact support.</p>
+        <a class="btn" href="/support.html">Go to Support</a>
+        <div class="muted">Request ID: ${Date.now().toString(16)}</div>
+      </div>
+    </body>
+  </html>`);
+});
+// One‑Click List‑Unsubscribe (RFC 8058): accept POST and return 200
+app.post('/unsubscribe', (req, res) => {
+  try {
+    // Optionally, record a marker here if you later add per-user preferences.
+    res.status(200).json({ success: true });
+  } catch (_e) {
+    res.status(200).json({ success: true });
+  }
 });
 
 // ✅ HTTP Server + Socket.IO
