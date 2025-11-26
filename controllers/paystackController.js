@@ -176,9 +176,47 @@ const verifyPayment = async (req, res) => {
 
     // Process wallet credit idempotently (only when paid === true)
     const result = await creditWalletFromReference(reference, verificationResult.data);
-    if (!result.success) {
-      return res.status(result.statusCode || 400).json({ success: false, message: result.message });
+  if (!result.success) {
+    // If already processed, surface final state for idempotent UX
+    if (result.statusCode === 409) {
+      const txn = await Transaction.findOne({ ref: reference });
+      if (txn) {
+        if (txn.status === 'successful') {
+          const wallet = await Wallet.findOne({
+            user: txn.to,
+            role: (txn.initiatorType || '').toLowerCase()
+          });
+          return res.json({
+            success: true,
+            message: 'Payment already verified previously',
+            data: {
+              reference,
+              amount: txn.amount,
+              newBalance: wallet ? wallet.balance : undefined,
+              walletId: wallet ? wallet._id : undefined,
+              alreadyProcessed: true
+            }
+          });
+        }
+        if (txn.status === 'failed') {
+          return res.status(409).json({
+            success: false,
+            message: 'Transaction already marked as failed',
+            status: 'failed',
+            code: 'ALREADY_FAILED'
+          });
+        }
+        if (txn.status === 'pending') {
+          return res.status(202).json({
+            success: false,
+            message: 'Transaction still pending',
+            status: 'pending'
+          });
+        }
+      }
     }
+    return res.status(result.statusCode || 400).json({ success: false, message: result.message });
+  }
 
     const { newBalance, amount, walletId } = result.data;
 
