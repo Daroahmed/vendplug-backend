@@ -15,6 +15,9 @@ const verifyEmail = async (req, res) => {
     // Get token from request body (POST) or query params (GET)
     const token = req.body.token || req.query.token;
     
+    const userAgent = req.get && req.get('user-agent');
+    if (userAgent) console.log('🔍 User-Agent:', userAgent);
+
     console.log('🔍 Request method:', req.method);
     console.log('🔍 Token from body:', req.body.token);
     console.log('🔍 Token from query:', req.query.token);
@@ -54,6 +57,24 @@ const verifyEmail = async (req, res) => {
         type: 'verification'
       });
       
+      // If the token has already been used and deleted by a scanner or previous click,
+      // try to decode it (WITHOUT trusting it) just to see if the user is already verified.
+      // We will NOT verify a user from a missing tokenDoc; this is only for idempotent UX.
+      try {
+        const softDecoded = jwt.decode(token);
+        if (softDecoded && softDecoded.id) {
+          let u = await Buyer.findById(softDecoded.id) ||
+                  await Vendor.findById(softDecoded.id) ||
+                  await Agent.findById(softDecoded.id);
+          if (u && u.isEmailVerified) {
+            console.log('⚠️ Token missing but user already verified. Returning idempotent success.');
+            return res.status(200).json({ message: 'Email already verified', code: 'ALREADY_VERIFIED' });
+          }
+        }
+      } catch (_) {
+        // no-op
+      }
+
       if (expiredToken) {
         console.log('🔍 Found expired token:', {
           id: expiredToken._id,
@@ -113,7 +134,14 @@ const verifyEmail = async (req, res) => {
 
     if (user.isEmailVerified) {
       console.log('⚠️ User already verified');
-      return res.status(400).json({ message: 'Email already verified' });
+      // Clean up token if it still exists to prevent confusion on repeated clicks
+      try {
+        if (tokenDoc?._id) {
+          await Token.findByIdAndDelete(tokenDoc._id);
+          console.log('🧹 Deleted redundant verification token for already-verified user');
+        }
+      } catch (_) { /* no-op */ }
+      return res.status(200).json({ message: 'Email already verified', code: 'ALREADY_VERIFIED' });
     }
 
     // Update user verification status

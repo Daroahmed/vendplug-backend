@@ -14,7 +14,7 @@ const upload = multer({
   },
   fileFilter: (req, file, cb) => {
     // Allow images and common file types
-    const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|txt|mp4|mp3|wav/;
+    const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|txt|mp4|mp3|wav|webm|ogg|m4a|aac/;
     const extname = allowedTypes.test(file.originalname.toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype);
     

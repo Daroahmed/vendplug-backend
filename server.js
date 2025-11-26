@@ -394,7 +394,11 @@ const deviceRoutes = require('./routes/deviceRoutes');
   // Bind before router to ensure these take precedence
   app.get('/api/categories/public', handler);
   app.get('/api/categories', handler); // legacy/mirror
-  app.get('/api/categories/*', handler); // catch-all under /api/categories/**
+  // Catch-all for category reads, but DO NOT intercept specialized endpoints like /active-counts
+  app.get('/api/categories/*', (req, res, next) => {
+    if (req.path && req.path.includes('/active-counts')) return next();
+    return handler(req, res);
+  });
   console.log('✅ Bound /api/categories(public) routes');
 })();
 
@@ -534,8 +538,11 @@ app.use('/api/devices', deviceRoutes);
   }
   app.get('/api/categories/public', handler);
   app.get('/api/categories', handler); // legacy/mirror
-  // Catch-all for any GET under /api/categories/** (e.g., /api/categories/public?type=...)
-  app.get('/api/categories/*', handler);
+  // Catch-all for any GET under /api/categories/**, excluding specialized endpoints (e.g., /active-counts)
+  app.get('/api/categories/*', (req, res, next) => {
+    if (req.path && req.path.includes('/active-counts')) return next();
+    return handler(req, res);
+  });
   console.log('✅ Bound /api/categories(public) routes');
 })();
 
