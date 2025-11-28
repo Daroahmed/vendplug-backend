@@ -49,7 +49,13 @@ const initializeWalletFunding = async (req, res) => {
     // Generate unique reference
     const reference = `VENDPLUG_${userType.toUpperCase()}_${userId}_${Date.now()}`;
     
-    // Create callback URL for payment verification - prioritize environment variable
+    // Detect native runtime (Capacitor app) to choose a deep-link callback
+    const nativeHint = String(
+      (req.get('x-native-app') || req.get('x-capacitor') || req.body?.native || req.query?.native || '')
+    ).toLowerCase();
+    const isNativeApp = ['true','1','yes','y','app','native'].includes(nativeHint);
+
+    // Create callback URL for payment verification - prioritize environment variable (web)
     let frontendUrl = process.env.FRONTEND_URL;
     
     // If no environment variable, try to detect from request
@@ -67,7 +73,10 @@ const initializeWalletFunding = async (req, res) => {
       }
     }
     
-    const callbackUrl = `${frontendUrl}/payment-success.html?reference=${reference}`;
+    // For native app, use custom scheme so Android/iOS jump back into the app
+    const callbackUrl = isNativeApp
+      ? `vendplug://payment-success?reference=${reference}`
+      : `${frontendUrl}/payment-success.html?reference=${reference}`;
 
     console.log('💰 Initializing wallet funding:', {
       userId,
@@ -89,7 +98,8 @@ const initializeWalletFunding = async (req, res) => {
         purpose: 'wallet_funding',
         requestedAmount: amount, // Amount user wants in wallet
         paystackFee,
-        totalAmountToPay
+        totalAmountToPay,
+        startedFromNative: isNativeApp
       }
     });
 
