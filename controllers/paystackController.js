@@ -73,10 +73,10 @@ const initializeWalletFunding = async (req, res) => {
       }
     }
     
-    // For native app, use custom scheme so Android/iOS jump back into the app
+    // For native app, deep-link back to wallet; for web, return to wallet page (no success page)
     const callbackUrl = isNativeApp
-      ? `vendplug://payment-success?reference=${reference}`
-      : `${frontendUrl}/payment-success.html?reference=${reference}`;
+      ? `vendplug://wallet?reference=${reference}`
+      : `${frontendUrl}/buyer-wallet.html`;
 
     console.log('💰 Initializing wallet funding:', {
       userId,

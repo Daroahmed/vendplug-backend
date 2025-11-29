@@ -75,9 +75,50 @@ router.get('/verify-payment', (req, res) => {
       frontendUrl = 'http://localhost:5000'; // fallback
     }
   }
-  
-  console.log('🔄 Redirecting callback URL to frontend:', `${frontendUrl}/payment-success.html?reference=${reference}`);
-  res.redirect(`${frontendUrl}/payment-success.html?reference=${reference}`);
+
+  // Build destinations
+  const webUrl = `${frontendUrl}/buyer-wallet.html`;
+  const deepLink = `vendplug://wallet?reference=${encodeURIComponent(reference || '')}`;
+
+  // Serve a tiny bridge page that first attempts to deep link into the app.
+  // If the app is not installed or the deep link is blocked, it falls back to the web page.
+  const html = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Returning to VendPlug…</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;margin:0;padding:32px;background:#0f1214;color:#e6e6e6;text-align:center}
+    .box{max-width:460px;margin:0 auto;background:#141a1f;border-radius:12px;padding:24px;box-shadow:0 6px 24px rgba(0,0,0,.2)}
+    a.btn{display:inline-block;margin:8px 6px;padding:12px 16px;border-radius:8px;text-decoration:none;color:#fff;background:#00cc99}
+    a.alt{background:#2d3742}
+    p{opacity:.85}
+  </style>
+  <script>
+    (function(){
+      try {
+        // Attempt deep link first
+        setTimeout(function(){ window.location.href = '${deepLink}'; }, 50);
+        // Fallback to web after a short delay
+        setTimeout(function(){ window.location.href = '${webUrl}'; }, 1200);
+      } catch (_) {}
+    })();
+  </script>
+</head>
+<body>
+  <div class="box">
+    <h2>Returning to Wallet…</h2>
+    <p>If you have the app installed, you'll be taken back to it shortly.</p>
+    <p>
+      <a class="btn" href="${deepLink}">Open in App</a>
+      <a class="btn alt" href="${webUrl}">Open on Web</a>
+    </p>
+  </div>
+</body>
+</html>`;
+
+  res.set('Content-Type', 'text/html; charset=utf-8').send(html);
 });
 
 // Public API: allow verification without auth (for external browser callbacks)
