@@ -80,6 +80,11 @@ router.get('/verify-payment', (req, res) => {
   res.redirect(`${frontendUrl}/payment-success.html?reference=${reference}`);
 });
 
+// Public API: allow verification without auth (for external browser callbacks)
+// Uses same controller as the authenticated version; safe because crediting
+// is idempotent and conditioned on Paystack success.
+router.get('/verify-payment-public', paystackController.verifyPayment);
+
 // API endpoint for payment verification (for frontend calls)
 router.get('/verify-payment-api', paymentLimiter, async (req, res, next) => {
   try {
