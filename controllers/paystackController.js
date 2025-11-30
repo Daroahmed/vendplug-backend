@@ -73,25 +73,15 @@ const initializeWalletFunding = async (req, res) => {
       }
     }
     
-    // For native app, deep-link back to wallet; for web, return to wallet page (no success page)
-    const callbackUrl = isNativeApp
-      ? `vendplug://wallet?reference=${reference}`
-      : `${frontendUrl}/buyer-wallet.html`;
+    // Omit callback_url for all flows (native and web/PWA) so Paystack doesn't redirect.
 
-    console.log('💰 Initializing wallet funding:', {
-      userId,
-      userType,
-      amount,
-      reference,
-      callbackUrl
-    });
+    console.log('💰 Initializing wallet funding:', { userId, userType, amount, reference });
 
     // Initialize payment with Paystack (using total amount including fees)
-    const paymentResult = await paystackService.initializePayment({
+    const paymentPayload = {
       email,
       amount: totalAmountToPay * 100, // Convert naira to kobo for Paystack
       reference,
-      callback_url: callbackUrl,
       metadata: {
         userId: userId.toString(),
         userType,
@@ -101,7 +91,8 @@ const initializeWalletFunding = async (req, res) => {
         totalAmountToPay,
         startedFromNative: isNativeApp
       }
-    });
+    };
+    const paymentResult = await paystackService.initializePayment(paymentPayload);
 
     if (!paymentResult.success) {
       return res.status(400).json({
