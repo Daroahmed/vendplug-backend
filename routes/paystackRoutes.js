@@ -80,8 +80,10 @@ router.get('/verify-payment', (req, res) => {
   const webUrl = `${frontendUrl}/buyer-wallet.html`;
   const deepLink = `vendplug://wallet?reference=${encodeURIComponent(reference || '')}`;
 
-  // Serve a tiny bridge page that first attempts to deep link into the app.
-  // If the app is not installed or the deep link is blocked, it falls back to the web page.
+  // Serve a tiny bridge page that:
+  // - If opened from our web/PWA (window.opener present), it posts a message back with the reference and tries to close itself.
+  // - For native: attempts a deep link back into the app.
+  // IMPORTANT: We intentionally DO NOT redirect to the web wallet automatically to avoid unexpected navigations.
   const html = `<!doctype html>
 <html>
 <head>
@@ -97,22 +99,29 @@ router.get('/verify-payment', (req, res) => {
   </style>
   <script>
     (function(){
+      var ref = ${JSON.stringify(reference || '') ? `'${String(reference || '').replace(/'/g, "\\'")}'` : "''"};
+      var targetOrigin = '${frontendUrl}';
       try {
-        // Attempt deep link first
-        setTimeout(function(){ window.location.href = '${deepLink}'; }, 50);
-        // Fallback to web after a short delay
-        setTimeout(function(){ window.location.href = '${webUrl}'; }, 1200);
-      } catch (_) {}
+        // If opened by our web app in a new tab/window, inform the opener and try to close.
+        if (window.opener && typeof window.opener.postMessage === 'function') {
+          try { window.opener.postMessage({ type: 'paystack:success', reference: ref }, targetOrigin); } catch(_){}
+          // Give the message a moment to travel, then try to close this tab.
+          setTimeout(function(){ try { window.close(); } catch(_e) {} }, 250);
+        }
+      } catch(_){}
+
+      // Also attempt deep link for native apps; do NOT auto-redirect to web.
+      try { setTimeout(function(){ window.location.href = '${deepLink}'; }, 50); } catch(_){}
     })();
   </script>
 </head>
 <body>
   <div class="box">
-    <h2>Returning to Wallet…</h2>
-    <p>If you have the app installed, you'll be taken back to it shortly.</p>
+    <h2>Payment Complete</h2>
+    <p>You can now return to the app or your wallet page.</p>
     <p>
       <a class="btn" href="${deepLink}">Open in App</a>
-      <a class="btn alt" href="${webUrl}">Open on Web</a>
+      <a class="btn alt" href="${webUrl}">Open Wallet on Web</a>
     </p>
   </div>
 </body>
